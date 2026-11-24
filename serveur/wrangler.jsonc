@@ -1,0 +1,16 @@
+// Configuration du serveur de l'assistant pour Cloudflare Workers.
+// Ne jamais écrire la clé d'API ici : ce fichier est public.
+// La clé se met dans le tableau de bord Cloudflare (Variables et secrets), sous le nom ANTHROPIC_API_KEY.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "assistant-dashboard-maison",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+  "vars": {
+    // Adresses autorisées à appeler le serveur, séparées par des virgules.
+    "ORIGINES_AUTORISEES": "https://sobhielmarouani-collab.github.io",
+    // Modèle Claude utilisé (voir platform.claude.com/docs/en/about-claude/models/overview).
+    "MODELE": "claude-opus-5-5"
+  }
+}

@@ -382,9 +382,15 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <button class="bouton ok" type="submit">Enregistrer les prénoms</button>
         <p class="info">Laissez une case vide pour retirer une personne de l'écran d'accueil.</p>
       </form>
+      <form class="carte form" id="a-form">
+        <h2>Assistant</h2>
+        <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev/assistant" autocomplete="off" spellcheck="false"></label>
+        <button class="bouton ok" type="submit">Enregistrer et tester</button>
+        <p class="info" id="a-msg">Laissez vide pour n'utiliser que les ordres simples, sans serveur.</p>
+      </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. Rien n'est envoyé en ligne. Seule la météo est téléchargée, depuis Open-Meteo.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, seules les phrases dites à l'assistant lui sont envoyées.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -576,6 +582,16 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   var couleur='bleu';
   $('g-couleurs').addEventListener('click',function(e){ var b=e.target.closest('.pastille'); if(!b) return; couleur=b.getAttribute('data-c'); [].forEach.call(this.children,function(x){x.classList.toggle('choisie',x===b);}); });
   $('g-form').addEventListener('submit',function(e){ e.preventDefault(); var t=maj($('g-titre').value), h=$('g-heure').value; if(!t||!h) return; etat.agenda.push({h:h,t:t,d:$('g-detail').value.trim(),c:couleur}); trierAgenda(); $('g-titre').value=''; $('g-detail').value=''; change(); });
+  $('a-url').value=adresseServeur();
+  $('a-form').addEventListener('submit',function(e){
+    e.preventDefault(); var v=$('a-url').value.trim(), m=$('a-msg');
+    if(v && !/^https:\/\//i.test(v)){ m.textContent='L\'adresse doit commencer par https://'; return; }
+    try{ if(v) localStorage.setItem('dashboard-maison-assistant',v); else localStorage.removeItem('dashboard-maison-assistant'); }catch(x){}
+    historique=[];
+    if(!v){ m.textContent='Aucun serveur : seuls les ordres simples sont reconnus.'; return; }
+    m.textContent='Test en cours…';
+    demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r; },function(x){ m.textContent='Le serveur ne répond pas ('+x.message+').'; });
+  });
   $('r-form').addEventListener('submit',function(e){ e.preventDefault(); etat.famille.forEach(function(m,i){ var c=$('r-n'+i); if(c) m.n=c.value.trim(); }); change(); $('r-msg').textContent='Prénoms enregistrés.'; });
 
   /* ---------- heure ---------- */
@@ -699,14 +715,34 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     if(/ouvre|affiche|montre|va |retour/.test(s)){ for(var i=0;i<pages.length;i++){ if(s.indexOf(pages[i][0])>=0){ aller(pages[i][1]); return 'Voilà.'; } } }
     if(/heure/.test(s)){ var d=new Date(); return 'Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'.'; }
     if(/meteo|temps|temperature/.test(s)){ return meteoTexte||'La météo n\'est pas encore chargée.'; }
-    return 'Je n\'ai pas compris « '+phrase+' ».';
+    return null;
+  }
+  /* serveur d'assistant (conversation libre) : adresse réglée dans Réglages, gardée sur cet appareil */
+  var historique=[], dernierEchange=0;
+  function adresseServeur(){ try{ return localStorage.getItem('dashboard-maison-assistant')||''; }catch(e){ return ''; } }
+  function demanderServeur(phrase){
+    var url=adresseServeur(); if(!url||!window.fetch) return Promise.reject(new Error('aucun serveur'));
+    if(Date.now()-dernierEchange>10*60*1000) historique=[];
+    var ctrl=window.AbortController?new AbortController():null, minuterie=setTimeout(function(){ if(ctrl) ctrl.abort(); },30000);
+    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phrase:phrase,historique:historique}),signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||typeof j.reponse!=='string') throw new Error(j.erreur||('HTTP '+r.status)); return j.reponse; }); })
+      .then(function(rep){ historique.push({role:'user',content:phrase},{role:'assistant',content:rep}); historique=historique.slice(-20); dernierEchange=Date.now(); return rep; })
+      .finally(function(){ clearTimeout(minuterie); });
+  }
+  /* ordres fixes d'abord (ils agissent sur la page) ; sinon le serveur ; serveur absent ou en panne : message habituel */
+  function repondre(phrase){
+    var local=comprendre(phrase);
+    if(local!=null){ dire('Assistant',local,true); return; }
+    if(!adresseServeur()){ dire('Assistant','Je n\'ai pas compris « '+phrase+' ».',true); return; }
+    dire('Assistant · je réfléchis','« '+phrase+' »',false);
+    demanderServeur(phrase).then(function(rep){ dire('Assistant',rep,true); },function(){ dire('Assistant','Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.',true); });
   }
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire('Assistant · résumé du jour',resume(),true); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
     reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
     reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire('Assistant · j\'écoute','Parlez maintenant…',false); };
-    reco.onresult=function(e){ dire('Assistant',comprendre(e.results[0][0].transcript),true); };
+    reco.onresult=function(e){ repondre(e.results[0][0].transcript); };
     reco.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; dire('Assistant · résumé du jour',resume(),true); } else { dire('Assistant','Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
     reco.onend=function(){ ecoute=false; $('ia').classList.remove('ecoute'); };
     try{ reco.start(); }catch(e){ dire('Assistant · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
