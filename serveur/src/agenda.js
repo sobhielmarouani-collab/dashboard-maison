@@ -15,6 +15,7 @@
 
 /* Lire et créer des événements (remplace calendar.readonly, demandé par les premières liaisons). */
 export const PERIMETRE_AGENDA = "https://www.googleapis.com/auth/calendar.events";
+export const PERIMETRES_MAIL = ["https://www.googleapis.com/auth/gmail.readonly", "https://www.googleapis.com/auth/gmail.compose"];
 const PERIMETRES_LECTURE = [PERIMETRE_AGENDA, "https://www.googleapis.com/auth/calendar.readonly"];
 const URL_JETON = "https://oauth2.googleapis.com/token";
 const URL_REVOCATION = "https://oauth2.googleapis.com/revoke";
@@ -121,7 +122,7 @@ export async function relierAgenda(env, coffre, emailSession, code) {
   if (!j.refresh_token) {
     throw new Error("Google n'a pas fourni d'accès durable. Réessayez.");
   }
-  await coffre.enregistrerAgenda(email, await chiffrer(env, j.refresh_token, email), accordes.filter((p) => PERIMETRES_LECTURE.includes(p)).join(" "));
+  await coffre.enregistrerAgenda(email, await chiffrer(env, j.refresh_token, email), accordes.filter((p) => PERIMETRES_LECTURE.includes(p) || PERIMETRES_MAIL.includes(p)).join(" "));
   jetonsAcces.set(email, { jeton: j.access_token, expire: Date.now() + (j.expires_in - 60) * 1000 });
 }
 
@@ -132,11 +133,12 @@ export async function agendaRelie(coffre, email) {
 /* { relie, ecriture } : ecriture faux pour une liaison faite en lecture seule (à refaire). */
 export async function etatAgenda(coffre, email) {
   const portee = await coffre.porteeAgenda(email);
-  if (portee === null) return { relie: false, ecriture: false };
-  return { relie: true, ecriture: portee.split(" ").includes(PERIMETRE_AGENDA) };
+  if (portee === null) return { relie: false, ecriture: false, mail: false, brouillons: false };
+  const p = portee.split(" ");
+  return { relie: true, ecriture: p.includes(PERIMETRE_AGENDA), mail: p.includes(PERIMETRES_MAIL[0]), brouillons: p.includes(PERIMETRES_MAIL[1]) };
 }
 
-async function jetonAcces(env, coffre, email) {
+export async function jetonAcces(env, coffre, email) {
   const enCache = jetonsAcces.get(email);
   if (enCache && enCache.expire > Date.now()) return enCache.jeton;
 

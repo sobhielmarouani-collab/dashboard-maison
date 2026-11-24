@@ -1732,9 +1732,9 @@ h2 svg{color:var(--neon)}
     var s=session(), dispo=!!(s&&configServeur&&configServeur.agenda);
     $('a-agenda-bloc').hidden=!dispo;
     if(!dispo) return;
-    var lectureSeule=agendaGoogle.relie&&!agendaGoogle.ecriture;
-    $('a-agenda-etat').textContent= !agendaGoogle.relie ? 'non relié' : (lectureSeule ? 'relié en lecture seule' : 'relié');
-    $('a-agenda-relier').textContent= lectureSeule ? 'Relier de nouveau' : 'Relier mon agenda Google';
+    var lectureSeule=agendaGoogle.relie&&(!agendaGoogle.ecriture||!agendaGoogle.mail);
+    $('a-agenda-etat').textContent= !agendaGoogle.relie ? 'non relié' : (!agendaGoogle.ecriture ? 'relié en lecture seule' : (!agendaGoogle.mail ? 'agenda relié, mails non autorisés' : 'agenda et mails reliés'));
+    $('a-agenda-relier').textContent= lectureSeule ? 'Relier de nouveau (agenda et mails)' : 'Relier mon agenda et mes mails Google';
     $('a-agenda-relier').hidden=agendaGoogle.relie&&!lectureSeule; $('a-agenda-delier').hidden=!agendaGoogle.relie;
   }
   function rafraichirAgenda(){
@@ -1742,7 +1742,7 @@ h2 svg{color:var(--neon)}
     agendaEnCours=true;
     var auj=new Date();
     appelServeur('/agenda/evenements?debut='+jourISO(auj)+'&fin='+jourISO(plusJours(auj,6)),{methode:'GET'}).then(function(j){
-      agendaGoogle={relie:true,disponible:true,ecriture:j.ecriture===true,evenements:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now(),erreur:''};
+      agendaGoogle={relie:true,disponible:true,ecriture:j.ecriture===true,mail:j.mail===true,evenements:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now(),erreur:''};
     },function(x){
       if(x.statut===409||x.statut===503||x.statut===401) agendaGoogle={relie:false,disponible:x.statut===409,evenements:[],maj:0,erreur:''};
       else if(agendaGoogle.relie) agendaGoogle.erreur='Agenda Google momentanément indisponible ('+x.message+'). Dernière version affichée.';
@@ -1758,7 +1758,7 @@ h2 svg{color:var(--neon)}
       callback:function(r){
         if(!r||r.error||!r.code){ m.textContent='Autorisation annulée.'; return; }
         m.textContent='Liaison de l\'agenda en cours…';
-        appelServeur('/agenda/relier',{corps:{code:r.code}}).then(function(){ m.textContent='Agenda Google relié : lecture et création de rendez-vous (avec votre confirmation).'; agendaGoogle.relie=true; agendaGoogle.ecriture=true; afficherAgendaReglage(); rafraichirAgenda(); },
+        appelServeur('/agenda/relier',{corps:{code:r.code}}).then(function(){ m.textContent='Google relié : agenda (lecture et création avec votre confirmation) et mails (lecture et brouillons), selon les cases cochées.'; agendaGoogle.relie=true; agendaGoogle.ecriture=true; afficherAgendaReglage(); rafraichirAgenda(); },
           function(x){ m.textContent='Liaison impossible : '+x.message; });
       },
       error_callback:function(e){ m.textContent= e&&e.type==='popup_closed' ? 'Fenêtre Google fermée avant la fin.' : 'Fenêtre Google bloquée ou indisponible.'; }

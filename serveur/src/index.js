@@ -31,7 +31,7 @@ import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
-import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
+import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
 
@@ -245,8 +245,8 @@ async function agenda(chemin, requete, env, origine, session) {
     // /agenda/evenements
     const params = new URL(requete.url).searchParams;
     const evenements = await lireEvenements(env, c, session.email, params.get("debut"), params.get("fin"));
-    const { ecriture } = await etatAgenda(c, session.email);
-    return json({ evenements, ecriture }, 200, origine);
+    const { ecriture, mail, brouillons } = await etatAgenda(c, session.email);
+    return json({ evenements, ecriture, mail, brouillons }, 200, origine);
   } catch (e) {
     if (e instanceof AgendaNonRelie) return json({ erreur: e.message, relie: false }, 409, origine);
     console.warn("Agenda :", e?.message);
@@ -329,7 +329,7 @@ export default {
       return json(
         {
           client_id: env.GOOGLE_CLIENT_ID || null,
-          agenda: env.GOOGLE_CLIENT_SECRET ? { perimetre: PERIMETRE_AGENDA } : null,
+          agenda: env.GOOGLE_CLIENT_SECRET ? { perimetre: [PERIMETRE_AGENDA, ...PERIMETRES_MAIL].join(" ") } : null,
         },
         200,
         autorisee,
