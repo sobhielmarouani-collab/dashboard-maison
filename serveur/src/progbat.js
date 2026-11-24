@@ -141,17 +141,17 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
   }
 
   // devis — statut documenté par ProGBat : 0 = à l'étude ou brouillon, 1 = accepté, 2 = refusé, 6 = en attente
-  const moisCourant = aujourdhui.slice(0, 7);
-  const ilYA6Mois = new Date(); ilYA6Mois.setMonth(ilYA6Mois.getMonth() - 6);
-  const seuil = ilYA6Mois.toISOString().slice(0, 10); // « à envoyer » : seulement les devis des 6 derniers mois
-  const d = { acceptes_mois: 0, acceptes_mois_nombre: 0, en_attente: 0, en_attente_total: 0, a_envoyer: 0, lus: 0, erreur: devis.erreur || null };
+  // tout est compté sur l'exercice : du 1er janvier au 31 décembre de l'année demandée
+  const dansExercice = (j) => String(j || "").slice(0, 10) >= debut && String(j || "").slice(0, 10) <= fin;
+  const d = { acceptes: 0, acceptes_nombre: 0, en_attente: 0, en_attente_total: 0, a_envoyer: 0, lus: 0, erreur: devis.erreur || null };
   for (const q of devis.lignes || []) {
     d.lus++;
-    if (q.status === 1 && String(q.statusDate || "").slice(0, 7) === moisCourant) { d.acceptes_mois += nombre(q.dealNetTotal); d.acceptes_mois_nombre++; }
+    if (q.status === 1) { if (dansExercice(q.statusDate || q.documentDate)) { d.acceptes += nombre(q.dealNetTotal); d.acceptes_nombre++; } }
+    else if (!dansExercice(q.documentDate)) continue;
     else if (q.status === 6) { d.en_attente++; d.en_attente_total += nombre(q.dealNetTotal); }
-    else if (q.status === 0 && String(q.documentDate || "").slice(0, 10) >= seuil) d.a_envoyer++;
+    else if (q.status === 0) d.a_envoyer++;
   }
-  d.acceptes_mois = arrondi(d.acceptes_mois); d.en_attente_total = arrondi(d.en_attente_total);
+  d.acceptes = arrondi(d.acceptes); d.en_attente_total = arrondi(d.en_attente_total);
 
   const resume = {
     annee: an,
