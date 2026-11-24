@@ -17,6 +17,9 @@
  *   GET  /agenda/evenements  (session) ?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ → { evenements, ecriture }
  *   POST /agenda/confirmer   (session) { id } → { cree: true, resume, lien }   crée la proposition confirmée
  *   POST /agenda/annuler     (session) { id } → { annule: true }
+ *   GET  /actualites         (session) ?rubrique=<id> → { rubriques, rubrique: { id, nom, articles, sources } }
+ *   GET  /actualites/sources (session) → { rubriques, par_defaut }
+ *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
  *
  * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
  *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules),
@@ -25,6 +28,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
+import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
@@ -248,6 +252,45 @@ async function agenda(chemin, requete, env, origine, session) {
   }
 }
 
+/* ---------- actualités ---------- */
+
+async function actualites(chemin, requete, env, origine) {
+  const c = coffre(env);
+  if (chemin === "/actualites") {
+    const rubriques = await lireRubriques(c);
+    const demande = new URL(requete.url).searchParams.get("rubrique");
+    const rubrique = trouverRubrique(rubriques, demande) || rubriques[0];
+    return json({ rubriques: rubriques.map(({ id, nom, description }) => ({ id, nom, description })), rubrique: await lireRubrique(rubrique) }, 200, origine);
+  }
+  if (requete.method === "GET") {
+    const brut = await c.lireReglage("actualites.rubriques");
+    return json({ rubriques: await lireRubriques(c), par_defaut: !brut }, 200, origine);
+  }
+  // POST /actualites/sources : on vérifie le format, on teste chaque flux, puis on enregistre
+  let corps;
+  try {
+    corps = await lireCorps(requete);
+  } catch {
+    return json({ erreur: "Corps JSON invalide." }, 400, origine);
+  }
+  let rubriques;
+  try {
+    rubriques = corps?.reinitialiser === true ? RUBRIQUES_PAR_DEFAUT : validerRubriques(corps?.rubriques);
+  } catch (e) {
+    return json({ erreur: e.message }, 400, origine);
+  }
+  const tests = await Promise.all(
+    rubriques.flatMap((r) =>
+      r.sources.map(async (s) => {
+        const f = await lireFlux(s.url, { forcer: true });
+        return { rubrique: r.nom, nom: s.nom, url: s.url, ok: !f.erreur, erreur: f.erreur, articles: f.articles.length };
+      }),
+    ),
+  );
+  await enregistrerRubriques(c, corps?.reinitialiser === true ? null : rubriques);
+  return json({ rubriques, tests }, 200, origine);
+}
+
 const ROUTES = {
   "/config": "GET",
   "/connexion": "POST",
@@ -260,6 +303,8 @@ const ROUTES = {
   "/agenda/evenements": "GET",
   "/agenda/confirmer": "POST",
   "/agenda/annuler": "POST",
+  "/actualites": "GET",
+  "/actualites/sources": ["GET", "POST"],
 };
 
 export default {
@@ -273,7 +318,7 @@ export default {
     if (requete.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: entetesCors(autorisee) });
     }
-    if (requete.method !== ROUTES[chemin]) {
+    if (![].concat(ROUTES[chemin]).includes(requete.method)) {
       return json({ erreur: "Méthode non autorisée." }, 405, autorisee);
     }
 
@@ -299,6 +344,7 @@ export default {
       return json({ ok: true }, 200, autorisee);
     }
     if (chemin.startsWith("/agenda/")) return agenda(chemin, requete, env, autorisee, session);
+    if (chemin.startsWith("/actualites")) return actualites(chemin, requete, env, autorisee);
     return assistant(requete, env, autorisee, session);
   },
 };

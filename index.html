@@ -136,7 +136,27 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 .avatar::after{content:"";position:absolute;right:2px;bottom:2px;width:20px;height:20px;border-radius:50%;background:var(--vert);border:3px solid #0d1d34}
 .membre.absent .avatar{opacity:.45}
 .membre.absent .avatar::after{background:var(--discret)}
-.outils{display:grid;grid-template-rows:1fr 1fr;gap:12px}
+.outils{display:grid;grid-template-rows:1fr 1fr 1fr;gap:10px}
+.outils .tuile{grid-auto-flow:column;justify-content:start;align-items:center;gap:8px;padding:0 12px;font-size:17px;text-align:left}
+.outils .tuile svg{width:28px;height:28px}
+.outils .tuile small{font-size:17px}
+/* ----- actualités ----- */
+.n-rubriques{display:flex;gap:10px;flex-wrap:wrap;padding-bottom:12px;border-bottom:1px solid var(--trait);margin-bottom:4px}
+.n-rubriques button{font-size:19px;padding:8px 18px;border-radius:999px}
+.n-rubriques button[aria-pressed="true"]{background:var(--bleu);color:#06121f;border-color:var(--bleu)}
+.n-art{list-style:none;padding:11px 0;border-bottom:1px solid rgba(29,79,143,.5);display:grid;gap:3px}
+.n-art a,.n-art span.t{color:var(--texte);font-size:21px;font-weight:600;line-height:1.25;text-decoration:none}
+.n-art a:hover,.n-art a:focus{text-decoration:underline}
+.n-art small{font-size:15.5px;color:var(--discret)}
+.n-art small b{color:var(--bleu);font-weight:600}
+.n-src{list-style:none;display:grid;grid-template-columns:14px 1fr;gap:4px 10px;align-items:start;padding:7px 0;border-bottom:1px solid rgba(29,79,143,.4);font-size:17px}
+.n-src i{width:12px;height:12px;border-radius:50%;margin-top:6px;background:var(--vert)}
+.n-src.ko i{background:var(--rouge)}
+.n-src small{grid-column:2;font-size:14px;color:var(--discret);word-break:break-all}
+.boite.n-boite{width:1000px;max-height:880px;overflow:auto;gap:14px}
+.n-boite fieldset{border:1.5px solid var(--trait);border-radius:12px;padding:12px 16px;display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end}
+.n-boite fieldset textarea{grid-column:1/-1;font:inherit;font-size:16px;color:var(--texte);background:#07101f;border:1.5px solid var(--trait);border-radius:10px;padding:8px 12px;height:110px;resize:vertical;width:100%;-webkit-user-select:text;user-select:text}
+.n-boite input{width:100%;height:44px;font-size:17px}
 .tuile{display:grid;place-items:center;align-content:center;gap:2px;font-size:20px;font-weight:700;padding:0;line-height:1.1}
 .tuile svg{width:40px;height:40px;color:var(--bleu)}
 .tuile small{font-size:22px;font-variant-numeric:tabular-nums;color:var(--jaune)}
@@ -282,6 +302,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   <symbol id="n-chantiers" viewBox="0 0 24 24"><path d="M6 21V4l12 3M6 8h13M16 8v4M3 21h18M10 21v-6h4v6"/></symbol>
   <symbol id="n-agenda" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
   <symbol id="n-taches" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 12l2.500 2.500L16 9"/></symbol>
+  <symbol id="n-actualites" viewBox="0 0 24 24"><path d="M4 5h13v14H6a2 2 0 0 1-2-2V5z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7 9h7M7 12.500h7M7 16h4"/></symbol>
   <symbol id="n-meteo" viewBox="0 0 24 24"><circle cx="16" cy="8" r="3"/><path d="M7 19a4.500 4.500 0 0 1 .5-9 6 6 0 0 1 11.500 2 3.500 3.500 0 0 1-.5 7z"/></symbol>
   <symbol id="n-gestion" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2M20 20v-4"/></symbol>
   <symbol id="n-reglages" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/></symbol>
@@ -339,6 +360,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </article>
       <div class="outils">
         <button class="carte tuile" id="t-minuteur" type="button"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/></svg><span>Minuteur</span><small id="t-reste"></small></button>
+        <button class="carte tuile" id="t-infos" type="button" data-aller="actualites"><svg class="i"><use href="#n-actualites"/></svg><span>Actualités</span></button>
         <button class="carte tuile" id="t-ecran" type="button"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Plein écran</span></button>
       </div>
     </div>
@@ -420,6 +442,20 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     </div>
   </section>
 
+  <!-- ===== ACTUALITÉS (ouvert par la tuile de l'accueil ou à la voix ; pas dans la barre du bas) ===== -->
+  <section class="vue page" id="v-actualites">
+    <div class="entete"><h1><svg class="i"><use href="#n-actualites"/></svg>Actualités</h1><div style="display:flex;gap:12px;align-items:center"><span class="info" id="n-maj"></span><button class="bouton ok" type="button" id="n-lire">Lire les titres</button><button class="bouton" type="button" id="n-gerer">Gérer les sources</button><span class="h" data-heure></span></div></div>
+    <div class="corps deux">
+      <div class="carte" style="overflow:auto;min-height:0"><div class="n-rubriques" id="n-rubriques" role="group" aria-label="Rubriques"></div><ul id="n-liste"><li class="vide">Chargement…</li></ul></div>
+      <div class="carte form" style="overflow:auto;min-height:0">
+        <h2>Sources de la rubrique</h2>
+        <ul id="n-sources"></ul>
+        <button class="bouton" type="button" id="n-tester">Tester les sources</button>
+        <p class="info" id="n-msg">Les titres sont relus toutes les 15 minutes. Touchez un titre pour ouvrir l'article sur le site de la source.</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== GESTION ===== -->
   <section class="vue page" id="v-gestion">
     <div class="entete"><h1><svg class="i"><use href="#n-gestion"/></svg>Gestion <span class="demo" style="position:static;font-size:15px;font-weight:400" id="ge-date">Chiffres ProGBat, saisis à la main</span></h1><div style="display:flex;gap:12px;align-items:center"><a class="bouton" id="ge-lien" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;text-decoration:none;color:inherit">Ouvrir ProGBat</a><button class="bouton ok" type="button" id="ge-ouvrir">Mettre à jour les chiffres</button><span class="h" data-heure></span></div></div>
@@ -483,7 +519,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir. Si l'agenda Google est relié, le serveur lit ses événements, affichés ici sans être gardés sur l'appareil, et n'y ajoute un rendez-vous qu'après votre confirmation.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir. Si l'agenda Google est relié, le serveur lit ses événements, affichés ici sans être gardés sur l'appareil, et n'y ajoute un rendez-vous qu'après votre confirmation. Les actualités sont lues par le serveur dans les flux RSS choisis (écran Actualités) ; rien de ce que vous faites n'est transmis à ces sites.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -529,6 +565,15 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     </form>
   </div>
 
+  <div class="voile" id="n-voile">
+    <form class="boite form n-boite" id="n-form">
+      <h3>Rubriques et sources d'actualités</h3>
+      <p class="info">Une source par ligne : <b>nom | adresse du flux RSS</b>, par exemple <code>franceinfo | https://www.francetvinfo.fr/titres.rss</code>. La description aide Sigma à choisir la rubrique (« quoi de neuf à Toulouse » → la rubrique dont la description cite Toulouse). 6 rubriques et 18 sources au plus. La liste est commune à tous vos appareils.</p>
+      <div id="n-champs" style="display:grid;gap:12px"></div>
+      <div class="actions" style="justify-content:flex-start;flex-wrap:wrap"><button class="bouton" type="button" id="n-ajouter">Ajouter une rubrique</button><button class="bouton ok" type="submit">Enregistrer et tester</button><button class="bouton" type="button" id="n-origine">Revenir aux sources d'origine</button><button class="bouton" type="button" id="n-fermer">Fermer</button></div>
+      <div class="info" id="n-resultat"></div>
+    </form>
+  </div>
   <div class="voile" id="rv-voile" role="dialog" aria-modal="true" aria-labelledby="rv-titre">
     <div class="boite">
       <h3 id="rv-titre">Ajouter à l'agenda Google ?</h3>
@@ -607,7 +652,8 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     if(!$('v-'+v)) v='accueil';
     vueActive = v;
     if(v==='agenda' && Date.now()-agendaGoogle.maj>60000) rafraichirAgenda();
-    ONGLETS.forEach(function(o){ $('v-'+o[0]).classList.toggle('active', o[0]===v); });
+    [].forEach.call(document.querySelectorAll('section.vue'),function(x){ x.classList.toggle('active', x.id==='v-'+v); });
+    if(v==='actualites') ouvrirActualites();
     [].forEach.call($('nav').children,function(b){ var a=b.getAttribute('data-aller')===v; b.classList.toggle('actif',a); if(a) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
     try{ if(location.hash.slice(1)!==v) location.hash = v; }catch(e){}
   }
@@ -960,7 +1006,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       if(cibles.length){ cibles.forEach(function(p){ lumiere(p[0],allume); }); change(); return (allume?'J\'allume ':'J\'éteins ')+cibles.map(function(p){return p[1].toLowerCase();}).join(', ')+'.'; }
     }
     if(/volet/.test(s)){ etat.volets=/ouvr|leve|monte/.test(s); change(); return etat.volets?'J\'ouvre les volets.':'Je ferme les volets.'; }
-    var pages=[['gestion','gestion'],['progbat','gestion'],['chiffre','gestion'],['agenda','agenda'],['tache','taches'],['chantier','chantiers'],['meteo','meteo'],['reglage','reglages'],['maison','maison'],['accueil','accueil']];
+    var pages=[['actualit','actualites'],['infos','actualites'],['gestion','gestion'],['progbat','gestion'],['chiffre','gestion'],['agenda','agenda'],['tache','taches'],['chantier','chantiers'],['meteo','meteo'],['reglage','reglages'],['maison','maison'],['accueil','accueil']];
     if(/ouvre|affiche|montre|va |retour/.test(s)){ for(var i=0;i<pages.length;i++){ if(s.indexOf(pages[i][0])>=0){ aller(pages[i][1]); return 'Voilà.'; } } }
     if(/heure/.test(s)){ var d=new Date(); return 'Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'.'; }
     if(/meteo|temps|temperature/.test(s)){ return meteoTexte||'La météo n\'est pas encore chargée.'; }
@@ -1032,6 +1078,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         case 'chauffage': if(+d.consigne>=15&&+d.consigne<=25){ etat.chauffage=Math.round(+d.consigne*2)/2; modifie=true; } break;
         case 'presence': i=trouverPar(etat.famille,'n',d.nom); if(i>=0){ etat.famille[i].la=!!d.a_la_maison; modifie=true; } break;
         case 'actualiser_meteo': meteo(); break;
+        case 'afficher_actualites': aller('actualites'); chargerActualites(typeof d.rubrique==='string'?d.rubrique:''); break;
         case 'changer_ville': if(typeof d.ville==='string'&&d.ville){ chercherLieu(d.ville,d.pays).then(function(l){ if(l.length){ choisirLieu(l[0]); aller('meteo'); } },function(){}); } break;
       }
     });
@@ -1172,6 +1219,96 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     $('ia').click();
   });
   $('rv-annuler').addEventListener('click',annulerProposition);
+
+  /* ---------- actualités (étape 6) : titres lus par le serveur dans des flux RSS publics ----------
+     Les titres viennent de sites extérieurs : ils sont affichés comme du texte (jamais comme du HTML)
+     et les liens ne s'ouvrent que s'ils commencent par http(s). */
+  var actus={rubriques:[],courante:'',donnees:null,maj:0};
+  var fJourCourt=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short'});
+  function quandArticle(a){
+    if(!a.jour) return '';
+    var auj=jourISO(new Date()), hier=jourISO(plusJours(new Date(),-1));
+    return a.jour===auj ? a.heure : (a.jour===hier ? 'hier '+a.heure : fJourCourt.format(new Date(a.jour+'T12:00:00'))+' '+a.heure);
+  }
+  function messageActus(t){ $('n-rubriques').innerHTML=''; $('n-sources').innerHTML=''; $('n-maj').textContent=''; $('n-liste').innerHTML='<li class="vide">'+esc(t)+'</li>'; }
+  function ouvrirActualites(){ if(Date.now()-actus.maj>60000) chargerActualites(); else dessinerActualites(); }
+  function chargerActualites(id){
+    if(!adresseServeur()||!session()){ messageActus('Les actualités sont lues par le serveur de Sigma : réglez son adresse et connectez-vous avec Google dans l\'onglet Réglages.'); return; }
+    if(typeof id==='string') actus.courante=id;
+    $('n-maj').textContent='Mise à jour…';
+    appelServeur('/actualites?rubrique='+encodeURIComponent(actus.courante||''),{methode:'GET'}).then(function(j){
+      actus.rubriques=Array.isArray(j.rubriques)?j.rubriques:[]; actus.donnees=j.rubrique||null; actus.courante=actus.donnees?actus.donnees.id:''; actus.maj=Date.now();
+      dessinerActualites();
+    },function(x){ messageActus('Actualités indisponibles : '+x.message); });
+  }
+  function dessinerActualites(){
+    var r=actus.donnees; if(!r) return;
+    $('n-rubriques').innerHTML=actus.rubriques.map(function(x){ return '<button class="bouton" type="button" data-rubrique="'+esc(x.id)+'" aria-pressed="'+(x.id===r.id)+'" title="'+esc(x.description||'')+'">'+esc(x.nom)+'</button>'; }).join('');
+    $('n-liste').innerHTML = r.articles.length ? r.articles.map(function(a){
+      var lien=/^https?:\/\//i.test(a.lien||'') ? a.lien : '';
+      return '<li class="n-art">'+(lien?'<a href="'+esc(lien)+'" target="_blank" rel="noopener noreferrer">'+esc(a.titre)+'</a>':'<span class="t">'+esc(a.titre)+'</span>')+'<small><b>'+esc(a.source)+'</b>'+(a.jour?' · '+esc(quandArticle(a)):'')+'</small></li>';
+    }).join('') : '<li class="vide">Aucun titre pour le moment : vérifiez les sources à droite.</li>';
+    $('n-sources').innerHTML=r.sources.map(function(x){ return '<li class="n-src'+(x.ok?'':' ko')+'"><i></i><span>'+esc(x.nom)+(x.ok?' · '+x.articles+' titres':' · indisponible')+'</span><small>'+esc(x.ok?x.url:(x.erreur||'erreur')+' — '+x.url)+'</small></li>'; }).join('');
+    $('n-maj').textContent='Mis à jour à '+p2(new Date(actus.maj).getHours())+':'+p2(new Date(actus.maj).getMinutes());
+  }
+  $('n-rubriques').addEventListener('click',function(e){ var b=e.target.closest('[data-rubrique]'); if(b) chargerActualites(b.getAttribute('data-rubrique')); });
+  setInterval(function(){ if(vueActive==='actualites') chargerActualites(); },15*60*1000);
+  /* lecture à voix haute des cinq premiers titres, sans passer par l'IA */
+  $('n-lire').addEventListener('click',function(){
+    var r=actus.donnees; if(!r||!r.articles.length){ dire(NOM,'Je n\'ai pas de titres à lire pour le moment.',true); return; }
+    dire(NOM,'Actualités, '+r.nom+'. '+r.articles.slice(0,5).map(function(a){ return 'Selon '+a.source+' : '+a.titre.replace(/\b(?:https?:\/\/|www\.)\S+/gi,'')+'.'; }).join(' '),true);
+  });
+  /* tester toutes les sources depuis le serveur (sans rien changer à la liste) */
+  function resultatsTests(t){
+    var ko=t.filter(function(x){ return !x.ok; });
+    return t.length+' source'+(t.length>1?'s':'')+' testée'+(t.length>1?'s':'')+' : '+(t.length-ko.length)+' répond'+(t.length-ko.length>1?'ent':'')+(ko.length?', '+ko.length+' en échec ('+ko.map(function(x){ return x.rubrique+' › '+x.nom+' : '+x.erreur; }).join(' ; ')+').':'.');
+  }
+  $('n-tester').addEventListener('click',function(){
+    var m=$('n-msg'); m.textContent='Test des sources en cours…';
+    appelServeur('/actualites/sources',{methode:'GET'}).then(function(j){
+      return appelServeur('/actualites/sources',{corps: j.par_defaut ? {reinitialiser:true} : {rubriques:j.rubriques}});
+    }).then(function(j){ m.textContent=resultatsTests(j.tests); actus.maj=0; chargerActualites(); },function(x){ m.textContent='Test impossible : '+x.message; });
+  });
+  /* fenêtre « Gérer les sources » : une rubrique = nom, description, une source par ligne « nom | adresse » */
+  function champRubrique(r){
+    var f=document.createElement('fieldset'); f.setAttribute('data-id',r.id||'');
+    f.innerHTML='<label>Nom de la rubrique<input type="text" maxlength="30" data-c="nom" autocomplete="off"></label><label>Description (aide Sigma à choisir)<input type="text" maxlength="120" data-c="description" autocomplete="off"></label><button class="bouton danger" type="button" data-c="retirer">Retirer</button><textarea data-c="sources" spellcheck="false" placeholder="Nom de la source | https://site.fr/flux.rss"></textarea>';
+    f.querySelector('[data-c=nom]').value=r.nom||''; f.querySelector('[data-c=description]').value=r.description||'';
+    f.querySelector('[data-c=sources]').value=(r.sources||[]).map(function(x){ return x.nom+' | '+x.url; }).join('\n');
+    return f;
+  }
+  function ouvrirGestion(){
+    $('n-resultat').textContent=''; $('n-champs').innerHTML='<p class="info">Chargement…</p>'; $('n-voile').classList.add('ouvert');
+    appelServeur('/actualites/sources',{methode:'GET'}).then(function(j){
+      $('n-champs').innerHTML=''; j.rubriques.forEach(function(r){ $('n-champs').appendChild(champRubrique(r)); });
+    },function(x){ $('n-champs').innerHTML=''; $('n-resultat').textContent='Impossible de lire la liste : '+x.message; });
+  }
+  $('n-gerer').addEventListener('click',function(){ if(!adresseServeur()||!session()){ $('n-msg').textContent='Connectez-vous d\'abord dans l\'onglet Réglages.'; return; } ouvrirGestion(); });
+  $('n-fermer').addEventListener('click',function(){ $('n-voile').classList.remove('ouvert'); });
+  $('n-ajouter').addEventListener('click',function(){ if($('n-champs').children.length>=6){ $('n-resultat').textContent='6 rubriques au plus.'; return; } $('n-champs').appendChild(champRubrique({})); });
+  $('n-champs').addEventListener('click',function(e){ var b=e.target.closest('[data-c=retirer]'); if(b) b.closest('fieldset').remove(); });
+  function envoyerSources(corps){
+    var m=$('n-resultat'); m.textContent='Enregistrement et test de chaque source…';
+    appelServeur('/actualites/sources',{corps:corps}).then(function(j){
+      m.textContent='Enregistré. '+resultatsTests(j.tests);
+      $('n-champs').innerHTML=''; j.rubriques.forEach(function(r){ $('n-champs').appendChild(champRubrique(r)); });
+      actus.courante=''; actus.maj=0; chargerActualites();
+    },function(x){ m.textContent='Non enregistré : '+x.message; });
+  }
+  $('n-form').addEventListener('submit',function(e){
+    e.preventDefault();
+    var rubriques=[].map.call($('n-champs').children,function(f){
+      return { id:f.getAttribute('data-id')||'', nom:f.querySelector('[data-c=nom]').value, description:f.querySelector('[data-c=description]').value,
+        sources:f.querySelector('[data-c=sources]').value.split('\n').map(function(l){ return l.trim(); }).filter(Boolean).map(function(l){
+          var i=l.lastIndexOf('|'); return i>=0 ? {nom:l.slice(0,i).trim(),url:l.slice(i+1).trim()} : {nom:'',url:l};
+        }) };
+    });
+    envoyerSources({rubriques:rubriques});
+  });
+  $('n-origine').addEventListener('click',function(){
+    var b=this; if(b.getAttribute('data-sur')!=='1'){ b.setAttribute('data-sur','1'); b.textContent='Toucher encore pour confirmer'; return; }
+    b.removeAttribute('data-sur'); b.textContent='Revenir aux sources d\'origine'; envoyerSources({reinitialiser:true});
+  });
 
   /* ---------- agenda Google : relier, délier, rafraîchir ---------- */
   var agendaEnCours=false;

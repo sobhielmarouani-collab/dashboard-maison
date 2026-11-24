@@ -7,6 +7,7 @@ Il est hébergé gratuitement chez **Cloudflare Workers** sous le nom `assistant
 - **Étape 2, accès réservé :** le serveur ne répond qu'aux personnes connectées avec un compte Google figurant dans votre liste d'adresses autorisées. Le nombre de questions est limité par heure.
 - **Étape 4, agenda Google :** l'onglet Agenda affiche les vrais événements de votre agenda Google sur 7 jours, et l'assistant répond à « qu'est-ce que j'ai demain ? ». Il peut aussi **ajouter un rendez-vous** à l'agenda Google, mais seulement après votre confirmation à l'écran ou à la voix. Il ne peut ni modifier ni supprimer un événement.
 - **Étape 3, actions du dashboard :** l'IA comprend les formulations libres (« j'ai fini le devis », « mets un rappel dans dix minutes », « passe le chantier Dupont à 80 % ») et agit sur l'écran : tâches, chantiers, rendez-vous du jour, minuteur, onglets, lumières, volets, chauffage, présence.
+- **Étape 6, actualités :** Sigma lit les titres du jour (« donne-moi les infos », « les actualités du bâtiment », « quoi de neuf à Toulouse ») à partir de flux RSS publics. Les titres sont aussi consultables à l'écran Actualités, avec la source, l'heure et un lien vers l'article. Les rubriques et les sources se modifient depuis le dashboard, sans toucher au code.
 
 > **Règle absolue : aucune valeur privée dans ce dépôt.** Il est public. La clé d'API, l'identifiant client Google et la liste des adresses se mettent uniquement dans le tableau de bord Cloudflare, sous forme de « secrets » chiffrés (type **Secret**, jamais **Texte** ni **Variable**).
 >
@@ -210,6 +211,66 @@ Le lien est enregistré **sur le serveur, pour votre adresse**. Sur un autre PC 
 - **Pour couper l'accès :** Réglages › **Délier**. Le serveur oublie le lien et le révoque chez Google. Vous pouvez aussi le retirer depuis **myaccount.google.com › Sécurité › Connexions à des applications et services tiers**.
 - **Si vous changez le code secret du client :** mettez à jour `GOOGLE_CLIENT_SECRET` dans Cloudflare, puis reliez l'agenda de nouveau. L'ancien lien, chiffré avec l'ancien secret, n'est plus lisible et il est effacé tout seul.
 
+### J. Étape 6 : actualités
+
+**Aucun nouveau secret, aucun compte à créer.** Les flux RSS sont publics. Les quatre secrets Cloudflare restent tels quels, de type **Secret**.
+
+**1. Mettre en service**
+
+Fusionnez la branche dans `main` : Cloudflare redéploie le serveur et GitHub Pages publie la page. Le stockage des réglages (table `reglages` du Coffre) se crée tout seul.
+
+**2. Où trouver les actualités**
+
+La barre du bas garde ses huit onglets. Les actualités ont leur propre écran, ouvert :
+- par la tuile **Actualités** de l'accueil, entre **Minuteur** et **Plein écran** ;
+- à la voix : « Sigma, montre-moi les infos », ou en répondant « oui » quand Sigma propose de les afficher après les avoir lues.
+
+On en revient par **Accueil** dans la barre du bas. L'écran affiche les rubriques en boutons, les titres du plus récent au plus ancien avec la source et l'heure, et l'état de chaque source à droite (point vert : la source répond ; point rouge : elle est en échec, avec la raison). Toucher un titre ouvre l'article sur le site de la source, dans un nouvel onglet. Le bouton **Lire les titres** lit les cinq premiers à voix haute sans passer par l'IA.
+
+**3. Vérifier les sources (à faire une fois)**
+
+Les flux d'origine sont ceux de médias reconnus. Ils n'ont **pas pu être testés depuis l'environnement où ce code a été écrit**, car l'accès à ces sites y était bloqué. Seul votre serveur peut confirmer qu'ils répondent :
+1. Ouvrez l'écran **Actualités** (connecté sur le PC).
+2. Touchez **Tester les sources**. Le message indique combien de sources répondent. Chaque rubrique affiche à droite l'état de ses sources.
+3. Pour une source en rouge, ouvrez **Gérer les sources** et remplacez son adresse (voir point 4). Une rubrique fonctionne tant qu'une de ses sources répond.
+
+| Rubrique | Sources d'origine | Adresse du flux |
+|---|---|---|
+| France | franceinfo | `https://www.francetvinfo.fr/titres.rss` |
+| | Le Monde (à la une) | `https://www.lemonde.fr/rss/une.xml` |
+| BTP | Le Moniteur | `https://www.lemoniteur.fr/rss/actualites.xml` |
+| | Batiactu | `https://www.batiactu.com/rss/index.php` |
+| Occitanie | La Dépêche, Toulouse | `https://www.ladepeche.fr/communes/toulouse,31555.rss` |
+| | La Dépêche, Albi | `https://www.ladepeche.fr/communes/albi,81004.rss` |
+| | France 3 Occitanie | `https://france3-regions.francetvinfo.fr/occitanie/rss` |
+
+**Trouver l'adresse d'un flux RSS :** sur le site du média, cherchez le logo RSS (souvent en bas de page) ou une page « Flux RSS ». L'adresse finit souvent par `.rss`, `.xml` ou `/rss`. Ouverte dans le navigateur, elle affiche du texte balisé (`<rss>` ou `<feed>`), pas une page normale. Pour une ville, La Dépêche et actu.fr proposent des flux par commune (par exemple `https://actu.fr/occitanie/toulouse_31555/rss.xml`).
+
+**4. Modifier les rubriques et les sources**
+
+1. Écran **Actualités** › **Gérer les sources**.
+2. Chaque rubrique a :
+   - un **nom**, qui s'affiche sur le bouton ;
+   - une **description**, qui aide Sigma à choisir la rubrique. Citez-y les villes et les sujets : « quoi de neuf à Toulouse » va dans la rubrique dont la description contient « Toulouse ».
+   - ses **sources**, une par ligne, au format `Nom de la source | https://adresse-du-flux`.
+3. **Ajouter une rubrique** ou **Retirer** une rubrique selon vos besoins : 6 rubriques et 18 sources au plus, en `https://` uniquement.
+4. Touchez **Enregistrer et tester**. Chaque source est testée par le serveur, puis la liste est enregistrée. Le résultat indique celles qui échouent.
+5. **Revenir aux sources d'origine** (deux appuis) rétablit la liste ci-dessus.
+
+La liste est enregistrée sur le serveur : elle est **commune à tous vos appareils** et à toutes les adresses autorisées.
+
+**5. Essayer**
+
+| Phrase | Résultat attendu |
+|---|---|
+| « Sigma, donne-moi les infos » | cinq titres récents de la rubrique France, avec leur source, puis Sigma propose de les afficher |
+| « Les actualités du bâtiment » | titres de la rubrique BTP |
+| « Quoi de neuf à Toulouse ? » | titres de la rubrique Occitanie |
+| « Oui, montre-les » | l'écran Actualités s'ouvre sur cette rubrique |
+| « Sigma, ouvre les actualités » | l'écran Actualités s'ouvre |
+
+Si toutes les sources d'une rubrique sont en échec, Sigma le dit au lieu d'inventer des titres.
+
 ## Gérer l'accès au quotidien
 
 - **Ajouter une personne :** ajoutez son adresse dans `ADRESSES_AUTORISEES` (Cloudflare). En audience Externe seulement, ajoutez-la aussi aux utilisateurs test (Google, point D.4).
@@ -226,6 +287,11 @@ Le lien est enregistré **sur le serveur, pour votre adresse**. Sur un autre PC 
 - L'IA ne peut agir que sur les éléments listés plus haut, et seulement sur cet écran. Chaque action est vérifiée par le serveur puis par la page. Elle ne peut ni effacer toutes les données, ni toucher aux Réglages, ni envoyer quoi que ce soit à l'extérieur.
 - Le résumé de l'écran envoyé avec chaque question n'est pas conservé par le serveur. Il ne sert qu'à la question en cours.
 - **Agenda Google :** l'accès porte sur l'agenda principal : lecture, et ajout d'un rendez-vous seulement après votre confirmation. Aucune modification ni suppression n'est possible. Le serveur garde seulement le jeton de rafraîchissement de Google. Il est chiffré (AES-GCM) avec une clé tirée de `GOOGLE_CLIENT_SECRET` et lié à votre adresse : copié sur une autre adresse, il est illisible. Les événements ne sont gardés ni sur le serveur ni dans le navigateur ; ils sont relus toutes les 5 minutes. L'assistant traite leur contenu (titres, lieux) comme une donnée et jamais comme une instruction, car une invitation reçue peut venir de n'importe qui.
+- **Actualités :** le contenu des flux vient de sites extérieurs. Il est traité comme une donnée, jamais comme une instruction :
+  - le serveur ne garde que les titres, les liens, les sources et les dates, et retire les balises HTML ;
+  - Sigma reçoit les titres sans lien ni adresse, dans un bloc marqué « données », avec la consigne d'ignorer toute demande qu'un titre semblerait contenir ;
+  - l'écran affiche les titres comme du texte : une balise ou un script glissé dans un titre ne s'exécute pas, et seuls les liens en `http(s)` sont cliquables ;
+  - le serveur n'accepte que des sources publiques en `https://` (pas d'adresse IP ni de nom local), limite chaque flux à 3 Mo et 8 secondes, et garde les titres 10 minutes en mémoire.
 - Gardez la limite de dépense mensuelle chez Anthropic (point A.3) comme filet de sécurité supplémentaire.
 - **Si vous pensez que la clé Anthropic a fuité :** platform.claude.com › API Keys, supprimez-la, créez-en une nouvelle et remplacez le secret dans Cloudflare.
 
@@ -253,6 +319,7 @@ Fichiers :
 | `src/coffre.js` | Durable Object : sessions et compteurs (SQLite) |
 | `src/modele.js` | appel à Claude via le SDK officiel `@anthropic-ai/sdk`, boucle de l'outil `action_dashboard` (4 appels au plus par question) |
 | `src/agenda.js` | agenda Google : échange du code d'autorisation, chiffrement du jeton de rafraîchissement, lecture des événements à l'heure de Paris, vérification et création d'un rendez-vous confirmé |
+| `src/actualites.js` | rubriques et sources (liste d'origine, validation, enregistrement dans le Coffre), lecture et analyse des flux RSS et Atom, titres remis au modèle |
 | `src/dashboard.js` | définition de l'outil, nettoyage de l'état envoyé par la page, vérification de chaque action |
 
 Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; tous sauf `/config` et `/connexion` exigent `Authorization: Bearer <session>`.
@@ -269,6 +336,9 @@ Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; to
 | `GET /agenda/evenements?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ` | aucun | `{ evenements: [{ jour, debut, fin, journee, titre, lieu }], ecriture }` (31 jours au plus), ou 409 si non relié |
 | `GET /session` | aucun | `{ email }` ou 401 |
 | `POST /deconnexion` | aucun | `{ ok: true }` |
+| `GET /actualites?rubrique=<id ou mot>` | aucun | `{ rubriques, rubrique: { id, nom, articles: [{ titre, lien, source, jour, heure }], sources: [{ nom, url, ok, erreur, articles }] } }` |
+| `GET /actualites/sources` | aucun | `{ rubriques, par_defaut }` |
+| `POST /actualites/sources` | `{ rubriques }` ou `{ reinitialiser: true }` | `{ rubriques, tests }` : chaque source est testée, puis la liste est enregistrée ; 400 si le format est invalide |
 | `POST /assistant` | `{ phrase, historique, etat }` | `{ reponse, actions, confirmation, restant }` (`confirmation` : proposition de rendez-vous à afficher, ou `null`), ou 401 (pas de session), 429 (limite horaire, en-tête `Retry-After`), 502/503 (IA indisponible) |
 
 Pour les essais locaux seulement, `GOOGLE_CLES_TEST` peut pointer vers un serveur de clés sur `http://localhost:…`. Toute autre valeur est ignorée et les clés de Google sont utilisées.
