@@ -479,6 +479,46 @@ h2 svg{color:var(--neon)}
 .pe-choix button[aria-pressed=true]{background:rgba(0,150,255,.35);border-color:var(--neon);box-shadow:0 0 12px rgba(0,191,255,.4)}
 .pe-choix button.abs[aria-pressed=true]{background:rgba(255,82,103,.25);border-color:var(--rouge);box-shadow:0 0 12px rgba(255,82,103,.35)}
 @media (prefers-reduced-motion:reduce){.cc-bloc,.cc-actus,.cc-pilule .micro,.cc-centre .ia .ondes span{animation:none!important}}
+
+/* ---- page Minuteur ---- */
+.mn-corps{grid-template-columns:1.25fr 1fr}
+.mn-grand{display:grid;place-items:center;align-content:center;gap:26px;padding:20px}
+.mn-cadran{position:relative;width:440px;height:440px}
+.mn-cadran svg{width:100%;height:100%;transform:rotate(-90deg)}
+.mn-cadran circle{fill:none;stroke-width:14}
+.mn-cadran .f{stroke:rgba(120,150,190,.22)}
+.mn-cadran .p{stroke:var(--neon);stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(0,191,255,.9));transition:stroke-dasharray .25s linear,stroke .3s}
+.mn-cadran .c{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:6px;text-align:center}
+.mn-cadran .c small{font-size:22px;color:var(--discret);min-height:28px}
+.mn-cadran .c b{font-size:104px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(0,191,255,.45)}
+.mn-cadran .c b.long{font-size:78px}
+#v-minuteur[data-etat=pause] .p{stroke:var(--orange);filter:drop-shadow(0 0 8px rgba(255,176,32,.9))}
+#v-minuteur[data-etat=fini] .p,#v-minuteur[data-etat=fini] .f{stroke:var(--rouge)}
+#v-minuteur[data-etat=fini] .mn-cadran b{color:var(--rouge);animation:mn-clign 1s steps(2) infinite}
+@keyframes mn-clign{50%{opacity:.35}}
+.mn-boutons{display:flex;gap:16px}
+.mn-boutons .bouton{min-width:230px;height:68px;font-size:24px}
+.mn-cote{align-content:start;gap:14px;padding:22px 26px}
+.mn-rapides{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.mn-rapides .bouton{height:64px;font-size:21px;padding:0}
+.mn-perso{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.mn-son{display:flex;gap:12px}
+.mn-son .bouton[aria-pressed=true]{border-color:var(--vert);box-shadow:0 0 12px rgba(0,229,160,.35)}
+/* ---- saisies : planning, échéances, chantiers ---- */
+.cc-table{display:grid;gap:6px;max-height:300px;overflow:auto}
+.cc-rang{display:grid;grid-template-columns:16px 1fr auto 48px;gap:12px;align-items:center;background:rgba(6,20,40,.6);border:1px solid var(--trait);border-radius:10px;padding:5px 8px 5px 14px;font-size:18px}
+.cc-rang i{width:14px;height:14px;border-radius:50%}
+.cc-rang small{color:var(--discret);font-size:15px;white-space:nowrap}
+.cc-rang .rond{width:44px;height:44px}
+.cc-rang span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-ajout{display:grid;gap:12px;align-items:end}
+.cc-ajout input,.cc-ajout select{width:100%;color-scheme:dark}
+.st-b{font-size:14px;font-weight:600;border:1px solid var(--discret);color:var(--discret);background:none;border-radius:99px;padding:1px 12px;margin-left:10px;vertical-align:middle}
+.st-b.ok{border-color:var(--vert);color:var(--vert)}.st-b.attention{border-color:var(--orange);color:var(--orange)}.st-b.retard{border-color:var(--rouge);color:var(--rouge)}
+#c-form select{width:100%}
+.boite.g-boite{width:1120px;max-height:840px}
+.boite.g-boite textarea{height:150px}
+@media (prefers-reduced-motion:reduce){#v-minuteur[data-etat=fini] .mn-cadran b{animation:none}}
 </style>
 </head>
 <body>
@@ -552,7 +592,7 @@ h2 svg{color:var(--neon)}
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg>Planning des 7 prochains jours</span><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg>Planning des 7 prochains jours</span><span><button class="cc-lien" type="button" id="p2-gerer">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -569,7 +609,7 @@ h2 svg{color:var(--neon)}
         <div class="cc-fin" id="f2"></div>
       </article>
       <article class="carte cc-bloc">
-        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances &amp; actions <em id="e2-nb"></em></span><button class="cc-lien" type="button" data-aller="gestion">Voir tout →</button></h2>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances &amp; actions <em id="e2-nb"></em></span><button class="cc-lien" type="button" id="e2-gerer">Voir tout →</button></h2>
         <ul class="cc-ech" id="e2"></ul>
       </article>
       <article class="carte cc-bloc">
@@ -605,6 +645,33 @@ h2 svg{color:var(--neon)}
     </div>
   </section>
 
+  <!-- ===== MINUTEUR ===== -->
+  <section class="vue page" id="v-minuteur" data-etat="pret">
+    <div class="entete"><h1><svg class="i"><use href="#n-minuteur"/></svg>Minuteur</h1><span class="h" data-heure></span></div>
+    <div class="corps mn-corps">
+      <div class="carte mn-grand">
+        <div class="mn-cadran">
+          <svg viewBox="0 0 320 320" aria-hidden="true"><circle class="f" cx="160" cy="160" r="146"/><circle class="p" id="mn-arc" cx="160" cy="160" r="146"/></svg>
+          <div class="c"><small id="mn-etat">Prêt</small><b id="mn-temps" role="timer">05:00</b><small id="mn-fin"></small></div>
+        </div>
+        <div class="mn-boutons"><button class="bouton ok" type="button" id="mn-go">Démarrer</button><button class="bouton" type="button" id="mn-raz">Réinitialiser</button></div>
+      </div>
+      <div class="carte form mn-cote">
+        <h2>Durées rapides</h2>
+        <div class="mn-rapides"><button class="bouton" type="button" data-mn="5">5 min</button><button class="bouton" type="button" data-mn="10">10 min</button><button class="bouton" type="button" data-mn="15">15 min</button><button class="bouton" type="button" data-mn="30">30 min</button><button class="bouton" type="button" data-mn="60">60 min</button></div>
+        <h2>Durée personnalisée</h2>
+        <div class="mn-perso">
+          <label for="mn-min">Minutes<input id="mn-min" type="number" min="0" max="720" step="1" value="5" inputmode="numeric"></label>
+          <label for="mn-sec">Secondes<input id="mn-sec" type="number" min="0" max="59" step="1" value="0" inputmode="numeric"></label>
+          <button class="bouton" type="button" id="mn-regler">Régler</button>
+        </div>
+        <h2>Alerte sonore</h2>
+        <div class="mn-son"><button class="bouton" type="button" id="mn-son" aria-pressed="true">Son activé</button><button class="bouton" type="button" id="mn-test">Tester le son</button></div>
+        <p class="info">Le minuteur est calé sur l'heure de fin : il continue quand vous changez d'onglet ou rechargez la page, et le temps restant s'affiche sur le raccourci du bas. Vous pouvez aussi dire à Sigma « lance un minuteur de 10 minutes ».</p>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== MAISON ===== -->
   <section class="vue page" id="v-maison">
     <div class="entete"><h1><svg class="i"><use href="#n-maison"/></svg>Maison <span class="demo" style="position:static;font-size:15px;font-weight:400">Démo · non relié à la maison</span></h1><div style="display:flex;gap:12px;align-items:center"><button class="bouton" type="button" data-act="tout" data-v="1">Tout allumer</button><button class="bouton" type="button" data-act="tout" data-v="0">Tout éteindre</button><span class="h" data-heure></span></div></div>
@@ -619,9 +686,11 @@ h2 svg{color:var(--neon)}
       <form class="carte form" id="c-form">
         <h2>Ajouter un chantier</h2>
         <label for="c-nom">Nom du chantier<input id="c-nom" type="text" autocomplete="off" required></label>
+        <label for="c-commune">Commune (facultatif)<input id="c-commune" type="text" autocomplete="off" maxlength="60"></label>
         <label for="c-pct">Avancement en %<input id="c-pct" type="number" min="0" max="100" step="1" value="0" inputmode="numeric"></label>
+        <label for="c-statut">Statut<select id="c-statut"><option value="">Non renseigné</option><option value="ok">Dans les temps</option><option value="attention">À surveiller</option><option value="retard">En retard</option></select></label>
         <button class="bouton ok" type="submit">Ajouter</button>
-        <p class="info">Les boutons − et + changent l'avancement par pas de 5 %.</p>
+        <p class="info">Les boutons − et + changent l'avancement par pas de 5 %. Touchez le statut d'un chantier pour le changer.</p>
       </form>
     </div>
   </section>
@@ -785,6 +854,14 @@ h2 svg{color:var(--neon)}
         <label for="gf-env">Devis envoyés en attente<input id="gf-env" type="text" inputmode="numeric" autocomplete="off"></label>
         <label for="gf-aenv">Devis à envoyer<input id="gf-aenv" type="text" inputmode="numeric" autocomplete="off"></label>
       </div>
+      <div class="cols">
+        <label for="gx-treso">Trésorerie (€)<input id="gx-treso" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label for="gx-tvar">Évolution sur 30 jours (%)<input id="gx-tvar" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label for="gx-encnb">Factures à encaisser (nombre)<input id="gx-encnb" type="text" inputmode="numeric" autocomplete="off"></label>
+        <label for="gx-retnb">Factures en retard (nombre)<input id="gx-retnb" type="text" inputmode="numeric" autocomplete="off"></label>
+        <label for="gx-prev">Prévision de CA de l'année (€)<input id="gx-prev" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label for="gx-port">Portefeuille de commandes (€)<input id="gx-port" type="text" inputmode="decimal" autocomplete="off"></label>
+      </div>
       <div class="deux2">
         <label for="gf-mois">Par mois : mois | chiffre d'affaires | acomptes<textarea id="gf-mois" spellcheck="false"></textarea></label>
         <label for="gf-clients">Meilleurs clients : nom | montant<textarea id="gf-clients" spellcheck="false"></textarea></label>
@@ -822,6 +899,37 @@ h2 svg{color:var(--neon)}
       <div class="rv-boutons"><button class="bouton ok" type="button" id="rv-creer">Créer</button><button class="bouton" type="button" id="rv-annuler">Annuler</button></div>
       <button class="bouton" type="button" id="rv-micro" style="height:56px;font-size:20px">Répondre à voix haute (« oui » ou « non »)</button>
       <p class="info" id="rv-msg"></p>
+    </div>
+  </div>
+
+  <div class="voile" id="pl-voile">
+    <div class="boite" style="width:1040px">
+      <h3>Planning des chantiers</h3>
+      <div class="cc-table" id="pl-liste"></div>
+      <form class="form cc-ajout" id="pl-form" style="grid-template-columns:1.2fr 1.2fr 190px 190px 150px auto">
+        <label for="pl-c">Chantier<input id="pl-c" type="text" list="pl-chantiers" autocomplete="off" required maxlength="60"></label><datalist id="pl-chantiers"></datalist>
+        <label for="pl-t">Intervention<input id="pl-t" type="text" autocomplete="off" required maxlength="60"></label>
+        <label for="pl-d">Début<input id="pl-d" type="date" required></label>
+        <label for="pl-f">Fin<input id="pl-f" type="date" required></label>
+        <label for="pl-k">Couleur<select id="pl-k"><option value="#00BFFF">Bleu</option><option value="#00E5A0">Vert</option><option value="#FFB020">Orange</option><option value="#8B7CFF">Violet</option><option value="#FF5267">Rouge</option></select></label>
+        <button class="bouton ok" type="submit">Ajouter</button>
+      </form>
+      <p class="info">Ces interventions restent sur cet appareil. Sans intervention saisie, le planning de l'accueil montre vos rendez-vous Google Agenda.</p>
+      <div class="actions"><button class="bouton ok" type="button" data-fermer>Fermer</button></div>
+    </div>
+  </div>
+
+  <div class="voile" id="ec-voile">
+    <div class="boite" style="width:860px">
+      <h3>Échéances et actions</h3>
+      <div class="cc-table" id="ec-liste"></div>
+      <form class="form cc-ajout" id="ec-form" style="grid-template-columns:1fr 200px auto">
+        <label for="ec-t">Échéance ou action<input id="ec-t" type="text" autocomplete="off" required maxlength="80"></label>
+        <label for="ec-e">État<select id="ec-e"><option value="traiter">À traiter</option><option value="urgent">Urgent</option><option value="cours">En cours</option><option value="relance">Relance</option></select></label>
+        <button class="bouton ok" type="submit">Ajouter</button>
+      </form>
+      <p class="info">Ces échéances restent sur cet appareil.</p>
+      <div class="actions"><button class="bouton ok" type="button" data-fermer>Fermer</button></div>
     </div>
   </div>
 
@@ -895,7 +1003,7 @@ h2 svg{color:var(--neon)}
 
   /* ---------- navigation ---------- */
   var vueActive = 'accueil';
-  var RACCOURCIS = [['accueil','Accueil','accueil'],['chantiers','Chantiers','chantiers'],['gestion','Finances','gestion'],['personnel','Personnel','personnel'],['agenda','Agenda','agenda'],['taches','Tâches','taches'],['actualites','Actualités','actualites'],['minuteur','Minuteur',''],['sigma','SIGMA',''],['reglages','Réglages','reglages']];
+  var RACCOURCIS = [['accueil','Accueil','accueil'],['chantiers','Chantiers','chantiers'],['gestion','Finances','gestion'],['personnel','Personnel','personnel'],['agenda','Agenda','agenda'],['taches','Tâches','taches'],['actualites','Actualités','actualites'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']];
   $('nav').innerHTML = RACCOURCIS.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste"></small>':'')+'</button>'; }).join('');
   function aller(v){
     if(!$('v-'+v)) v='accueil';
@@ -983,7 +1091,7 @@ h2 svg{color:var(--neon)}
 
     /* chantiers */
     $('c-liste').innerHTML = etat.chantiers.length ? etat.chantiers.map(function(c,i){
-      return '<li class="ligne l-chantier"><div>'+esc(c.n)+'<div class="barre"><b style="width:'+c.p+'%"></b></div></div><button class="rond" type="button" data-act="pct-" data-i="'+i+'" aria-label="Moins 5 %">−</button><em>'+c.p+' %</em><button class="rond" type="button" data-act="pct+" data-i="'+i+'" aria-label="Plus 5 %">+</button><button class="rond suppr" type="button" data-act="suppr-chantier" data-i="'+i+'" aria-label="Supprimer '+esc(c.n)+'"><svg class="i"><use href="#corbeille"/></svg></button></li>';
+      return '<li class="ligne l-chantier"><div>'+esc(c.n)+(c.c?' <small style="color:var(--discret)">– '+esc(c.c)+'</small>':'')+'<button class="st-b '+(c.s==='ok'||c.s==='attention'||c.s==='retard'?c.s:'')+'" type="button" data-st="'+i+'">'+({ok:'Dans les temps',attention:'À surveiller',retard:'En retard'}[c.s]||'Statut à préciser')+'</button><div class="barre"><b style="width:'+c.p+'%"></b></div></div><button class="rond" type="button" data-act="pct-" data-i="'+i+'" aria-label="Moins 5 %">−</button><em>'+c.p+' %</em><button class="rond" type="button" data-act="pct+" data-i="'+i+'" aria-label="Plus 5 %">+</button><button class="rond suppr" type="button" data-act="suppr-chantier" data-i="'+i+'" aria-label="Supprimer '+esc(c.n)+'"><svg class="i"><use href="#corbeille"/></svg></button></li>';
     }).join('') : '<li class="vide">Aucun chantier. Ajoutez-en un à droite.</li>';
 
     /* agenda */
@@ -1052,7 +1160,7 @@ h2 svg{color:var(--neon)}
   /* formulaires */
   function ajouterTache(t){ t=maj(t); if(!t) return false; etat.taches.unshift({t:t,f:false}); change(); return true; }
   $('k-form').addEventListener('submit',function(e){ e.preventDefault(); if(ajouterTache($('k-texte').value)) $('k-texte').value=''; });
-  $('c-form').addEventListener('submit',function(e){ e.preventDefault(); var n=maj($('c-nom').value); if(!n) return; etat.chantiers.push({n:n,p:borne(Math.round(+$('c-pct').value||0),0,100)}); $('c-nom').value=''; $('c-pct').value='0'; change(); });
+  $('c-form').addEventListener('submit',function(e){ e.preventDefault(); var n=maj($('c-nom').value); if(!n) return; var nc={n:n,p:borne(Math.round(+$('c-pct').value||0),0,100)}, cm=$('c-commune').value.trim().slice(0,60), st=$('c-statut').value; if(cm) nc.c=cm; if(st) nc.s=st; etat.chantiers.push(nc); $('c-commune').value=''; $('c-statut').value=''; $('c-nom').value=''; $('c-pct').value='0'; change(); });
   var couleur='bleu';
   $('g-couleurs').addEventListener('click',function(e){ var b=e.target.closest('.pastille'); if(!b) return; couleur=b.getAttribute('data-c'); [].forEach.call(this.children,function(x){x.classList.toggle('choisie',x===b);}); });
   $('g-form').addEventListener('submit',function(e){ e.preventDefault(); var t=maj($('g-titre').value), h=$('g-heure').value; if(!t||!h) return; etat.agenda.push({h:h,t:t,d:$('g-detail').value.trim(),c:couleur}); trierAgenda(); $('g-titre').value=''; $('g-detail').value=''; change(); });
@@ -1907,7 +2015,7 @@ h2 svg{color:var(--neon)}
     }
     function notifications(){
       var l=[], g=lireJSON('dashboard-gestion-v1',{}), t=(etat.taches||[]).filter(function(x){ return !x.f; }).length, r=rendezVousDuJour('prochain');
-      if(sonne) l.push(['Minuteur','Le minuteur est terminé.','accueil']);
+      if(sonne) l.push(['Minuteur','Le minuteur est terminé.','minuteur']);
       if(g.ret>0) l.push(['Impayés',eur(g.ret)+' de factures en retard.','gestion']);
       lireJSON('dashboard-echeances-v1',[]).forEach(function(x){ if(x&&x.e==='urgent'&&x.t) l.push(['Urgent',x.t,'gestion']); });
       if(r.length) l.push(['Agenda','Prochain rendez-vous : '+(r[0].h?r[0].h+' ':'')+r[0].t,'agenda']);
@@ -1937,17 +2045,100 @@ h2 svg{color:var(--neon)}
     $('cc-res').addEventListener('click',function(e){ if(e.target.closest('[data-aller]')) $('cc-voile').classList.remove('ouvert'); });
     document.addEventListener('keydown',function(e){ if(e.key==='Escape') $('cc-voile').classList.remove('ouvert'); if(e.key==='/'&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||'')){ e.preventDefault(); ouvrirListe('Recherche',true); } });
 
-    /* ---- raccourcis sans page pour l'instant : Minuteur et SIGMA ---- */
+    /* ---- raccourci SIGMA : retour à l'accueil et écoute ---- */
     $('nav').addEventListener('click',function(e){
       var b=e.target.closest('[data-special]'); if(!b) return;
-      if(b.getAttribute('data-special')==='minuteur') $('t-minuteur').click();
-      else { aller('accueil'); setTimeout(function(){ $('ia').click(); },150); }
+      aller('accueil'); setTimeout(function(){ $('ia').click(); },150);
     });
 
     /* ---- états visuels de SIGMA : veille, écoute, réflexion, réponse ---- */
     var direAvant=dire;
     dire=function(titre,texte,parler){ $('ia').classList.toggle('pense',/réfléchis/i.test(String(titre))); return direAvant(titre,texte,parler); };
-    setInterval(function(){ var c=$('ia').classList; c.toggle('veille',!c.contains('ecoute')&&!c.contains('parle')&&!c.contains('pense')); $('nav-reste').textContent=$('t-reste').textContent; },400);
+    setInterval(function(){ var c=$('ia').classList; c.toggle('veille',!c.contains('ecoute')&&!c.contains('parle')&&!c.contains('pense')); },400);
+
+
+    /* ---- minuteur : page complète, calée sur l'heure de fin, gardée d'un chargement à l'autre ---- */
+    var CLE_MN='dashboard-minuteur-v1', svMn=lireJSON(CLE_MN,{})||{}, TITRE=document.title;
+    var mn={total:+svMn.total>0?+svMn.total:0, pause:+svMn.pause>0?+svMn.pause:0, son:svMn.son!==false, duree:+svMn.duree>0?Math.min(43200,+svMn.duree):300};
+    function garderMn(){ try{ localStorage.setItem(CLE_MN,JSON.stringify({fin:fin,total:mn.total,pause:mn.pause,son:mn.son,duree:mn.duree})); }catch(e){} }
+    function fmt(s){ s=Math.max(0,Math.round(s)); var h=Math.floor(s/3600); return (h?h+':':'')+p2(Math.floor(s%3600/60))+':'+p2(s%60); }
+    function reveilSon(){ try{ var A=window.AudioContext||window.webkitAudioContext; if(A&&!jouerBip.ctx) jouerBip.ctx=new A(); if(jouerBip.ctx) jouerBip.ctx.resume(); }catch(e){} }
+    var lancerAvant=lancer, arreterAvant=arreter, bipAvant=jouerBip;
+    jouerBip=function(){ if(mn.son) bipAvant(); };
+    lancer=function(min){ mn.total=Math.max(1,Math.round(min*60)); mn.duree=mn.total; mn.pause=0; lancerAvant(min); garderMn(); mnDessin(); };
+    arreter=function(){ mn.pause=0; mn.total=0; arreterAvant(); garderMn(); mnDessin(); };
+    $('x-stop').addEventListener('click',function(){ mn.pause=0; mn.total=0; garderMn(); mnDessin(); });
+    if(+svMn.fin>0 && mn.total>0 && !mn.pause){ fin=+svMn.fin; }
+    function mnDessin(){
+      var marche=!!fin&&!sonne, pause=!fin&&mn.pause>0, r=sonne?0:(marche?reste():(pause?mn.pause:mn.duree)), tot=(marche||pause)?mn.total:mn.duree, C=2*Math.PI*146, t=fmt(r);
+      $('mn-temps').textContent=t; $('mn-temps').classList.toggle('long',t.length>5);
+      $('mn-etat').textContent=sonne?'Terminé':(marche?'En cours':(pause?'En pause':'Prêt'));
+      $('mn-fin').textContent=marche?'Fin à '+p2(new Date(fin).getHours())+':'+p2(new Date(fin).getMinutes()):'';
+      $('mn-arc').style.strokeDasharray=(Math.max(0,Math.min(1,tot?r/tot:0))*C).toFixed(1)+' '+C.toFixed(1);
+      $('mn-go').textContent=sonne?'Arrêter la sonnerie':(marche?'Pause':(pause?'Reprendre':'Démarrer'));
+      $('v-minuteur').setAttribute('data-etat',sonne?'fini':(marche?'marche':(pause?'pause':'pret')));
+      $('nav-reste').textContent=sonne?'Terminé':(marche?t:(pause?'II '+t:''));
+      document.title=(sonne?'Terminé · ':(marche?t+' · ':''))+TITRE;
+    }
+    $('mn-go').addEventListener('click',function(){
+      reveilSon(); var t=mn.total, p;
+      if(sonne) arreter();
+      else if(fin){ p=reste(); arreterAvant(); if(p>0){ mn.pause=p; mn.total=t; } else { mn.pause=0; mn.total=0; } garderMn(); }
+      else if(mn.pause>0){ p=mn.pause; mn.pause=0; lancerAvant(p/60); mn.total=t; garderMn(); }
+      else lancer(mn.duree/60);
+      mnDessin();
+    });
+    $('mn-raz').addEventListener('click',function(){ arreter(); });
+    $('v-minuteur').addEventListener('click',function(e){ var b=e.target.closest('[data-mn]'); if(b){ reveilSon(); lancer(+b.getAttribute('data-mn')); } });
+    $('mn-regler').addEventListener('click',function(){
+      var s=Math.round((+$('mn-min').value||0)*60+(+$('mn-sec').value||0)); if(!(s>0)) return;
+      arreter(); mn.duree=Math.min(43200,s); garderMn(); mnDessin();
+    });
+    function sonEtiquette(){ $('mn-son').setAttribute('aria-pressed',mn.son); $('mn-son').textContent=mn.son?'Son activé':'Son coupé'; }
+    $('mn-son').addEventListener('click',function(){ mn.son=!mn.son; sonEtiquette(); garderMn(); });
+    $('mn-test').addEventListener('click',function(){ reveilSon(); bipAvant(); });
+    $('mn-min').value=Math.floor(mn.duree/60); $('mn-sec').value=mn.duree%60; sonEtiquette(); mnDessin(); setInterval(mnDessin,250);
+
+    /* ---- saisies qui manquaient : trésorerie et prévisions, statut des chantiers, planning, échéances ---- */
+    function ecrireJSON(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+    function nombre(t){ t=String(t||'').replace(/[\s  €%]/g,'').replace(',','.'); if(t==='') return null; var n=Number(t); return isFinite(n)?n:null; }
+    function champ(n){ return n==null?'':String(n).replace('.',','); }
+    var CHAMPS=[['gx-treso','treso'],['gx-tvar','tresoVar'],['gx-encnb','encNb'],['gx-retnb','retNb'],['gx-prev','prevision'],['gx-port','portefeuille']];
+    $('ge-ouvrir').addEventListener('click',function(){ var x=lireJSON('dashboard-finances-plus-v1',{})||{}; CHAMPS.forEach(function(c){ $(c[0]).value=champ(x[c[1]]); }); });
+    $('ge-form').addEventListener('submit',function(){ var x={}; CHAMPS.forEach(function(c){ var n=nombre($(c[0]).value); if(n!=null) x[c[1]]=n; }); ecrireJSON('dashboard-finances-plus-v1',x); });
+    $('c-liste').addEventListener('click',function(e){
+      var b=e.target.closest('[data-st]'); if(!b) return; var c=etat.chantiers[+b.getAttribute('data-st')]; if(!c) return;
+      var o=['','ok','attention','retard'], s=o[(o.indexOf(c.s||'')+1)%o.length]; if(s) c.s=s; else delete c.s; change();
+    });
+    function dateFr(i){ var p=String(i).split('-'); return p.length===3?p[2]+'/'+p[1]:''; }
+    function listePlanning(){
+      var l=lireJSON('dashboard-planning-v1',[])||[];
+      $('pl-liste').innerHTML=l.length?l.map(function(x,i){ return '<div class="cc-rang"><i style="background:'+(/^#[0-9a-f]{6}$/i.test(x.k||'')?x.k:'#00BFFF')+'"></i><span><b>'+esc(x.c)+'</b> · '+esc(x.t)+'</span><small>du '+dateFr(x.d)+' au '+dateFr(x.f)+'</small><button class="rond suppr" type="button" data-suppr="'+i+'" aria-label="Supprimer"><svg class="i"><use href="#corbeille"/></svg></button></div>'; }).join(''):'<p class="info">Aucune intervention saisie.</p>';
+      $('pl-chantiers').innerHTML=(etat.chantiers||[]).map(function(c){ return '<option value="'+esc(c.n)+'">'; }).join('');
+    }
+    function listeEcheances(){
+      var l=lireJSON('dashboard-echeances-v1',[])||[];
+      $('ec-liste').innerHTML=l.length?l.map(function(x,i){ var e=ETATS[x.e]||ETATS.traiter; return '<div class="cc-rang"><i style="background:'+e[1]+'"></i><span>'+esc(x.t)+'</span><small>'+e[0]+'</small><button class="rond suppr" type="button" data-suppr="'+i+'" aria-label="Supprimer"><svg class="i"><use href="#corbeille"/></svg></button></div>'; }).join(''):'<p class="info">Aucune échéance enregistrée.</p>';
+    }
+    $('p2-gerer').addEventListener('click',function(){ var j=isoDe(new Date()); if(!$('pl-d').value) $('pl-d').value=j; if(!$('pl-f').value) $('pl-f').value=j; listePlanning(); $('pl-voile').classList.add('ouvert'); });
+    $('e2-gerer').addEventListener('click',function(){ listeEcheances(); $('ec-voile').classList.add('ouvert'); });
+    $('pl-form').addEventListener('submit',function(e){
+      e.preventDefault(); var d=$('pl-d').value, f=$('pl-f').value, c=$('pl-c').value.trim(), t=$('pl-t').value.trim(); if(!c||!t||!d||!f) return; if(f<d){ var z=d; d=f; f=z; }
+      var l=lireJSON('dashboard-planning-v1',[])||[]; l.push({c:c.slice(0,60),t:t.slice(0,60),d:d,f:f,k:$('pl-k').value}); l.sort(function(a,b){ return a.d<b.d?-1:(a.d>b.d?1:0); });
+      ecrireJSON('dashboard-planning-v1',l.slice(-200)); $('pl-t').value=''; listePlanning(); tout();
+    });
+    $('ec-form').addEventListener('submit',function(e){
+      e.preventDefault(); var t=$('ec-t').value.trim(); if(!t) return;
+      var l=lireJSON('dashboard-echeances-v1',[])||[]; l.push({t:t.slice(0,80),e:$('ec-e').value}); var o=['urgent','traiter','cours','relance']; l.sort(function(a,b){ return o.indexOf(a.e)-o.indexOf(b.e); });
+      ecrireJSON('dashboard-echeances-v1',l.slice(0,100)); $('ec-t').value=''; listeEcheances(); tout();
+    });
+    [['pl-voile','dashboard-planning-v1',listePlanning],['ec-voile','dashboard-echeances-v1',listeEcheances]].forEach(function(v){
+      $(v[0]).addEventListener('click',function(e){
+        var s=e.target.closest('[data-suppr]');
+        if(s){ var l=lireJSON(v[1],[])||[]; l.splice(+s.getAttribute('data-suppr'),1); ecrireJSON(v[1],l); v[2](); tout(); }
+        else if(e.target===this||e.target.closest('[data-fermer]')) this.classList.remove('ouvert');
+      });
+    });
 
     /* ---- rendu : à chaque changement de données ---- */
     function tout(){ finances(); chantiers(); planning(); echeances(); personnel(); entete(); }
