@@ -293,11 +293,11 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
           <i></i>
           <div class="marque b"><svg viewBox="0 0 40 40" fill="currentColor"><rect x="5" y="22" width="5" height="12"/><rect x="13" y="15" width="5" height="19"/><rect x="21" y="8" width="5" height="26"/><rect x="29" y="12" width="5" height="22"/></svg>BATIPILOT</div>
         </div>
-        <button class="ia" id="ia" type="button" aria-label="Assistant : toucher pour parler ou écouter le résumé du jour">
+        <button class="ia" id="ia" type="button" aria-label="Sigma, l'assistant : toucher pour parler ou écouter le résumé du jour">
           <video class="visage" id="ia-visage" autoplay muted loop playsinline webkit-playsinline preload="auto" poster="avatar_ia_full_hd.png" disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"><source src="avatar_ia_full_hd.mp4" type="video/mp4"></video><span class="lueur"></span>
           <span class="bandeau">
             <span class="micro"><svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></span>
-            <span class="dit"><b id="ia-etat">Assistant · touchez mon visage</b><span id="ia-texte">Je vous écoute, ou je vous lis le résumé du jour si le micro n'est pas disponible.</span></span>
+            <span class="dit"><b id="ia-etat">Sigma · touchez mon visage</b><span id="ia-texte">Je vous écoute, ou je vous lis le résumé du jour si le micro n'est pas disponible.</span></span>
             <span class="ondes"><span></span><span></span><span></span><span></span><span></span></span>
           </span>
         </button>
@@ -458,7 +458,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         </div>
       </div>
       <form class="carte form" id="a-form" style="min-width:0;max-height:100%;overflow:auto">
-        <h2>Assistant</h2>
+        <h2>Assistant Sigma</h2>
         <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev" autocomplete="off" spellcheck="false"></label>
         <button class="bouton" type="submit">Enregistrer l'adresse</button>
         <div id="a-compte" hidden>
@@ -839,10 +839,11 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   $('v-vit-p').addEventListener('click',function(){ voix.vitesse=pas(voix.vitesse,0.1,0.6,1.6); garderVoix(); });
   $('v-ton-m').addEventListener('click',function(){ voix.ton=pas(voix.ton,-0.1,0.5,1.8); garderVoix(); });
   $('v-ton-p').addEventListener('click',function(){ voix.ton=pas(voix.ton,0.1,0.5,1.8); garderVoix(); });
-  $('v-test').addEventListener('click',function(){ dire('Assistant','Bonjour, voici la voix que j\'utiliserai pour vous répondre.',true); });
+  $('v-test').addEventListener('click',function(){ dire(NOM,'Bonjour, je suis Sigma. Voici la voix que j\'utiliserai pour vous répondre.',true); });
   if(window.speechSynthesis){ try{ speechSynthesis.addEventListener('voiceschanged',afficherVoix); }catch(e){ speechSynthesis.onvoiceschanged=afficherVoix; } }
   afficherVoix();
 
+  var NOM='Sigma';   /* nom de l'assistant, affiché sous le visage */
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
     if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
@@ -977,12 +978,12 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function repondre(phrase){
     function repli(message){
       var local=comprendre(phrase);
-      dire('Assistant', local!=null ? local : message, true);
+      dire(NOM, local!=null ? local : message, true);
     }
     if(!adresseServeur()){ repli('Je n\'ai pas compris « '+phrase+' ».'); return; }
     if(!session()){ repli('Pour me poser cette question, connectez-vous avec Google dans l\'onglet Réglages.'); return; }
-    dire('Assistant · je réfléchis','« '+phrase+' »',false);
-    demanderServeur(phrase).then(function(r){ appliquerActions(r.actions); dire('Assistant',r.reponse,true); },function(x){
+    dire(NOM+' · je réfléchis','« '+phrase+' »',false);
+    demanderServeur(phrase).then(function(r){ appliquerActions(r.actions); dire(NOM,r.reponse,true); },function(x){
       if(x.statut===401) repli('Votre connexion a expiré. Reconnectez-vous avec Google dans l\'onglet Réglages.');
       else if(x.statut===429) repli(x.message);
       else repli('Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.');
@@ -1090,14 +1091,14 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     appelServeur('/deconnexion').then(fin,fin);
   });
   $('ia').addEventListener('click',function(){
-    if(!Reco||sansMicro){ dire('Assistant · résumé du jour',resume(),true); return; }
+    if(!Reco||sansMicro){ dire(NOM+' · résumé du jour',resume(),true); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
     reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
-    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire('Assistant · j\'écoute','Parlez maintenant…',false); };
+    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
     reco.onresult=function(e){ repondre(e.results[0][0].transcript); };
-    reco.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; dire('Assistant · résumé du jour',resume(),true); } else { dire('Assistant','Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
+    reco.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; dire(NOM+' · résumé du jour',resume(),true); } else { dire(NOM,'Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
     reco.onend=function(){ ecoute=false; $('ia').classList.remove('ecoute'); };
-    try{ reco.start(); }catch(e){ dire('Assistant · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
+    try{ reco.start(); }catch(e){ dire(NOM+' · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
   });
 
   afficherCompte();
