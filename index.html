@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Dashboard maison Albi</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,7 +17,8 @@
   --police:"Titillium Web","Segoe UI",Helvetica,Arial,sans-serif;
 }
 *{box-sizing:border-box;margin:0}
-html,body{height:100%}
+html,body{height:100%;width:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--fond);color:var(--texte);font-family:var(--police);overflow:hidden;-webkit-user-select:none;user-select:none}
 #scene{position:absolute;left:50%;top:50%;width:1600px;height:900px;transform-origin:0 0;padding:22px 24px;
   background:radial-gradient(900px 500px at 30% 20%,#0d2a52 0%,transparent 70%),radial-gradient(700px 400px at 90% 90%,#0a2040 0%,transparent 70%),var(--fond);
@@ -378,6 +379,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
+        <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Taille de l'affichage</span><button class="rond" type="button" data-act="zoom-" aria-label="Réduire l'affichage">−</button><b id="r-zoom" style="width:80px;text-align:center;font-size:24px">100 %</b><button class="rond" type="button" data-act="zoom+" aria-label="Agrandir l'affichage">+</button></div>
         <button class="bouton" type="button" data-act="ecran">Passer en plein écran</button>
       </div>
     </div>
@@ -423,8 +425,20 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function maj(s){s=String(s||'').trim();return s.charAt(0).toUpperCase()+s.slice(1);}
   function copie(o){return JSON.parse(JSON.stringify(o));}
 
-  function echelle(){ var w=window.innerWidth, h=window.innerHeight, H=Math.max(900,Math.min(1060,Math.round(1600*h/w))), s=Math.min(w/1600,h/H); $('scene').style.height=H+'px'; $('scene').style.transform='scale('+s+') translate(-50%,-50%)'; }
-  window.addEventListener('resize',echelle); echelle();
+  var zoom = 1;
+  try{ zoom = parseFloat(localStorage.getItem('dashboard-maison-zoom')) || 1; }catch(e){}
+  function echelle(){
+    /* on prend la plus petite mesure de la zone visible, les navigateurs n'étant pas d'accord entre eux */
+    var d=document.documentElement, v=window.visualViewport, ws=[window.innerWidth,d.clientWidth], hs=[window.innerHeight,d.clientHeight];
+    if(v){ ws.push(v.width*v.scale); hs.push(v.height*v.scale); }
+    var w=Math.min.apply(null,ws.filter(function(x){return x>0;})), h=Math.min.apply(null,hs.filter(function(x){return x>0;}));
+    var H=Math.max(900,Math.min(1060,Math.round(1600*h/w))), s=Math.min(w/1600,h/H)*zoom;
+    $('scene').style.height=H+'px'; $('scene').style.transform='scale('+s+') translate(-50%,-50%)';
+    var z=$('r-zoom'); if(z) z.textContent=Math.round(zoom*100)+' %';
+  }
+  window.addEventListener('resize',echelle); window.addEventListener('orientationchange',echelle);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize',echelle);
+  echelle(); setTimeout(echelle,400); setTimeout(echelle,1500);
 
   /* ---------- données gardées sur l'appareil ---------- */
   var etat = copie(DEFAUT);
@@ -526,6 +540,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       case 'suppr-rdv': etat.agenda.splice(i,1); break;
       case 'suppr-tache': etat.taches.splice(i,1); break;
       case 'purger': etat.taches=etat.taches.filter(function(t){return !t.f;}); break;
+      case 'zoom+': case 'zoom-': zoom=Math.round(borne(zoom+(act==='zoom+'?0.05:-0.05),0.5,1.2)*100)/100; try{ localStorage.setItem('dashboard-maison-zoom',zoom); }catch(e){} echelle(); return;
       case 'meteo': meteo(); return;
       case 'ecran': pleinEcran(); return;
       case 'raz':
