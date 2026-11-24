@@ -36,7 +36,7 @@ Comptez environ vingt minutes. Les noms des boutons peuvent varier un peu si Clo
 3. Cliquez sur **Créer** (Create), puis **Importer un dépôt** (Import a repository).
 4. Cliquez sur **Connecter GitHub**, autorisez l'application Cloudflare, et donnez-lui accès au seul dépôt `dashboard-maison`.
 5. Choisissez le dépôt `dashboard-maison`, puis réglez :
-   - **Nom du projet** : `assistant-dashboard-maison`
+   - **Nom du projet** : `assistant-dashboard-travail`
    - **Branche de production** : `main`
    - **Répertoire racine / Chemin** (Root directory, dans les paramètres avancés) : `serveur`
    - **Commande de build** : laisser vide
@@ -47,7 +47,7 @@ Remarque : ce code se trouve pour l'instant sur la branche `claude/brave-lovelac
 
 ### C. Donner la clé au serveur
 
-1. Dans Cloudflare, ouvrez le Worker `assistant-dashboard-maison`, onglet **Paramètres** (Settings), section **Variables et secrets**.
+1. Dans Cloudflare, ouvrez le Worker `assistant-dashboard-travail`, onglet **Paramètres** (Settings), section **Variables et secrets**.
 2. Cliquez sur **Ajouter** :
    - **Type** : `Secret` (et non « Texte » : le secret est chiffré et ne se relit pas)
    - **Nom** : `ANTHROPIC_API_KEY`
@@ -58,7 +58,7 @@ Les deux autres réglages, `ORIGINES_AUTORISEES` et `MODELE`, ne sont pas secret
 
 ### D. Relier le dashboard au serveur
 
-1. Dans Cloudflare, sur la page du Worker, copiez son adresse, de la forme `https://assistant-dashboard-maison.maison-albi.workers.dev`.
+1. Dans Cloudflare, sur la page du Worker, copiez son adresse, de la forme `https://assistant-dashboard-travail.maison-albi.workers.dev`.
 2. Ouvrez le dashboard sur le PC, onglet **Réglages**, carte **Assistant**.
 3. Collez l'adresse **en ajoutant `/assistant` à la fin**, puis touchez **Enregistrer et tester**.
 4. Le message « Serveur joignable » doit s'afficher avec une courte réponse de l'IA.

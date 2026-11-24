@@ -3,7 +3,7 @@
 // La clé se met dans le tableau de bord Cloudflare (Variables et secrets), sous le nom ANTHROPIC_API_KEY.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "assistant-dashboard-maison",
+  "name": "assistant-dashboard-travail",
   "main": "src/index.js",
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
