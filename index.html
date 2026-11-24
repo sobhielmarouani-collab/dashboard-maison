@@ -256,6 +256,12 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 .voile.ouvert{display:flex}
 .boite{background:#0d1d34;border:1.5px solid var(--trait);border-radius:18px;padding:26px 30px;width:640px;display:grid;gap:18px}
 .boite h3{font-size:30px}
+.rv-detail{display:grid;gap:6px;font-size:22px}
+.rv-detail b{font-size:28px}
+.rv-detail span{color:var(--discret)}
+.rv-alerte{font-size:18px;color:var(--jaune)}
+.rv-boutons{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.rv-boutons .bouton{height:64px;font-size:22px}
 .boite .temps{font-size:96px;font-weight:700;text-align:center;font-variant-numeric:tabular-nums;line-height:1}
 .durees{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .actions{display:flex;justify-content:flex-end;gap:12px}
@@ -449,7 +455,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <div class="carte form" id="v-carte">
           <h2 style="justify-content:space-between">Voix<button class="bouton" type="button" id="v-test">Écouter</button></h2>
           <button class="bouton" type="button" id="v-libre" aria-pressed="false">Écoute permanente : désactivée</button>
-          <p class="info" id="v-libre-msg">Activée, il suffit de dire « Sigma » suivi de votre demande, sans toucher l'écran. Le micro reste alors ouvert tant que cette page est affichée, et le navigateur envoie ce qu'il entend à son service de reconnaissance vocale.</p>
+          <p class="info" id="v-libre-msg" style="font-size:14px;line-height:1.3">Dites « Sigma », puis votre demande. Le micro reste ouvert tant que la page est affichée.</p>
           <label for="v-voix"><select id="v-voix" aria-label="Voix de l'assistant"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
           <div style="display:grid;grid-template-columns:1fr;gap:10px;font-size:19px">
             <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
@@ -477,7 +483,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir. Si l'agenda Google est relié, le serveur lit ses événements (sans pouvoir les modifier) ; ils sont affichés ici sans être gardés sur l'appareil.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir. Si l'agenda Google est relié, le serveur lit ses événements, affichés ici sans être gardés sur l'appareil, et n'y ajoute un rendez-vous qu'après votre confirmation.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -521,6 +527,18 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       <p class="info" id="l-msg">Toutes les villes du monde sont disponibles.</p>
       <div id="l-res" style="display:grid;gap:8px;max-height:420px;overflow:auto"></div>
     </form>
+  </div>
+
+  <div class="voile" id="rv-voile" role="dialog" aria-modal="true" aria-labelledby="rv-titre">
+    <div class="boite">
+      <h3 id="rv-titre">Ajouter à l'agenda Google ?</h3>
+      <div class="rv-detail" id="rv-detail"></div>
+      <p class="rv-alerte" id="rv-alerte" hidden></p>
+      <p class="info" id="rv-aide">Rien n'est créé tant que vous ne confirmez pas.</p>
+      <div class="rv-boutons"><button class="bouton ok" type="button" id="rv-creer">Créer</button><button class="bouton" type="button" id="rv-annuler">Annuler</button></div>
+      <button class="bouton" type="button" id="rv-micro" style="height:56px;font-size:20px">Répondre à voix haute (« oui » ou « non »)</button>
+      <p class="info" id="rv-msg"></p>
+    </div>
   </div>
 
   <div class="voile" id="voile">
@@ -1011,12 +1029,17 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     return appelServeur('/assistant',{corps:{phrase:phrase,historique:historique,etat:etatPourAssistant()}}).then(function(j){
       if(typeof j.reponse!=='string') throw Object.assign(new Error('réponse invalide'),{statut:0});
       historique.push({role:'user',content:phrase},{role:'assistant',content:j.reponse}); historique=historique.slice(-20); dernierEchange=Date.now();
-      return {reponse:j.reponse,actions:Array.isArray(j.actions)?j.actions:[]};
+      return {reponse:j.reponse,actions:Array.isArray(j.actions)?j.actions:[],confirmation:j.confirmation&&typeof j.confirmation.id==='string'?j.confirmation:null};
     });
   }
   /* l'IA d'abord quand on est connecté (formulations libres) ;
      serveur absent, sans connexion, en panne ou à la limite : ordres fixes comme avant */
   function repondre(phrase){
+    if(proposition){
+      var rp=sansAccent(phrase).replace(/[^a-z' -]/g,' ').trim();
+      if(/^(oui|ouais|je confirme|confirme|valide|d accord|d'accord|ok|okay|vas-y|vas y|c'est bon|cree|cree-le|cree le)\b/.test(rp)){ confirmerProposition(); return; }
+      if(/^(non|annule|annuler|laisse tomber|pas maintenant|stop)\b/.test(rp)){ annulerProposition(); return; }
+    }
     function repli(message){
       var local=comprendre(phrase);
       dire(NOM, local!=null ? local : message, true);
@@ -1024,7 +1047,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     if(!adresseServeur()){ repli('Je n\'ai pas compris « '+phrase+' ».'); return; }
     if(!session()){ repli('Pour me poser cette question, connectez-vous avec Google dans l\'onglet Réglages.'); return; }
     dire(NOM+' · je réfléchis','« '+phrase+' »',false);
-    demanderServeur(phrase).then(function(r){ appliquerActions(r.actions); dire(NOM,r.reponse,true); },function(x){
+    demanderServeur(phrase).then(function(r){ appliquerActions(r.actions); dire(NOM,r.reponse,true); if(r.confirmation) montrerProposition(r.confirmation); },function(x){
       if(x.statut===401) repli('Votre connexion a expiré. Reconnectez-vous avec Google dans l\'onglet Réglages.');
       else if(x.statut===429) repli(x.message);
       else repli('Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.');
@@ -1086,21 +1109,73 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     var m=$('a-msg'); m.textContent='Test en cours…';
     demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r.reponse; },function(x){ m.textContent='Échec du test : '+x.message; });
   });
+  /* ---------- proposition de rendez-vous : l'utilisateur confirme ou annule ----------
+     L'IA ne peut que proposer. Seul ce geste (bouton ou « oui » dit au micro) appelle /agenda/confirmer. */
+  var proposition=null, finProposition=null;
+  function montrerProposition(c){
+    proposition=c;
+    var quand = c.journee ? (c.jour===c.jourFin ? 'Toute la journée' : 'Journées entières') : (c.debut+' – '+c.fin);
+    var jour = maj(fJourLong.format(new Date(c.jour+'T12:00:00')))+(c.jourFin&&c.jourFin!==c.jour?' → '+fJourLong.format(new Date(c.jourFin+'T12:00:00')):'');
+    $('rv-detail').innerHTML='<b>'+esc(c.titre)+'</b><span>'+esc(jour)+'</span><span>'+esc(quand)+'</span>'+(c.lieu?'<span>Lieu : '+esc(c.lieu)+'</span>':'')+(c.description?'<span>'+esc(c.description)+'</span>':'');
+    var ch=Array.isArray(c.chevauchements)?c.chevauchements:[];
+    $('rv-alerte').hidden=!ch.length; $('rv-alerte').textContent= ch.length ? 'Attention, déjà prévu sur ce créneau : '+ch.join(', ')+'.' : '';
+    $('rv-msg').textContent=''; $('rv-creer').disabled=false; $('rv-annuler').disabled=false;
+    $('rv-micro').hidden=!Reco||sansMicro;
+    $('rv-voile').classList.add('ouvert');
+    clearTimeout(finProposition);
+    finProposition=setTimeout(function(){ if(proposition===c){ fermerProposition(); dire(NOM,'La proposition de rendez-vous a expiré. Redemandez-la si besoin.',false); } }, Math.max(1000,(c.expire||Date.now()+600000)-Date.now()));
+  }
+  function fermerProposition(){ proposition=null; clearTimeout(finProposition); $('rv-voile').classList.remove('ouvert'); }
+  function noterEchange(dit,repondu){ historique.push({role:'user',content:dit},{role:'assistant',content:repondu}); historique=historique.slice(-20); dernierEchange=Date.now(); }
+  function confirmerProposition(){
+    var c=proposition; if(!c||$('rv-creer').disabled) return;
+    $('rv-creer').disabled=true; $('rv-annuler').disabled=true; $('rv-msg').textContent='Création en cours…';
+    appelServeur('/agenda/confirmer',{corps:{id:c.id}}).then(function(j){
+      fermerProposition();
+      var t='C\'est fait : '+(j.resume||c.titre)+' est dans votre agenda Google.';
+      noterEchange('Oui, je confirme.','Rendez-vous créé dans l\'agenda Google : '+(j.resume||c.titre)+'.');
+      dire(NOM,t,true); rafraichirAgenda();
+    },function(x){
+      fermerProposition();
+      noterEchange('Oui, je confirme.','La création a échoué, rien n\'a été ajouté : '+x.message);
+      dire(NOM,'Le rendez-vous n\'a pas pu être créé : '+x.message,true);
+      if(x.statut===409) rafraichirAgenda();
+    });
+  }
+  function annulerProposition(){
+    var c=proposition; if(!c) return;
+    fermerProposition();
+    appelServeur('/agenda/annuler',{corps:{id:c.id}}).catch(function(){});
+    noterEchange('Non, annule.','Rendez-vous annulé, rien n\'a été ajouté à l\'agenda.');
+    dire(NOM,'D\'accord, je n\'ajoute rien.',true);
+  }
+  $('rv-creer').addEventListener('click',confirmerProposition);
+  /* même écoute que l'avatar (caché sous la fenêtre) ; la réponse passe par repondre(), qui traite « oui » et « non » */
+  $('rv-micro').addEventListener('click',function(){
+    if(!Reco||sansMicro) return;
+    try{ window.speechSynthesis&&speechSynthesis.cancel(); }catch(e){}   /* que le micro n'entende pas la synthèse vocale */
+    $('rv-msg').textContent='J\'écoute… dites « oui » ou « non ».';
+    $('ia').click();
+  });
+  $('rv-annuler').addEventListener('click',annulerProposition);
+
   /* ---------- agenda Google : relier, délier, rafraîchir ---------- */
   var agendaEnCours=false;
   function afficherAgendaReglage(){
     var s=session(), dispo=!!(s&&configServeur&&configServeur.agenda);
     $('a-agenda-bloc').hidden=!dispo;
     if(!dispo) return;
-    $('a-agenda-etat').textContent= agendaGoogle.relie ? 'relié' : 'non relié';
-    $('a-agenda-relier').hidden=agendaGoogle.relie; $('a-agenda-delier').hidden=!agendaGoogle.relie;
+    var lectureSeule=agendaGoogle.relie&&!agendaGoogle.ecriture;
+    $('a-agenda-etat').textContent= !agendaGoogle.relie ? 'non relié' : (lectureSeule ? 'relié en lecture seule' : 'relié');
+    $('a-agenda-relier').textContent= lectureSeule ? 'Relier de nouveau' : 'Relier mon agenda Google';
+    $('a-agenda-relier').hidden=agendaGoogle.relie&&!lectureSeule; $('a-agenda-delier').hidden=!agendaGoogle.relie;
   }
   function rafraichirAgenda(){
     if(!session()||!adresseServeur()||agendaEnCours) return;
     agendaEnCours=true;
     var auj=new Date();
     appelServeur('/agenda/evenements?debut='+jourISO(auj)+'&fin='+jourISO(plusJours(auj,6)),{methode:'GET'}).then(function(j){
-      agendaGoogle={relie:true,disponible:true,evenements:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now(),erreur:''};
+      agendaGoogle={relie:true,disponible:true,ecriture:j.ecriture===true,evenements:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now(),erreur:''};
     },function(x){
       if(x.statut===409||x.statut===503||x.statut===401) agendaGoogle={relie:false,disponible:x.statut===409,evenements:[],maj:0,erreur:''};
       else if(agendaGoogle.relie) agendaGoogle.erreur='Agenda Google momentanément indisponible ('+x.message+'). Dernière version affichée.';
@@ -1116,7 +1191,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       callback:function(r){
         if(!r||r.error||!r.code){ m.textContent='Autorisation annulée.'; return; }
         m.textContent='Liaison de l\'agenda en cours…';
-        appelServeur('/agenda/relier',{corps:{code:r.code}}).then(function(){ m.textContent='Agenda Google relié.'; agendaGoogle.relie=true; afficherAgendaReglage(); rafraichirAgenda(); },
+        appelServeur('/agenda/relier',{corps:{code:r.code}}).then(function(){ m.textContent='Agenda Google relié : lecture et création de rendez-vous (avec votre confirmation).'; agendaGoogle.relie=true; agendaGoogle.ecriture=true; afficherAgendaReglage(); rafraichirAgenda(); },
           function(x){ m.textContent='Liaison impossible : '+x.message; });
       },
       error_callback:function(e){ m.textContent= e&&e.type==='popup_closed' ? 'Fenêtre Google fermée avant la fin.' : 'Fenêtre Google bloquée ou indisponible.'; }
@@ -1143,6 +1218,8 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function sigmaParle(){ return $('ia').classList.contains('parle') || (window.speechSynthesis&&speechSynthesis.speaking) || Date.now()-finParole<900; }
   function entendu(t){
     t=String(t||'').trim(); if(!t||sigmaParle()) return;
+    /* une proposition de rendez-vous attend une réponse : « oui » ou « non » suffisent, sans dire Sigma */
+    if(proposition && /^(oui|ouais|ok|d['’ ]accord|confirme|vas-y|c['’ ]est bon|non|annule|laisse)/i.test(t)){ arme=0; repondre(t); return; }
     var m=MOT.exec(' '+t);
     if(m){
       var suite=m[1].trim();
