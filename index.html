@@ -465,6 +465,15 @@ h2 svg{color:var(--neon)}
 .cc-fil small{font-size:13.5px;color:var(--discret);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-fil .cc-nd{grid-column:1/-1;margin:auto}
 .cc-tout{border:1px solid rgba(0,191,255,.6);border-radius:99px;background:rgba(6,20,40,.7);color:var(--texte);font-size:16.5px;padding:0 20px;height:42px;white-space:nowrap;box-shadow:0 0 12px rgba(0,191,255,.25)}
+.cc-fin-actus{display:flex;align-items:center;gap:12px}
+.cc-pages{display:flex;align-items:center;gap:2px;font-size:15px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cc-pages[hidden]{display:none}
+.cc-pages .cc-rond{width:38px;height:38px}.cc-pages .cc-rond svg{width:24px;height:24px}
+.cc-fondu{animation:cc-fondu .5s both}
+@keyframes cc-fondu{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.cc-actus{grid-template-columns:215px 1fr auto;gap:10px}
+.cc-tout{padding:0 14px;font-size:15.500px}
+@media (prefers-reduced-motion:reduce){.cc-fondu{animation:none}}
 .cc-tout:hover{background:rgba(0,150,255,.25)}
 
 /* ---- recherche, notifications, personnel ---- */
@@ -622,7 +631,7 @@ h2 svg{color:var(--neon)}
     <section class="carte cc-actus" aria-label="Actualités BTP">
       <h2><svg class="i"><use href="#n-actualites"/></svg>Actualités BTP</h2>
       <div class="cc-fil" id="n2"></div>
-      <button class="cc-tout" type="button" data-aller="actualites">Voir toute l'actualité →</button>
+      <div class="cc-fin-actus"><span class="cc-pages" id="n2-pages" hidden><button class="cc-rond" type="button" id="n2-prec" aria-label="Actualités précédentes"><svg class="i" viewBox="0 0 24 24"><path d="M14.500 6l-6 6 6 6"/></svg></button><b id="n2-num">1 / 1</b><button class="cc-rond" type="button" id="n2-suiv" aria-label="Actualités suivantes"><svg class="i" viewBox="0 0 24 24"><path d="M9.500 6l6 6-6 6"/></svg></button></span><button class="cc-tout" type="button" data-aller="actualites">Voir toute l'actualité →</button></div>
     </section>
 
     <!-- éléments de l'ancienne mise en page, conservés hors écran car le code existant les alimente -->
@@ -1993,7 +2002,7 @@ h2 svg{color:var(--neon)}
     $('pe-form').addEventListener('submit',function(e){ e.preventDefault(); var n=$('pe-nom').value.trim(); if(!n) return; etat.famille.push({n:n.slice(0,60),la:true,l:'chantier'}); $('pe-nom').value=''; change(); });
 
     /* ---- bandeau d'actualités : vrais titres lus par le serveur, sinon état vide explicite ---- */
-    var fil={maj:0,rubrique:''};
+    var fil={maj:0,rubrique:'',articles:[],page:0};
     function vide(t){ $('n2').innerHTML='<p class="cc-nd">'+t+'</p>'; }
     function actualites(){
       if(!adresseServeur()||!session()){ vide('Actualités non disponibles : connectez Sigma dans Réglages.'); return; }
@@ -2001,12 +2010,26 @@ h2 svg{color:var(--neon)}
       appelServeur('/actualites?rubrique='+encodeURIComponent(fil.rubrique),{methode:'GET'}).then(function(j){
         var rub=Array.isArray(j.rubriques)?j.rubriques:[], btp=null; rub.forEach(function(r){ if(!btp&&/btp|b[âa]timent|construction/i.test((r.nom||'')+' '+(r.id||''))) btp=r; });
         if(btp && j.rubrique && j.rubrique.id!==btp.id && fil.rubrique!==btp.id){ fil.rubrique=btp.id; actualites(); return; }
-        var a=(j.rubrique&&j.rubrique.articles||[]).slice(0,3); fil.maj=Date.now();
-        if(!a.length){ vide('Aucun article disponible pour le moment. Vérifiez les sources dans Actualités.'); return; }
-        $('n2').innerHTML=a.map(function(x){ var lien=/^https?:\/\//i.test(x.lien||'')?x.lien:'', c='<span class="vg"><svg class="i"><use href="#n-actualites"/></svg></span><span><strong>'+esc(x.titre)+'</strong><small>'+esc(x.source||'')+(x.jour?' • '+esc(quandArticle(x)):'')+'</small></span>';
-          return lien ? '<a href="'+esc(lien)+'" target="_blank" rel="noopener noreferrer">'+c+'</a>' : '<div class="art">'+c+'</div>'; }).join('');
-      },function(x){ vide('Actualités indisponibles : '+esc(x.message||'erreur')+'.'); });
+        fil.articles=(j.rubrique&&j.rubrique.articles||[]).slice(0,30); fil.maj=Date.now(); if(fil.page*3>=fil.articles.length) fil.page=0;
+        if(!fil.articles.length){ $('n2-pages').hidden=true; vide('Aucun article disponible pour le moment. Vérifiez les sources dans Actualités.'); return; }
+        montrerFil();
+      },function(x){ fil.articles=[]; $('n2-pages').hidden=true; vide('Actualités indisponibles : '+esc(x.message||'erreur')+'.'); });
     }
+    /* toute l'actualité défile sur l'accueil, trois titres à la fois */
+    function montrerFil(){
+      var n=Math.ceil(fil.articles.length/3), a=fil.articles.slice(fil.page*3,fil.page*3+3);
+      $('n2-pages').hidden=n<2; $('n2-num').textContent=(fil.page+1)+' / '+n;
+      $('n2').classList.remove('cc-fondu'); void $('n2').offsetWidth; $('n2').classList.add('cc-fondu');
+      $('n2').innerHTML=a.map(function(x){ var lien=/^https?:\/\//i.test(x.lien||'')?x.lien:'', c='<span class="vg"><svg class="i"><use href="#n-actualites"/></svg></span><span><strong>'+esc(x.titre)+'</strong><small>'+esc(x.source||'')+(x.jour?' • '+esc(quandArticle(x)):'')+'</small></span>';
+          return lien ? '<a href="'+esc(lien)+'" target="_blank" rel="noopener noreferrer">'+c+'</a>' : '<div class="art">'+c+'</div>'; }).join('');
+    }
+    function tournerFil(sens){ var n=Math.ceil(fil.articles.length/3); if(n<2) return; fil.page=(fil.page+sens+n)%n; montrerFil(); }
+    var filSurvol=false, filTic=0;
+    document.querySelector('.cc-actus').addEventListener('pointerenter',function(){ filSurvol=true; });
+    document.querySelector('.cc-actus').addEventListener('pointerleave',function(){ filSurvol=false; });
+    $('n2-prec').addEventListener('click',function(){ filTic=0; tournerFil(-1); });
+    $('n2-suiv').addEventListener('click',function(){ filTic=0; tournerFil(1); });
+    setInterval(function(){ if(filSurvol||vueActive!=='accueil'||document.hidden) return; if(++filTic>=10){ filTic=0; tournerFil(1); } },1000);
 
     /* ---- en-tête : profil, notifications, recherche ---- */
     function entete(){
