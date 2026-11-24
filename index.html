@@ -1418,7 +1418,7 @@ h2 svg{color:var(--neon)}
       if(cibles.length){ cibles.forEach(function(p){ lumiere(p[0],allume); }); change(); return (allume?'J\'allume ':'J\'éteins ')+cibles.map(function(p){return p[1].toLowerCase();}).join(', ')+'.'; }
     }
     if(/volet/.test(s)){ etat.volets=/ouvr|leve|monte/.test(s); change(); return etat.volets?'J\'ouvre les volets.':'Je ferme les volets.'; }
-    var pages=[['actualit','actualites'],['infos','actualites'],['gestion','gestion'],['progbat','gestion'],['chiffre','gestion'],['agenda','agenda'],['tache','taches'],['chantier','chantiers'],['meteo','meteo'],['reglage','reglages'],['maison','maison'],['accueil','accueil']];
+    var pages=[['personnel','personnel'],['salarie','personnel'],['equipe','personnel'],['minuteur','minuteur'],['finance','gestion'],['actualit','actualites'],['infos','actualites'],['gestion','gestion'],['progbat','gestion'],['chiffre','gestion'],['agenda','agenda'],['tache','taches'],['chantier','chantiers'],['meteo','meteo'],['reglage','reglages'],['maison','maison'],['accueil','accueil']];
     if(/ouvre|affiche|montre|va |retour/.test(s)){ for(var i=0;i<pages.length;i++){ if(s.indexOf(pages[i][0])>=0){ aller(pages[i][1]); return 'Voilà.'; } } }
     if(/heure/.test(s)){ var d=new Date(); return 'Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'.'; }
     if(/meteo|temps|temperature/.test(s)){ return meteoTexte||'La météo n\'est pas encore chargée.'; }

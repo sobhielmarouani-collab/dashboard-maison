@@ -8,7 +8,7 @@
  * liste des actions validées, que la page exécute elle-même.
  */
 
-export const ONGLETS = ["accueil", "maison", "chantiers", "gestion", "agenda", "taches", "meteo", "reglages", "actualites"];
+export const ONGLETS = ["accueil", "maison", "chantiers", "gestion", "agenda", "taches", "meteo", "reglages", "actualites", "personnel", "minuteur"];
 export const PIECES = ["salon", "cuisine", "bureau", "chambres", "exterieur"];
 const COULEURS = ["bleu", "violet", "vert"];
 
@@ -55,7 +55,7 @@ export const OUTIL_DASHBOARD = {
     "- supprimer_rendez_vous : { rendez_vous (titre), heure (facultatif, pour départager) }",
     "- lancer_minuteur : { minutes (nombre, décimales permises : 0.5 pour 30 secondes ; de 0.1 à 720) }",
     "- arreter_minuteur : {}",
-    "- changer_onglet : { onglet : accueil, maison, chantiers, gestion (chiffres de gestion ProGBat), agenda, taches, meteo, reglages ou actualites }",
+    "- changer_onglet : { onglet : accueil, maison, chantiers, gestion (chiffres de gestion ProGBat), agenda, taches, meteo, reglages, actualites, personnel (salariés : sur chantier, au bureau, absents) ou minuteur (page du minuteur) }. « Finances » désigne l'onglet gestion ; « les salariés », « l'équipe » ou « le personnel » désignent l'onglet personnel",
     "- lumiere : { piece : salon, cuisine, bureau, chambres, exterieur ou toutes ; allume (booléen) ; intensite (0 à 100, facultatif) }",
     "- volets : { ouverts (booléen) }",
     "- chauffage : { consigne (degrés, de 15 à 25, par pas de 0.5) }",
@@ -256,7 +256,7 @@ export function verifierAction(etat, entree) {
       return { action: { type, donnees: {} }, compte_rendu: "Minuteur arrêté." };
     }
     case "changer_onglet": {
-      const onglet = simplifier(d.onglet).replace(/s$/, "").replace(/^tache$/, "taches").replace(/^reglage$/, "reglages").replace(/^chantier$/, "chantiers").replace(/^(actualite|info|nouvelle)$/, "actualites");
+      const onglet = simplifier(d.onglet).replace(/s$/, "").replace(/^tache$/, "taches").replace(/^reglage$/, "reglages").replace(/^chantier$/, "chantiers").replace(/^(actualite|info|nouvelle)$/, "actualites").replace(/^(finance|chiffre)$/, "gestion").replace(/^(salarie|equipe|effectif)$/, "personnel").replace(/^(chrono|chronometre|timer)$/, "minuteur");
       if (!ONGLETS.includes(onglet)) throw new Error(`Onglet inconnu. Onglets : ${ONGLETS.join(", ")}.`);
       etat.onglet = onglet;
       return { action: { type, donnees: { onglet } }, compte_rendu: `Onglet ${onglet} affiché.` };
