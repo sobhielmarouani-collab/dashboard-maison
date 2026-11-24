@@ -30,6 +30,7 @@ export const TYPES = [
   "chauffage",
   "presence",
   "actualiser_meteo",
+  "changer_ville",
 ];
 
 /** @type {import("@anthropic-ai/sdk").Anthropic.Beta.BetaTool} */
@@ -56,6 +57,7 @@ export const OUTIL_DASHBOARD = {
     "- chauffage : { consigne (degrés, de 15 à 25, par pas de 0.5) }",
     "- presence : { personne, a_la_maison (booléen) } — les personnes sont les salariés de l'entreprise ; a_la_maison vrai signifie « présent », faux « absent »",
     "- actualiser_meteo : {}",
+    "- changer_ville : { ville, pays (facultatif) } — change la ville dont la météo est affichée, partout dans le monde",
   ].join("\n"),
   input_schema: {
     type: "object",
@@ -106,7 +108,7 @@ export function nettoyerEtat(brut) {
     famille: tableau(e.famille, 10)
       .map((p) => ({ nom: texte(p?.nom, 60), a_la_maison: p?.a_la_maison !== false }))
       .filter((p) => p.nom),
-    meteo: texte(e.meteo, 300),
+    meteo: texte(e.meteo, 1200),
     utilisateur: texte(e.utilisateur, 40),
   };
 }
@@ -277,6 +279,11 @@ export function verifierAction(etat, entree) {
     }
     case "actualiser_meteo":
       return { action: { type, donnees: {} }, compte_rendu: "Météo en cours d'actualisation." };
+    case "changer_ville": {
+      const ville = texte(d.ville, 80), pays = texte(d.pays, 60);
+      if (!ville) throw new Error("Indique la ville.");
+      return { action: { type, donnees: { ville, pays } }, compte_rendu: `Recherche de la météo de ${ville}${pays ? ", " + pays : ""} lancée : l'écran l'affichera si la ville est trouvée. Tu ne connais pas encore ces prévisions : ne les invente pas, propose de reposer la question dans un instant.` };
+    }
   }
   throw new Error("Action non prise en charge.");
 }
