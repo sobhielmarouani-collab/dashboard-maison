@@ -5,8 +5,11 @@ Il est hébergé gratuitement chez **Cloudflare Workers** sous le nom `assistant
 
 - **Étape 1, conversation libre :** le serveur reçoit la phrase dite à l'avatar, la transmet à l'API Anthropic et renvoie la réponse à lire à voix haute.
 - **Étape 2, accès réservé :** le serveur ne répond qu'aux personnes connectées avec un compte Google figurant dans votre liste d'adresses autorisées. Le nombre de questions est limité par heure.
+- **Étape 3, actions du dashboard :** l'IA comprend les formulations libres (« j'ai fini le devis », « mets un rappel dans dix minutes », « passe le chantier Dupont à 80 % ») et agit sur l'écran : tâches, chantiers, rendez-vous du jour, minuteur, onglets, lumières, volets, chauffage, présence.
 
-> **Règle absolue : aucune valeur privée dans ce dépôt.** Il est public. La clé d'API, l'identifiant client Google et la liste des adresses se mettent uniquement dans le tableau de bord Cloudflare, sous forme de « secrets » chiffrés.
+> **Règle absolue : aucune valeur privée dans ce dépôt.** Il est public. La clé d'API, l'identifiant client Google et la liste des adresses se mettent uniquement dans le tableau de bord Cloudflare, sous forme de « secrets » chiffrés (type **Secret**, jamais **Texte** ni **Variable**).
+>
+> Les trois secrets sont `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID` et `ADRESSES_AUTORISEES`. Ne les ajoutez jamais à la section `vars` de `wrangler.jsonc` : ils deviendraient publics, et Cloudflare refuserait le déploiement à cause du doublon de nom. Les seules valeurs de `vars` sont des réglages non privés : `ORIGINES_AUTORISEES`, `MODELE`, `LIMITE_PAR_HEURE` et `JOURS_SESSION`.
 
 ## Fonctionnement
 
@@ -21,7 +24,9 @@ Dashboard (GitHub Pages)                        Cloudflare Worker               
 
 - La connexion se fait une fois par navigateur, dans l'onglet **Réglages**. Elle dure 30 jours.
 - Les sessions et les compteurs sont gardés côté serveur, dans un petit stockage Cloudflare (un « Durable Object »). Il est créé automatiquement au déploiement : rien à faire de votre côté.
-- Les ordres simples (ajouter une tâche, minuteur, lumières, onglets, heure, météo) restent traités directement dans la page, même sans connexion. Tout passera par l'IA à l'étape 3.
+- Connecté, chaque phrase part à l'IA avec un résumé de l'écran : tâches, chantiers, rendez-vous du jour, minuteur, onglet affiché, lumières, volets, chauffage, présence et météo. L'IA peut ainsi répondre (« qu'est-ce qu'il me reste à faire ? ») et agir avec l'outil `action_dashboard`.
+- Le serveur ne modifie rien lui-même. Il vérifie chaque action demandée par l'IA sur une copie de ce résumé, par exemple que la tâche nommée existe et qu'un seul élément correspond. Il renvoie ensuite à la page la liste des actions acceptées. La page les revérifie et les exécute. Une action refusée est signalée à l'IA, qui se corrige ou demande une précision au lieu d'annoncer un faux succès.
+- Sans connexion, serveur coupé ou limite horaire atteinte, les ordres simples d'avant (ajouter une tâche, minuteur, lumières, onglets, heure, météo) fonctionnent toujours, directement dans la page.
 - Toute autre phrase part au serveur, avec les derniers échanges pour garder le fil. Le fil se vide après dix minutes sans échange.
 - Si le serveur est coupé, le dashboard fonctionne comme avant.
 - Sur l'Echo Show, rien ne change. Laissez l'adresse du serveur vide sur cet appareil : la connexion Google n'y est alors même pas chargée.
@@ -109,6 +114,28 @@ Recommencez les points 2 à 5 sur chaque navigateur ou appareil qui doit utilise
 - **Avec une adresse non autorisée :** ouvrez le dashboard dans une fenêtre de navigation privée, réglez l'adresse du serveur et connectez-vous avec un compte Google qui n'est pas dans la liste. Le message « Ce compte Google n'est pas autorisé » doit s'afficher, et l'avatar ne doit répondre à aucune question libre.
 - **Sans connexion :** une question libre doit donner « connectez-vous avec Google dans l'onglet Réglages ». Les ordres simples comme « ajoute la tâche… » doivent toujours marcher.
 
+### H. Étape 3 : rien à configurer
+
+L'étape 3 ne demande **aucun nouveau secret ni réglage**. Fusionnez la branche dans `main`. Cloudflare redéploie le serveur, et GitHub Pages publie la page.
+
+Après le déploiement, vérifiez dans Cloudflare (**Paramètres › Variables et secrets**) que `ANTHROPIC_API_KEY`, `GOOGLE_CLIENT_ID` et `ADRESSES_AUTORISEES` sont toujours là, de type **Secret**. Un déploiement depuis GitHub ne les touche pas.
+
+Ensuite, connecté sur le PC, essayez :
+
+| Phrase | Résultat attendu |
+|---|---|
+| « Qu'est-ce qu'il me reste à faire ? » | lecture des tâches non cochées |
+| « J'ai fini le devis » | la tâche contenant « devis » est cochée |
+| « Rappelle-moi d'appeler le plombier » | nouvelle tâche « Appeler le plombier » |
+| « Mets un minuteur de trente secondes » | minuteur lancé à 00:30 |
+| « Le chantier B est à 80 % » | barre du chantier B à 80 % |
+| « Ajoute un rendez-vous à 9 h 30 avec le client Martin » | rendez-vous ajouté, à sa place dans la liste |
+| « Coche vérifier » s'il existe deux tâches « Vérifier… » | l'IA demande laquelle, sans rien cocher |
+| « Éteins tout sauf la cuisine » | lumières de démonstration éteintes, sauf la cuisine |
+| « Montre-moi la météo » | onglet Météo |
+
+Puis déconnectez-vous dans Réglages et dites « ajoute la tâche test » : la tâche doit être ajoutée par l'ordre simple, sans l'IA.
+
 ## Gérer l'accès au quotidien
 
 - **Ajouter une personne :** ajoutez son adresse dans `ADRESSES_AUTORISEES` (Cloudflare) et dans les utilisateurs test (Google, point D.4).
@@ -122,6 +149,8 @@ Recommencez les points 2 à 5 sur chaque navigateur ou appareil qui doit utilise
 - Le serveur délivre alors un jeton de session aléatoire. Il n'en garde qu'une empreinte : même une fuite du stockage ne permettrait pas de se faire passer pour vous.
 - Les appels ne sont acceptés que depuis `https://sobhielmarouani-collab.github.io`.
 - Chaque adresse a droit à 60 questions sur toute période de soixante minutes. Au-delà, l'assistant annonce le délai d'attente.
+- L'IA ne peut agir que sur les éléments listés plus haut, et seulement sur cet écran. Chaque action est vérifiée par le serveur puis par la page. Elle ne peut ni effacer toutes les données, ni toucher aux Réglages, ni envoyer quoi que ce soit à l'extérieur.
+- Le résumé de l'écran envoyé avec chaque question n'est pas conservé par le serveur. Il ne sert qu'à la question en cours.
 - Gardez la limite de dépense mensuelle chez Anthropic (point A.3) comme filet de sécurité supplémentaire.
 - **Si vous pensez que la clé Anthropic a fuité :** platform.claude.com › API Keys, supprimez-la, créez-en une nouvelle et remplacez le secret dans Cloudflare.
 
@@ -147,7 +176,8 @@ Fichiers :
 | `src/index.js` | routes, contrôle de l'origine, des sessions et de la limite horaire |
 | `src/google.js` | vérification du jeton d'identité Google (bibliothèque `jose`) |
 | `src/coffre.js` | Durable Object : sessions et compteurs (SQLite) |
-| `src/modele.js` | appel à Claude via le SDK officiel `@anthropic-ai/sdk` |
+| `src/modele.js` | appel à Claude via le SDK officiel `@anthropic-ai/sdk`, boucle de l'outil `action_dashboard` (4 appels au plus par question) |
+| `src/dashboard.js` | définition de l'outil, nettoyage de l'état envoyé par la page, vérification de chaque action |
 
 Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; les trois derniers exigent `Authorization: Bearer <session>`.
 
@@ -157,6 +187,6 @@ Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; le
 | `POST /connexion` | `{ jeton_google }` | `{ session, email, expire }`, ou 401 (jeton refusé), 403 (adresse non autorisée), 503 (non configuré) |
 | `GET /session` | aucun | `{ email }` ou 401 |
 | `POST /deconnexion` | aucun | `{ ok: true }` |
-| `POST /assistant` | `{ phrase, historique }` | `{ reponse, restant }`, ou 401 (pas de session), 429 (limite horaire, en-tête `Retry-After`), 502/503 (IA indisponible) |
+| `POST /assistant` | `{ phrase, historique, etat }` | `{ reponse, actions, restant }`, ou 401 (pas de session), 429 (limite horaire, en-tête `Retry-After`), 502/503 (IA indisponible) |
 
 Pour les essais locaux seulement, `GOOGLE_CLES_TEST` peut pointer vers un serveur de clés sur `http://localhost:…`. Toute autre valeur est ignorée et les clés de Google sont utilisées.
