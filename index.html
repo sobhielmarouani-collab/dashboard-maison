@@ -455,7 +455,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <div class="carte form" id="v-carte">
           <h2 style="justify-content:space-between">Voix<button class="bouton" type="button" id="v-test">Écouter</button></h2>
           <button class="bouton" type="button" id="v-libre" aria-pressed="false">Écoute permanente : désactivée</button>
-          <p class="info" id="v-libre-msg" style="font-size:14px;line-height:1.3">Dites « Sigma », puis votre demande. Le micro reste ouvert tant que la page est affichée.</p>
+          <p class="info" id="v-libre-msg" style="font-size:14px;line-height:1.3">Dites « Sigma » une fois, puis parlez-lui librement. « Merci » met fin à l'échange. Le micro reste ouvert tant que la page est affichée.</p>
           <label for="v-voix"><select id="v-voix" aria-label="Voix de l'assistant"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
           <div style="display:grid;grid-template-columns:1fr;gap:10px;font-size:19px">
             <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
@@ -903,8 +903,8 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   $('a-prenom').addEventListener('input',function(){ prenom=this.value.trim().slice(0,40); try{ localStorage.setItem('dashboard-prenom',prenom); }catch(e){} });
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
-    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); finParole=Date.now(); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
-    else if(parler){ $('ia').classList.add('parle'); setTimeout(function(){ $('ia').classList.remove('parle'); },2500); }
+    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); finParole=Date.now(); apresParole(texte); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+    else if(parler){ $('ia').classList.add('parle'); setTimeout(function(){ $('ia').classList.remove('parle'); finParole=Date.now(); apresParole(texte); },2500); }
   }
   function resume(){
     var d=new Date(), hm=p2(d.getHours())+':'+p2(d.getMinutes()), t=(prenom?'Bonjour '+prenom+'. ':'')+'Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'. ';
@@ -1216,16 +1216,34 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     if(msg) $('v-libre-msg').textContent=msg;
   }
   function sigmaParle(){ return $('ia').classList.contains('parle') || (window.speechSynthesis&&speechSynthesis.speaking) || Date.now()-finParole<900; }
+  /* conversation : après une réponse de Sigma, la phrase suivante lui est adressée sans redire son nom */
+  var conv=false, tFenetre=null;
+  var FIN=/^(merci|c['’ ]est tout|c['’ ]est bon|stop|ça suffit|ca suffit|au revoir|à plus tard|a plus tard|rien d['’ ]autre|non merci|laisse tomber|terminé|termine)\b/i;
+  function ouvrirFenetre(ms){
+    arme=Date.now()+ms; $('ia').classList.add('ecoute'); $('ia-etat').textContent=NOM+' · je vous écoute';
+    clearTimeout(tFenetre); tFenetre=setTimeout(function(){ conv=false; fermerFenetre(); },ms);
+  }
+  function fermerFenetre(){
+    arme=0; clearTimeout(tFenetre); $('ia').classList.remove('ecoute');
+    if(veilleActive&&!conv) $('ia-etat').textContent=NOM+' · dites « Sigma »';
+  }
+  /* appelée quand Sigma a fini de parler : elle laisse plus de temps si elle vient de poser une question */
+  function apresParole(texte){ if(mainsLibres&&veilleActive&&conv) ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); }
   function entendu(t){
     t=String(t||'').trim(); if(!t||sigmaParle()) return;
     /* une proposition de rendez-vous attend une réponse : « oui » ou « non » suffisent, sans dire Sigma */
-    if(proposition && /^(oui|ouais|ok|d['’ ]accord|confirme|vas-y|c['’ ]est bon|non|annule|laisse)/i.test(t)){ arme=0; repondre(t); return; }
+    if(proposition && /^(oui|ouais|ok|d['’ ]accord|confirme|vas-y|c['’ ]est bon|non|annule|laisse)/i.test(t)){ conv=true; fermerFenetre(); repondre(t); return; }
     var m=MOT.exec(' '+t);
     if(m){
-      var suite=m[1].trim();
-      if(suite.length>1){ arme=0; repondre(suite); }
-      else { dire(NOM+' · j\'écoute','Oui'+(prenom?' '+prenom:'')+' ?',true); arme=Date.now()+12000; }
-    } else if(Date.now()<arme){ arme=0; repondre(t); }
+      var suite=m[1].trim(); conv=true; fermerFenetre();
+      if(suite.length>1) repondre(suite);
+      else dire(NOM+' · je vous écoute','Oui'+(prenom?' '+prenom:'')+' ?',true);
+      return;
+    }
+    if(Date.now()<arme){
+      if(FIN.test(t)){ conv=false; fermerFenetre(); dire(NOM,'Entendu'+(prenom?', '+prenom:'')+'.',true); return; }
+      fermerFenetre(); repondre(t);
+    }
   }
   function demarrerVeille(){
     clearTimeout(relance);
@@ -1245,7 +1263,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   $('v-libre').addEventListener('click',function(){
     if(!Reco){ afficherVeille('Ce navigateur ne propose pas la reconnaissance vocale : l\'écoute permanente est indisponible ici.'); return; }
     mainsLibres=!mainsLibres; try{ localStorage.setItem('dashboard-mains-libres',mainsLibres?'1':'0'); }catch(e){}
-    if(mainsLibres){ afficherVeille('Activée. Dites « Sigma », puis votre demande. Le micro reste ouvert tant que cette page est affichée, et le navigateur envoie ce qu\'il entend à son service de reconnaissance vocale.'); demarrerVeille(); }
+    if(mainsLibres){ afficherVeille('Activée. Dites « Sigma » une fois, puis parlez-lui librement ; « merci » met fin à l\'échange. Le micro reste ouvert tant que la page est affichée, et le navigateur envoie ce qu\'il entend à son service de reconnaissance vocale.'); demarrerVeille(); }
     else { arreterVeille(); afficherVeille('Désactivée. Touchez le visage de Sigma pour lui parler.'); dire(NOM+' · touchez mon visage','L\'écoute permanente est arrêtée.',false); }
   });
   afficherVeille();
@@ -1253,7 +1271,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire(NOM+' · résumé du jour',resume(),true); return; }
-    if(veilleActive){ arme=Date.now()+10000; dire(NOM+' · j\'écoute','Parlez maintenant…',false); return; }
+    if(veilleActive){ conv=true; dire(NOM+' · je vous écoute','Parlez maintenant…',false); ouvrirFenetre(15000); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
     reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
     reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
