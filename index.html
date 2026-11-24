@@ -459,6 +459,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </div>
       <form class="carte form" id="a-form" style="min-width:0;max-height:100%;overflow:auto">
         <h2>Assistant Sigma</h2>
+        <label for="a-prenom">Votre prénom<input id="a-prenom" type="text" autocomplete="off" maxlength="40" placeholder="Prénom"></label>
         <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev" autocomplete="off" spellcheck="false"></label>
         <button class="bouton" type="submit">Enregistrer l'adresse</button>
         <div id="a-compte" hidden>
@@ -839,18 +840,22 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   $('v-vit-p').addEventListener('click',function(){ voix.vitesse=pas(voix.vitesse,0.1,0.6,1.6); garderVoix(); });
   $('v-ton-m').addEventListener('click',function(){ voix.ton=pas(voix.ton,-0.1,0.5,1.8); garderVoix(); });
   $('v-ton-p').addEventListener('click',function(){ voix.ton=pas(voix.ton,0.1,0.5,1.8); garderVoix(); });
-  $('v-test').addEventListener('click',function(){ dire(NOM,'Bonjour, je suis Sigma. Voici la voix que j\'utiliserai pour vous répondre.',true); });
+  $('v-test').addEventListener('click',function(){ dire(NOM,'Bonjour'+(prenom?' '+prenom:'')+', je suis Sigma. Voici la voix que j\'utiliserai pour vous répondre.',true); });
   if(window.speechSynthesis){ try{ speechSynthesis.addEventListener('voiceschanged',afficherVoix); }catch(e){ speechSynthesis.onvoiceschanged=afficherVoix; } }
   afficherVoix();
 
   var NOM='Sigma';   /* nom de l'assistant, affiché sous le visage */
+  var prenom='';     /* prénom de l'utilisateur, gardé sur l'appareil */
+  try{ prenom=(localStorage.getItem('dashboard-prenom')||'').slice(0,40); }catch(e){}
+  $('a-prenom').value=prenom;
+  $('a-prenom').addEventListener('input',function(){ prenom=this.value.trim().slice(0,40); try{ localStorage.setItem('dashboard-prenom',prenom); }catch(e){} });
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
     if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
     else if(parler){ $('ia').classList.add('parle'); setTimeout(function(){ $('ia').classList.remove('parle'); },2500); }
   }
   function resume(){
-    var d=new Date(), hm=p2(d.getHours())+':'+p2(d.getMinutes()), t='Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'. ';
+    var d=new Date(), hm=p2(d.getHours())+':'+p2(d.getMinutes()), t=(prenom?'Bonjour '+prenom+'. ':'')+'Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'. ';
     if(meteoTexte) t+=meteoTexte+' ';
     var suite=rendezVousDuJour('prochain')[0];
     t+= suite ? 'Prochain rendez-vous à '+suite.h.replace(':',' heures ')+' : '+suite.t+'. ' : 'Plus de rendez-vous aujourd\'hui. ';
@@ -927,7 +932,8 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       minuteur:{actif:!!fin&&!sonne,reste_secondes:reste(),sonne:sonne},
       lumieres:etat.lum, volets_ouverts:!!etat.volets, chauffage:etat.chauffage,
       famille:etat.famille.filter(function(m){ return m.n; }).map(function(m){ return {nom:m.n,a_la_maison:!!m.la}; }),
-      meteo:meteoTexte
+      meteo:meteoTexte,
+      utilisateur:prenom
     };
   }
   /* actions renvoyées par le serveur (déjà vérifiées par lui) ; chacune est revérifiée ici avant d'agir */

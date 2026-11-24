@@ -107,6 +107,7 @@ export function nettoyerEtat(brut) {
       .map((p) => ({ nom: texte(p?.nom, 60), a_la_maison: p?.a_la_maison !== false }))
       .filter((p) => p.nom),
     meteo: texte(e.meteo, 300),
+    utilisateur: texte(e.utilisateur, 40),
   };
 }
 
