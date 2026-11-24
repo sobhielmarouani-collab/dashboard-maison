@@ -1,6 +1,7 @@
 // Configuration du serveur de l'assistant pour Cloudflare Workers.
 // Ne jamais écrire la clé d'API ici : ce fichier est public.
-// La clé se met dans le tableau de bord Cloudflare (Variables et secrets), sous le nom ANTHROPIC_API_KEY.
+// Les valeurs privées se mettent dans le tableau de bord Cloudflare (Variables et secrets),
+// en type « Secret » : ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "assistant-dashboard-travail",
@@ -11,6 +12,15 @@
     // Adresses autorisées à appeler le serveur, séparées par des virgules.
     "ORIGINES_AUTORISEES": "https://sobhielmarouani-collab.github.io",
     // Modèle Claude utilisé (voir platform.claude.com/docs/en/about-claude/models/overview).
-    "MODELE": "claude-opus-5-5"
-  }
+    "MODELE": "claude-opus-5-5",
+    // Nombre maximal de questions à l'IA par adresse, sur les soixante dernières minutes.
+    "LIMITE_PAR_HEURE": "60",
+    // Durée d'une connexion avant de devoir se reconnecter avec Google.
+    "JOURS_SESSION": "30"
+  },
+  // Stockage des sessions et des compteurs (Durable Object SQLite, créé automatiquement au déploiement).
+  "durable_objects": {
+    "bindings": [{ "name": "COFFRE", "class_name": "Coffre" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Coffre"] }]
 }
