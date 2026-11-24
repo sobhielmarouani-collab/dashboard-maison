@@ -12,7 +12,7 @@
     // Adresses autorisées à appeler le serveur, séparées par des virgules.
     "ORIGINES_AUTORISEES": "https://sobhielmarouani-collab.github.io",
     // Modèle Claude utilisé (voir platform.claude.com/docs/en/about-claude/models/overview).
-    "MODELE": "claude-opus-5-5",
+    "MODELE": "claude-haiku-5-5",
     // Nombre maximal de questions à l'IA par adresse, sur les soixante dernières minutes.
     "LIMITE_PAR_HEURE": "60",
     // Durée d'une connexion avant de devoir se reconnecter avec Google.
