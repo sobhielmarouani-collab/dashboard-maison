@@ -54,17 +54,32 @@ async function liste(env, chemin, params) {
 const nombre = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const arrondi = (v) => Math.round(v * 100) / 100;
 
-/* Factures de l'année : on demande le filtre à ProGBat, et s'il le refuse on trie de notre côté. */
-async function facturesDeLAnnee(env, annee) {
-  const debut = `${annee}-01-01`, fin = `${annee}-12-31`;
-  let r;
+/* Toutes les factures, de la plus récente à la plus ancienne : l'encours peut venir d'une année précédente. */
+async function toutesLesFactures(env) {
   try {
-    r = await liste(env, "/company/bills", { filter: { documentDate: { $between: [debut, fin] } }, sort: { documentDate: -1 } });
+    return (await liste(env, "/company/bills", { sort: { documentDate: -1 } })).lignes;
   } catch (e) {
     if (e.statut === 401 || e.statut === 403) throw e;
-    r = await liste(env, "/company/bills", {});
+    return (await liste(env, "/company/bills", {})).lignes;
   }
-  return r.lignes.filter((f) => String(f.documentDate || "").slice(0, 10) >= debut && String(f.documentDate || "").slice(0, 10) <= fin);
+}
+
+/* Règlements : chaque transaction bancaire pointée porte la liste des documents qu'elle règle (checking). */
+async function reglements(env) {
+  const r = await liste(env, "/company/transactions", {});
+  const parFacture = new Map(), types = new Map();
+  let liens = 0;
+  for (const t of r.lignes) {
+    if (t.canceled) continue;
+    for (const c of Array.isArray(t.checking) ? t.checking : []) {
+      const type = String(c.docType || "");
+      types.set(type, (types.get(type) || 0) + 1);
+      if (c.docId == null || /supplier|fournisseur|order|commande/i.test(type)) continue;
+      liens++;
+      parFacture.set(Number(c.docId), (parFacture.get(Number(c.docId)) || 0) + Math.abs(nombre(c.amount)));
+    }
+  }
+  return { parFacture, liens, transactions: r.lignes.length, types: [...types.entries()].map(([type, n]) => ({ type, nombre: n })) };
 }
 
 const cache = new Map(); // année → { quand, resume }
@@ -75,14 +90,31 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
   const enCache = cache.get(an);
   if (!forcer && enCache && Date.now() - enCache.quand < DUREE_CACHE) return enCache.resume;
 
-  const [factures, chantiers] = await Promise.all([
-    facturesDeLAnnee(env, an),
+  const [toutes, regl, chantiers] = await Promise.all([
+    toutesLesFactures(env),
+    reglements(env).catch((e) => ({ parFacture: new Map(), liens: 0, transactions: 0, types: [], erreur: String(e.message || e) })),
     liste(env, "/company/yards", {}).catch((e) => ({ lignes: [], total: 0, erreur: String(e.message || e) })),
   ]);
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const mois = Array(12).fill(0), acomptes = Array(12).fill(0), parClient = new Map(), groupes = new Map();
-  let ca = 0, retenues = 0;
+  let ca = 0, retenues = 0, enc = 0, encNb = 0, ret = 0, retNb = 0;
+  const debut = `${an}-01-01`, fin = `${an}-12-31`;
+  const factures = toutes.filter((f) => String(f.documentDate || "").slice(0, 10) >= debut && String(f.documentDate || "").slice(0, 10) <= fin);
+
+  // reste à encaisser : net à payer TTC de chaque facture validée, moins les règlements pointés en banque
+  const restes = new Map();
+  for (const f of toutes) {
+    if (!f.validated || f.test || f.type === "model") continue;
+    const signe = /credit/.test(f.type || "") ? -1 : 1;
+    const du = signe * Math.abs(nombre(f.toBePaid) || nombre(f.atiTotal));
+    const reste = arrondi(du - signe * (regl.parFacture.get(Number(f.id)) || 0));
+    restes.set(f.id, reste);
+    if (Math.abs(reste) < 0.01) continue;
+    enc += reste;
+    if (reste > 0) encNb++;
+    if (reste > 0 && f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) { ret += reste; retNb++; }
+  }
 
   for (const f of factures) {
     const avoir = /credit/.test(f.type || "");
@@ -93,9 +125,10 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
 
     // tableau de contrôle, sans aucun nom : sert à vérifier comment ProGBat code l'état des factures
     const cle = [f.type, f.validated ? 1 : 0, f.status, f.einvoiceStatus ?? ""].join("|");
-    const g = groupes.get(cle) || { type: f.type, validee: !!f.validated, statut: f.status, statut_efacture: f.einvoiceStatus ?? null, nombre: 0, total_ht: 0, reste_a_payer: 0, echues: 0 };
+    const g = groupes.get(cle) || { type: f.type, validee: !!f.validated, statut: f.status, statut_efacture: f.einvoiceStatus ?? null, nombre: 0, total_ht: 0, reste_a_payer: 0, echues: 0, soldees: 0 };
     g.nombre++; g.total_ht += ht; g.reste_a_payer += signe * Math.abs(nombre(f.toBePaid));
     if (f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) g.echues++;
+    if (restes.has(f.id) && Math.abs(restes.get(f.id)) < 0.01) g.soldees++;
     groupes.set(cle, g);
 
     if (!retenue || m < 0 || m > 11) continue;
@@ -110,8 +143,15 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     annee: an,
     lu_le: new Date().toISOString(),
     factures_lues: factures.length,
+    factures_total: toutes.length,
     factures_retenues: retenues,
     ca: arrondi(ca),
+    // sans aucun règlement pointé, on ne peut pas distinguer une facture payée d'une facture due : on ne donne pas de chiffre
+    encours: regl.liens ? arrondi(enc) : null,
+    encours_nombre: regl.liens ? encNb : null,
+    retard: regl.liens ? arrondi(ret) : null,
+    retard_nombre: regl.liens ? retNb : null,
+    reglements: { transactions: regl.transactions, pointages: regl.liens, types: regl.types, erreur: regl.erreur || null },
     mois: mois.map(arrondi),
     acomptes: acomptes.map(arrondi),
     clients: [...parClient.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, v]) => ({ n, v: arrondi(v) })),
