@@ -460,6 +460,9 @@ h2 svg{color:var(--neon)}
 .cc-fil a:first-child,.cc-fil .art:first-child{border-left:0}
 .cc-fil a:hover strong{color:var(--neon)}
 .cc-fil .vg{width:56px;height:56px;border-radius:10px;display:grid;place-items:center;background:linear-gradient(150deg,rgba(0,150,255,.35),rgba(10,24,46,.9));border:1px solid var(--trait)}
+.cc-fil .vg{position:relative;overflow:hidden}
+.cc-fil .vg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:9px;background:#f4f7fb}
+.cc-fil .vg.photo img{object-fit:cover;padding:0;background:#0c1a30}
 .cc-fil .vg svg{width:30px;height:30px;color:#9fe0ff}
 .cc-fil strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:16.5px;font-weight:600;line-height:1.2}
 .cc-fil small{font-size:13.5px;color:var(--discret);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2020,9 +2023,11 @@ h2 svg{color:var(--neon)}
       var n=Math.ceil(fil.articles.length/3), a=fil.articles.slice(fil.page*3,fil.page*3+3);
       $('n2-pages').hidden=n<2; $('n2-num').textContent=(fil.page+1)+' / '+n;
       $('n2').classList.remove('cc-fondu'); void $('n2').offsetWidth; $('n2').classList.add('cc-fondu');
-      $('n2').innerHTML=a.map(function(x){ var lien=/^https?:\/\//i.test(x.lien||'')?x.lien:'', c='<span class="vg"><svg class="i"><use href="#n-actualites"/></svg></span><span><strong>'+esc(x.titre)+'</strong><small>'+esc(x.source||'')+(x.jour?' • '+esc(quandArticle(x)):'')+'</small></span>';
+      $('n2').innerHTML=a.map(function(x){ var lien=/^https?:\/\//i.test(x.lien||'')?x.lien:'', img=/^https:\/\/[^\s"'<>]+$/i.test(x.image||'')?x.image:(/^[a-z0-9.-]{3,100}$/i.test(x.site||'')?'https://www.google.com/s2/favicons?sz=128&domain='+encodeURIComponent(x.site):''), c='<span class="vg'+(x.image&&img===x.image?' photo':'')+'"><svg class="i"><use href="#n-actualites"/></svg>'+(img?'<img src="'+esc(img)+'" alt="" loading="lazy" referrerpolicy="no-referrer">':'')+'</span><span><strong>'+esc(x.titre)+'</strong><small>'+esc(x.source||'')+(x.jour?' • '+esc(quandArticle(x)):'')+'</small></span>';
           return lien ? '<a href="'+esc(lien)+'" target="_blank" rel="noopener noreferrer">'+c+'</a>' : '<div class="art">'+c+'</div>'; }).join('');
     }
+    /* image introuvable : on retire l'image et le pictogramme reste */
+    $('n2').addEventListener('error',function(e){ var t=e.target; if(t&&t.tagName==='IMG'){ if(t.parentNode) t.parentNode.classList.remove('photo'); t.remove(); } },true);
     function tournerFil(sens){ var n=Math.ceil(fil.articles.length/3); if(n<2) return; fil.page=(fil.page+sens+n)%n; montrerFil(); }
     var filSurvol=false, filTic=0;
     document.querySelector('.cc-actus').addEventListener('pointerenter',function(){ filSurvol=true; });

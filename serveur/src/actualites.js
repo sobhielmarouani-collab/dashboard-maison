@@ -192,6 +192,42 @@ function lienDe(bloc) {
   return /^https?:\/\//i.test(lien) ? lien.slice(0, 1000) : "";
 }
 
+/* Image d'illustration d'un article, si le flux en donne une (adresse https uniquement). */
+function imageDe(bloc) {
+  const candidats = [];
+  for (const m of bloc.matchAll(/<(enclosure|media:content|media:thumbnail)\b([^>]*)>/gi)) {
+    const url = (/\burl=["']([^"']+)["']/i.exec(m[2]) || [])[1];
+    if (!url) continue;
+    const type = (/\btype=["']([^"']+)["']/i.exec(m[2]) || [])[1] || "";
+    const medium = (/\bmedium=["']([^"']+)["']/i.exec(m[2]) || [])[1] || "";
+    if (/thumbnail/i.test(m[1]) || /^image\//i.test(type) || medium === "image" || (!type && /\.(jpe?g|png|webp|avif)(\?|$)/i.test(url))) candidats.push(url);
+  }
+  const html = decoder(balise(bloc, ["content:encoded", "description", "content", "summary"]).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1"));
+  const img = /<img\b[^>]*\bsrc=["']([^"']+)["']/i.exec(html);
+  if (img) candidats.push(img[1]);
+  for (const c of candidats) {
+    const url = decoder(c).trim();
+    if (/^https:\/\/[^\s"'<>]+$/i.test(url) && url.length <= 1000) return url;
+  }
+  return "";
+}
+
+/* Média d'origine quand le flux est un agrégateur (balise <source url="…">Nom</source>). */
+function mediaDe(bloc) {
+  const m = /<source\b([^>]*)>([\s\S]*?)<\/source>/i.exec(bloc);
+  if (!m) return { nom: "", site: "" };
+  const url = (/\burl=["']([^"']+)["']/i.exec(m[1]) || [])[1] || "";
+  return { nom: nettoyer(m[2], 40), site: hoteDe(url) };
+}
+function hoteDe(url) {
+  try {
+    const h = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    return /^[a-z0-9.-]{3,100}$/.test(h) ? h : "";
+  } catch {
+    return "";
+  }
+}
+
 /* Analyse un flux RSS 2.0, RSS 1.0 ou Atom. Renvoie [{ titre, lien, date }] (date en millisecondes ou null). */
 export function analyserFlux(xml) {
   if (!/<(rss|feed|rdf:RDF)\b/i.test(xml.slice(0, 5000))) throw new Error("ce n'est pas un flux RSS ou Atom");
@@ -200,7 +236,12 @@ export function analyserFlux(xml) {
     .map((b) => {
       const brut = nettoyer(balise(b, ["pubDate", "dc:date", "published", "updated"]), 60);
       const t = Date.parse(brut);
-      return { titre: nettoyer(balise(b, ["title"]), 300), lien: lienDe(b), date: Number.isFinite(t) ? t : null };
+      const media = mediaDe(b);
+      const lien = lienDe(b);
+      let titre = nettoyer(balise(b, ["title"]), 300);
+      // les agrégateurs ajoutent « - Nom du média » à la fin du titre : on l'enlève puisqu'il est affiché à part
+      if (media.nom && titre.endsWith(" - " + media.nom)) titre = titre.slice(0, -media.nom.length - 3).trim();
+      return { titre, lien, date: Number.isFinite(t) ? t : null, image: imageDe(b), media: media.nom, site: media.site || hoteDe(lien) };
     })
     .filter((a) => a.titre);
 }
@@ -282,7 +323,9 @@ export async function lireRubrique(rubrique, { forcer = false, max = 40 } = {}) 
     .map((a) => ({
       titre: a.titre,
       lien: a.lien,
-      source: a.source,
+      source: a.media || a.source,
+      image: a.image || "",
+      site: a.site || "",
       date: a.date,
       jour: a.date ? jourParis(a.date) : null,
       heure: a.date ? heureParis(a.date) : null,
