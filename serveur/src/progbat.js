@@ -90,9 +90,10 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
   const enCache = cache.get(an);
   if (!forcer && enCache && Date.now() - enCache.quand < DUREE_CACHE) return enCache.resume;
 
-  const [toutes, regl, chantiers] = await Promise.all([
+  const [toutes, regl, devis, chantiers] = await Promise.all([
     toutesLesFactures(env),
     reglements(env).catch((e) => ({ parFacture: new Map(), liens: 0, transactions: 0, types: [], erreur: String(e.message || e) })),
+    liste(env, "/company/quotes", { sort: { documentDate: -1 } }).catch((e) => ({ lignes: null, erreur: String(e.message || e) })),
     liste(env, "/company/yards", {}).catch((e) => ({ lignes: [], total: 0, erreur: String(e.message || e) })),
   ]);
 
@@ -139,6 +140,17 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     if (client) parClient.set(client, (parClient.get(client) || 0) + ht);
   }
 
+  // devis — statut documenté par ProGBat : 0 = à l'étude ou brouillon, 1 = accepté, 2 = refusé, 6 = en attente
+  const moisCourant = aujourdhui.slice(0, 7);
+  const d = { acceptes_mois: 0, acceptes_mois_nombre: 0, en_attente: 0, en_attente_total: 0, a_envoyer: 0, lus: 0, erreur: devis.erreur || null };
+  for (const q of devis.lignes || []) {
+    d.lus++;
+    if (q.status === 1 && String(q.statusDate || "").slice(0, 7) === moisCourant) { d.acceptes_mois += nombre(q.dealNetTotal); d.acceptes_mois_nombre++; }
+    else if (q.status === 6) { d.en_attente++; d.en_attente_total += nombre(q.dealNetTotal); }
+    else if (q.status === 0) d.a_envoyer++;
+  }
+  d.acceptes_mois = arrondi(d.acceptes_mois); d.en_attente_total = arrondi(d.en_attente_total);
+
   const resume = {
     annee: an,
     lu_le: new Date().toISOString(),
@@ -151,6 +163,7 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     encours_nombre: regl.liens ? encNb : null,
     retard: regl.liens ? arrondi(ret) : null,
     retard_nombre: regl.liens ? retNb : null,
+    devis: devis.lignes ? d : { erreur: d.erreur },
     reglements: { transactions: regl.transactions, pointages: regl.liens, types: regl.types, erreur: regl.erreur || null },
     mois: mois.map(arrondi),
     acomptes: acomptes.map(arrondi),
