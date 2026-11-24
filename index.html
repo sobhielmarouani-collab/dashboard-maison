@@ -947,17 +947,28 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   try{ prenom=(localStorage.getItem('dashboard-prenom')||'').slice(0,40); }catch(e){}
   $('a-prenom').value=prenom;
   $('a-prenom').addEventListener('input',function(){ prenom=this.value.trim().slice(0,40); try{ localStorage.setItem('dashboard-prenom',prenom); }catch(e){} });
-  var enParole=false, tParole=null;
+  var enParole=false, tParole=null, debutParole=0, derniersDits=[];
   function finDeParole(texte){
     if(!enParole) return;
-    enParole=false; clearTimeout(tParole); $('ia').classList.remove('parle'); finParole=Date.now(); apresParole(texte);
+    enParole=false; clearInterval(tParole); $('ia').classList.remove('parle'); finParole=Date.now();
+    if(mainsLibres) demarrerVeille();          /* le micro, coupé pendant la parole, est rouvert */
+    apresParole(texte);
   }
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
     if(!parler) return;
-    /* certains navigateurs ne signalent pas toujours la fin de la parole : une minuterie la garantit */
-    enParole=true; $('ia').classList.add('parle'); clearTimeout(tParole);
-    tParole=setTimeout(function(){ finDeParole(texte); }, window.speechSynthesis ? Math.min(45000, 3000+String(texte).length*95) : 2500);
+    enParole=true; debutParole=Date.now(); $('ia').classList.add('parle');
+    derniersDits.push({t:String(texte),h:Date.now()}); derniersDits=derniersDits.slice(-4);
+    /* pour ne pas s'entendre elle-même, Sigma coupe l'écoute permanente pendant qu'elle parle */
+    if(veilleActive){ try{ veille.abort(); }catch(e){} }
+    /* fin de parole : annoncée par le navigateur, sinon constatée ici (il ne la signale pas toujours) */
+    var mini = window.speechSynthesis ? 1500 : 2500, maxi = Math.min(90000, 6000+String(texte).length*160);
+    clearInterval(tParole);
+    tParole=setInterval(function(){
+      var d=Date.now()-debutParole, encore=false;
+      try{ encore=!!(window.speechSynthesis&&(speechSynthesis.speaking||speechSynthesis.pending)); }catch(e){}
+      if(d>=maxi || (d>=mini && !encore)) finDeParole(texte);
+    },300);
     if(window.speechSynthesis){
       try{
         var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u);
@@ -1358,7 +1369,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     appelServeur('/deconnexion').then(fin,fin);
   });
   /* ---------- écoute permanente : « Sigma, … » sans toucher l'écran (réglage, désactivé par défaut) ---------- */
-  var mainsLibres=false, veille=null, veilleActive=false, arme=0, relance=null;
+  var mainsLibres=false, veille=null, veilleActive=false, arme=0, relance=null, dejaAnnonce=false;
   try{ mainsLibres = localStorage.getItem('dashboard-mains-libres')==='1'; }catch(e){}
   var MOT=/(?:^|[\s,.;:!?'’-])(?:sigma|sygma|cigma|zigma|sigmar|signa|stigma|figma|segma|ségma|sig ma|si gma|six ma|si ma|c'est sigma|dis sigma|ok sigma|hey sigma)(?=$|[\s,.;:!?])[\s,.;:!?]*(.*)$/i;
   function afficherVeille(msg){
@@ -1366,7 +1377,18 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     $('ia').classList.toggle('veille',mainsLibres&&veilleActive);
     if(msg) $('v-libre-msg').textContent=msg;
   }
-  function sigmaParle(){ return enParole || Date.now()-finParole<600; }
+  function sigmaParle(){ return enParole || Date.now()-finParole<700; }
+  function motsDe(x){ return sansAccent(String(x)).replace(/[^a-z0-9 ]+/g,' ').split(/\s+/).filter(function(w){ return w.length>2; }); }
+  function estEcho(t){
+    var m=motsDe(t), plat=motsDe(t).join(' '); if(!m.length) return false;
+    for(var i=0;i<derniersDits.length;i++){
+      var d=derniersDits[i]; if(Date.now()-d.h>40000) continue;
+      var ref=motsDe(d.t), n=0; if(ref.join(' ').indexOf(plat)>=0) return true;
+      m.forEach(function(w){ if(ref.indexOf(w)>=0) n++; });
+      if(n>=2 && n/m.length>=0.6) return true;
+    }
+    return false;
+  }
   /* conversation : après une réponse de Sigma, la phrase suivante lui est adressée sans redire son nom */
   var conv=false, tFenetre=null;
   var FIN=/^(merci|c['’ ]est tout|c['’ ]est bon|stop|ça suffit|ca suffit|au revoir|à plus tard|a plus tard|rien d['’ ]autre|non merci|laisse tomber|terminé|termine)\b/i;
@@ -1376,14 +1398,15 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   }
   function fermerFenetre(){
     arme=0; clearTimeout(tFenetre); $('ia').classList.remove('ecoute');
-    if(veilleActive&&!conv) $('ia-etat').textContent=NOM+' · dites « Sigma »';
+    if(mainsLibres&&!conv&&!enParole) $('ia-etat').textContent=NOM+' · dites « Sigma »';
   }
   /* appelée quand Sigma a fini de parler : elle laisse plus de temps si elle vient de poser une question */
-  function apresParole(texte){ if(mainsLibres&&veilleActive&&conv) ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); }
+  function apresParole(texte){ if(mainsLibres&&conv) ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); }
   function entendu(t){
     t=String(t||'').trim(); if(!t) return;
-    $('ia-entendu').textContent='Entendu par le micro : « '+t.slice(0,90)+' »'+(sigmaParle()?' (ignoré, je parlais)':'');
-    if(sigmaParle()) return;
+    var echo=estEcho(t);
+    $('ia-entendu').textContent='Entendu par le micro : « '+t.slice(0,90)+' »'+(sigmaParle()?' (ignoré, je parlais)':(echo?' (ignoré, c\'était ma propre voix)':''));
+    if(sigmaParle()||echo) return;
     /* une proposition de rendez-vous attend une réponse : « oui » ou « non » suffisent, sans dire Sigma */
     if(proposition && /^(oui|ouais|ok|d['’ ]accord|confirme|vas-y|c['’ ]est bon|non|annule|laisse)/i.test(t)){ conv=true; fermerFenetre(); repondre(t); return; }
     var m=MOT.exec(' '+t);
@@ -1400,15 +1423,15 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   }
   function demarrerVeille(){
     clearTimeout(relance);
-    if(!Reco||!mainsLibres||veilleActive||ecoute) return;
+    if(!Reco||!mainsLibres||veilleActive||ecoute||enParole) return;
     try{
       veille=new Reco(); veille.lang='fr-FR'; veille.continuous=true; veille.interimResults=false; veille.maxAlternatives=4;
-      veille.onstart=function(){ veilleActive=true; afficherVeille(); if(!sigmaParle()) dire(NOM+' · dites « Sigma »','Je vous écoute en permanence. Dites « Sigma », puis votre demande.',false); };
+      veille.onstart=function(){ veilleActive=true; afficherVeille(); if(!dejaAnnonce){ dejaAnnonce=true; dire(NOM+' · dites « Sigma »','Je vous écoute en permanence. Dites « Sigma », puis votre demande.',false); } };
       veille.onresult=function(e){ for(var i=e.resultIndex;i<e.results.length;i++){ if(!e.results[i].isFinal) continue; var r=e.results[i], t=r[0].transcript, k; /* si une autre lecture contient « Sigma », on la préfère */ for(k=0;k<r.length;k++){ if(MOT.test(' '+r[k].transcript.trim())){ t=r[k].transcript; break; } } entendu(t); } };
       veille.onerror=function(e){
         if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ mainsLibres=false; try{ localStorage.setItem('dashboard-mains-libres','0'); }catch(x){} afficherVeille('Le micro est refusé par ce navigateur : l\'écoute permanente ne peut pas fonctionner sur cet appareil.'); }
       };
-      veille.onend=function(){ veilleActive=false; afficherVeille(); if(mainsLibres) relance=setTimeout(demarrerVeille,600); };
+      veille.onend=function(){ veilleActive=false; afficherVeille(); if(mainsLibres&&!enParole) relance=setTimeout(demarrerVeille,500); };
       veille.start();
     }catch(e){ veilleActive=false; if(mainsLibres) relance=setTimeout(demarrerVeille,3000); }
   }
@@ -1424,7 +1447,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire(NOM+' · résumé du jour',resume(),true); return; }
-    if(veilleActive){ conv=true; dire(NOM+' · je vous écoute','Parlez maintenant…',false); ouvrirFenetre(15000); return; }
+    if(mainsLibres&&Reco&&!sansMicro){ conv=true; dire(NOM+' · je vous écoute','Parlez maintenant…',false); demarrerVeille(); ouvrirFenetre(15000); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
     reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
     reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
