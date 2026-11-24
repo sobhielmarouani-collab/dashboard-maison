@@ -39,7 +39,7 @@ ul{list-style:none;padding:0}
 #v-accueil{grid-template-rows:1fr 206px;gap:14px}
 .haut{display:grid;grid-template-columns:462px 496px 1fr;gap:14px;min-height:0}
 .col{display:flex;flex-direction:column;gap:12px;min-height:0}
-.marques{height:72px;display:flex;align-items:center;gap:16px;padding-left:40px;flex:none}
+.marques{height:98px;display:flex;align-items:center;gap:16px;padding-left:8px;flex:none}
 .marque{display:flex;align-items:center;gap:9px;font-size:27px;font-weight:600;letter-spacing:.04em;line-height:1}
 .marque small{display:block;font-size:9.5px;letter-spacing:.09em;font-weight:400;margin-top:3px}
 .marque svg{width:40px;height:40px;color:var(--bleu)}
@@ -290,7 +290,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     <div class="haut">
       <div class="col">
         <div class="marques">
-          <div class="marque"><svg class="i" viewBox="0 0 40 40"><path d="M4 34V16l9-8v26M13 34V8l10 6v20M23 34V18l9 4v12M2 34h36"/></svg><div>SIGNATURE<small>GROS ŒUVRE &amp; RÉNOVATION</small></div></div>
+          <img src="logo-signature.png" alt="SIGNATURE, entreprise générale du bâtiment" style="height:96px;width:auto;display:block">
         </div>
         <button class="ia" id="ia" type="button" aria-label="Sigma, l'assistant : toucher pour parler ou écouter le résumé du jour">
           <video class="visage" id="ia-visage" autoplay muted loop playsinline webkit-playsinline preload="auto" poster="avatar_ia_full_hd.png" disablepictureinpicture disableremoteplayback tabindex="-1" aria-hidden="true"><source src="avatar_ia_full_hd.mp4" type="video/mp4"></video><span class="lueur"></span>
