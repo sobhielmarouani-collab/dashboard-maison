@@ -462,7 +462,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, seules les phrases dites à l'assistant lui sont envoyées, après connexion avec un compte Google autorisé.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -855,7 +855,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     options=options||{}; var h={}, s=session();
     if(options.corps) h['Content-Type']='application/json';
     if(s) h.Authorization='Bearer '+s.jeton;
-    var ctrl=window.AbortController?new AbortController():null, minuterie=setTimeout(function(){ if(ctrl) ctrl.abort(); },30000);
+    var ctrl=window.AbortController?new AbortController():null, minuterie=setTimeout(function(){ if(ctrl) ctrl.abort(); },45000);
     return fetch(base+chemin,{method:options.methode||'POST',headers:h,body:options.corps?JSON.stringify(options.corps):undefined,signal:ctrl?ctrl.signal:undefined})
       .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){
         if(r.status===401&&chemin!=='/connexion'){ oublierSession(); afficherCompte(); }
@@ -863,25 +863,76 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         return j; }); })
       .finally(function(){ clearTimeout(minuterie); });
   }
+  /* état résumé envoyé avec chaque question, pour que l'IA sache ce qui est à l'écran */
+  function etatPourAssistant(){
+    return {
+      onglet:vueActive,
+      taches:etat.taches.map(function(t){ return {texte:t.t,faite:!!t.f}; }),
+      chantiers:etat.chantiers.map(function(c){ return {nom:c.n,avancement:c.p}; }),
+      agenda:etat.agenda.map(function(r){ return {heure:r.h,titre:r.t,detail:r.d||''}; }),
+      minuteur:{actif:!!fin&&!sonne,reste_secondes:reste(),sonne:sonne},
+      lumieres:etat.lum, volets_ouverts:!!etat.volets, chauffage:etat.chauffage,
+      famille:etat.famille.filter(function(m){ return m.n; }).map(function(m){ return {nom:m.n,a_la_maison:!!m.la}; }),
+      meteo:meteoTexte
+    };
+  }
+  /* actions renvoyées par le serveur (déjà vérifiées par lui) ; chacune est revérifiée ici avant d'agir */
+  function trouverPar(liste,cle,val){ for(var i=0;i<liste.length;i++){ if(liste[i][cle]===val) return i; } return -1; }
+  function appliquerActions(actions){
+    if(!Array.isArray(actions)) return;
+    var modifie=false;
+    actions.forEach(function(a){
+      var d=(a&&a.donnees)||{}, i;
+      switch(a&&a.type){
+        case 'ajouter_tache': if(typeof d.texte==='string'&&d.texte){ etat.taches.unshift({t:d.texte.slice(0,200),f:false}); modifie=true; } break;
+        case 'cocher_tache': i=trouverPar(etat.taches,'t',d.texte); if(i>=0){ etat.taches[i].f=d.faite!==false; modifie=true; } break;
+        case 'supprimer_tache': i=trouverPar(etat.taches,'t',d.texte); if(i>=0){ etat.taches.splice(i,1); modifie=true; } break;
+        case 'supprimer_taches_terminees': etat.taches=etat.taches.filter(function(t){ return !t.f; }); modifie=true; break;
+        case 'ajouter_chantier': if(typeof d.nom==='string'&&d.nom){ etat.chantiers.push({n:d.nom.slice(0,200),p:borne(Math.round(+d.avancement||0),0,100)}); modifie=true; } break;
+        case 'modifier_chantier': i=trouverPar(etat.chantiers,'n',d.nom); if(i>=0){ etat.chantiers[i].p=borne(Math.round(+d.avancement||0),0,100); modifie=true; } break;
+        case 'supprimer_chantier': i=trouverPar(etat.chantiers,'n',d.nom); if(i>=0){ etat.chantiers.splice(i,1); modifie=true; } break;
+        case 'ajouter_rendez_vous': if(/^\d{2}:\d{2}$/.test(d.heure)&&typeof d.titre==='string'&&d.titre){ etat.agenda.push({h:d.heure,t:d.titre.slice(0,200),d:String(d.detail||'').slice(0,200),c:COUL[d.couleur]?d.couleur:'bleu'}); trierAgenda(); modifie=true; } break;
+        case 'supprimer_rendez_vous': for(i=0;i<etat.agenda.length;i++){ if(etat.agenda[i].t===d.titre&&etat.agenda[i].h===d.heure){ etat.agenda.splice(i,1); modifie=true; break; } } break;
+        case 'lancer_minuteur': if(+d.minutes>0&&+d.minutes<=720){ try{ jouerBip.ctx&&jouerBip.ctx.resume(); }catch(x){} lancer(+d.minutes); } break;
+        case 'arreter_minuteur': arreter(); break;
+        case 'changer_onglet': if(typeof d.onglet==='string'&&$('v-'+d.onglet)) aller(d.onglet); break;
+        case 'lumiere':
+          (d.piece==='toutes'?LUMIERES.map(function(p){ return p[0]; }):[d.piece]).forEach(function(id){
+            if(!(id in etat.lum)) return;
+            if(d.allume&&d.intensite!=null) etat.lum[id]=borne(Math.round(+d.intensite||0),0,100); else lumiere(id,!!d.allume);
+            modifie=true;
+          }); break;
+        case 'volets': etat.volets=!!d.ouverts; modifie=true; break;
+        case 'chauffage': if(+d.consigne>=15&&+d.consigne<=25){ etat.chauffage=Math.round(+d.consigne*2)/2; modifie=true; } break;
+        case 'presence': i=trouverPar(etat.famille,'n',d.nom); if(i>=0){ etat.famille[i].la=!!d.a_la_maison; modifie=true; } break;
+        case 'actualiser_meteo': meteo(); break;
+      }
+    });
+    if(modifie) change();
+  }
   function demanderServeur(phrase){
     if(!session()) return Promise.reject(Object.assign(new Error('Connexion requise.'),{statut:401}));
     if(Date.now()-dernierEchange>10*60*1000) historique=[];
-    return appelServeur('/assistant',{corps:{phrase:phrase,historique:historique}}).then(function(j){
+    return appelServeur('/assistant',{corps:{phrase:phrase,historique:historique,etat:etatPourAssistant()}}).then(function(j){
       if(typeof j.reponse!=='string') throw Object.assign(new Error('réponse invalide'),{statut:0});
-      historique.push({role:'user',content:phrase},{role:'assistant',content:j.reponse}); historique=historique.slice(-20); dernierEchange=Date.now(); return j.reponse;
+      historique.push({role:'user',content:phrase},{role:'assistant',content:j.reponse}); historique=historique.slice(-20); dernierEchange=Date.now();
+      return {reponse:j.reponse,actions:Array.isArray(j.actions)?j.actions:[]};
     });
   }
-  /* ordres fixes d'abord (ils agissent sur la page) ; sinon le serveur ; serveur absent ou en panne : message habituel */
+  /* l'IA d'abord quand on est connecté (formulations libres) ;
+     serveur absent, sans connexion, en panne ou à la limite : ordres fixes comme avant */
   function repondre(phrase){
-    var local=comprendre(phrase);
-    if(local!=null){ dire('Assistant',local,true); return; }
-    if(!adresseServeur()){ dire('Assistant','Je n\'ai pas compris « '+phrase+' ».',true); return; }
-    if(!session()){ dire('Assistant','Pour me poser cette question, connectez-vous avec Google dans l\'onglet Réglages.',true); return; }
+    function repli(message){
+      var local=comprendre(phrase);
+      dire('Assistant', local!=null ? local : message, true);
+    }
+    if(!adresseServeur()){ repli('Je n\'ai pas compris « '+phrase+' ».'); return; }
+    if(!session()){ repli('Pour me poser cette question, connectez-vous avec Google dans l\'onglet Réglages.'); return; }
     dire('Assistant · je réfléchis','« '+phrase+' »',false);
-    demanderServeur(phrase).then(function(rep){ dire('Assistant',rep,true); },function(x){
-      if(x.statut===401) dire('Assistant','Votre connexion a expiré. Reconnectez-vous avec Google dans l\'onglet Réglages.',true);
-      else if(x.statut===429) dire('Assistant',x.message,true);
-      else dire('Assistant','Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.',true);
+    demanderServeur(phrase).then(function(r){ appliquerActions(r.actions); dire('Assistant',r.reponse,true); },function(x){
+      if(x.statut===401) repli('Votre connexion a expiré. Reconnectez-vous avec Google dans l\'onglet Réglages.');
+      else if(x.statut===429) repli(x.message);
+      else repli('Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.');
     });
   }
   /* connexion Google : le script de Google n'est chargé que si un serveur est réglé (jamais sur l'Echo Show sans réglage) */
@@ -930,7 +981,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   });
   $('a-tester').addEventListener('click',function(){
     var m=$('a-msg'); m.textContent='Test en cours…';
-    demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r; },function(x){ m.textContent='Échec du test : '+x.message; });
+    demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r.reponse; },function(x){ m.textContent='Échec du test : '+x.message; });
   });
   $('a-sortir').addEventListener('click',function(){
     var fin=function(){ oublierSession(); try{ window.google&&window.google.accounts.id.disableAutoSelect(); }catch(e){} afficherCompte(); $('a-msg').textContent='Déconnecté.'; };

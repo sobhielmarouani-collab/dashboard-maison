@@ -1,13 +1,14 @@
 /*
  * Serveur de l'assistant vocal du dashboard.
  * Étape 1 : conversation libre. Étape 2 : connexion Google et accès réservé.
+ * Étape 3 : actions sur le dashboard (outil action_dashboard, exécuté par la page).
  *
  * Points d'entrée (tous refusés si l'appel ne vient pas d'une origine autorisée) :
  *   GET  /config       → { client_id }                 identifiant client Google, public
  *   POST /connexion    { jeton_google } → { session, email, expire }
  *   GET  /session      (Authorization: Bearer <session>) → { email, expire }
  *   POST /deconnexion  (Authorization: Bearer <session>) → { ok: true }
- *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique } → { reponse, restant }
+ *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique, etat } → { reponse, actions, restant }
  *
  * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
  *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules).
@@ -151,8 +152,8 @@ async function assistant(requete, env, origine, session) {
   }
 
   try {
-    const reponse = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique));
-    return json({ reponse, restant: quota.restant }, 200, origine);
+    const { reponse, actions } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat);
+    return json({ reponse, actions, restant: quota.restant }, 200, origine);
   } catch (e) {
     // le détail reste dans les journaux Cloudflare, jamais renvoyé à la page
     if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
