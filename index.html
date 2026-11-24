@@ -468,6 +468,15 @@ h2 svg{color:var(--neon)}
 .cc-fil small{font-size:13.5px;color:var(--discret);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-fil .cc-nd{grid-column:1/-1;margin:auto}
 .cc-tout{border:1px solid rgba(0,191,255,.6);border-radius:99px;background:rgba(6,20,40,.7);color:var(--texte);font-size:16.5px;padding:0 20px;height:42px;white-space:nowrap;box-shadow:0 0 12px rgba(0,191,255,.25)}
+.mu-encours{display:flex;align-items:center;justify-content:space-between;gap:16px;background:rgba(6,20,40,.6);border:1px solid var(--trait);border-radius:12px;padding:10px 16px}
+.mu-encours small{display:block;color:var(--neon);font-size:14px;text-transform:uppercase;letter-spacing:.05em}
+.mu-encours b{font-size:24px;display:block}
+.mu-vol{display:grid;grid-template-columns:auto 1fr 64px;gap:14px;align-items:center;font-size:18px;color:var(--discret)}
+.mu-vol input{height:auto;padding:0;accent-color:#00BFFF}
+.mu-rapides{display:flex;flex-wrap:wrap;gap:8px}
+.mu-rapides .bouton{height:44px;font-size:17px;padding:0 14px}
+#cc-musique.joue{border-color:var(--vert);box-shadow:0 0 14px rgba(0,229,160,.5)}
+#cc-musique .nb{background:var(--vert);color:#03101f;box-shadow:0 0 10px rgba(0,229,160,.8)}
 .cc-fin-actus{display:flex;align-items:center;gap:12px}
 .cc-pages{display:flex;align-items:center;gap:2px;font-size:15px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
 .cc-pages[hidden]{display:none}
@@ -573,6 +582,7 @@ h2 svg{color:var(--neon)}
         <span id="a-ciel" hidden></span>
       </button>
       <div class="cc-actions">
+        <button class="cc-rond" type="button" id="cc-musique" aria-label="Musique : radios en ligne" title="Musique"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/></svg><span class="nb" id="mu-point" hidden>♪</span></button>
         <button class="cc-rond" type="button" id="cc-chercher" aria-label="Recherche"><svg class="i" viewBox="0 0 24 24"><circle cx="10.500" cy="10.500" r="6.500"/><path d="M15.500 15.500L21 21"/></svg></button>
         <button class="cc-rond" type="button" id="cc-plein" aria-label="Plein écran" title="Plein écran (touche F)"><svg class="i" viewBox="0 0 24 24"><path id="cc-plein-i" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
         <button class="cc-rond" type="button" id="cc-cloche" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V10.500a6 6 0 0 1 12 0V16l1.500 2h-15zM10 20.500a2 2 0 0 0 4 0"/></svg><span class="nb" id="cc-nb" hidden>0</span></button>
@@ -913,6 +923,20 @@ h2 svg{color:var(--neon)}
       <div class="rv-boutons"><button class="bouton ok" type="button" id="rv-creer">Créer</button><button class="bouton" type="button" id="rv-annuler">Annuler</button></div>
       <button class="bouton" type="button" id="rv-micro" style="height:56px;font-size:20px">Répondre à voix haute (« oui » ou « non »)</button>
       <p class="info" id="rv-msg"></p>
+    </div>
+  </div>
+
+  <audio id="mu-audio" preload="none"></audio>
+  <div class="voile" id="mu-voile">
+    <div class="boite" style="width:860px">
+      <h3>Musique · radios en ligne</h3>
+      <div class="mu-encours"><div><small>En cours</small><b id="mu-nom">Aucune radio</b><span class="info" id="mu-msg"></span></div><button class="bouton danger" type="button" id="mu-stop">Arrêter</button></div>
+      <label class="mu-vol" for="mu-volume">Volume<input id="mu-volume" type="range" min="0" max="100" step="5" value="60"><b id="mu-vol-t">60 %</b></label>
+      <div class="mu-rapides" id="mu-rapides"></div>
+      <form class="form cc-ajout" id="mu-form" style="grid-template-columns:1fr auto"><label for="mu-q">Chercher une station ou un genre<input id="mu-q" type="search" autocomplete="off" placeholder="RTL2, FIP, jazz, rock…" maxlength="60"></label><button class="bouton ok" type="submit">Chercher</button></form>
+      <div class="cc-liste" id="mu-res" style="max-height:230px"></div>
+      <p class="info">Vous pouvez aussi dire « Sigma, mets RTL2 », « mets du jazz », « moins fort », « arrête la musique ». Le son baisse tout seul quand Sigma écoute ou parle.</p>
+      <div class="actions"><button class="bouton ok" type="button" data-fermer>Fermer</button></div>
     </div>
   </div>
 
@@ -1381,6 +1405,12 @@ h2 svg{color:var(--neon)}
     if((m=phrase.match(/ajoute(?:r)?\s+(?:la |une )?t[âa]che\s+(.+)/i))){ ajouterTache(m[1]); return 'Tâche ajoutée : '+m[1]+'.'; }
     if((m=s.match(/minuteur\D*(\d+)/))){ lancer(+m[1]); return 'Minuteur lancé pour '+m[1]+' minutes.'; }
     if(/arrete.*minuteur|stop.*minuteur/.test(s)){ arreter(); return 'Minuteur arrêté.'; }
+    if(window.musiqueSigma){
+      if(/(arrete|coupe|stop|eteins?).*(musique|radio)/.test(s)){ window.musiqueSigma.arreter(); return 'Musique arrêtée.'; }
+      if(/(moins fort|baisse.*(son|volume|musique|radio))/.test(s)){ window.musiqueSigma.volume(window.musiqueSigma.etat().volume-20); return 'Je baisse le son.'; }
+      if(/(plus fort|monte.*(son|volume|musique|radio))/.test(s)){ window.musiqueSigma.volume(window.musiqueSigma.etat().volume+20); return 'Je monte le son.'; }
+      if((m=s.match(/(?:mets?|lance|joue)\b.*?\b(?:radio|musique)\b\s*(.*)/))){ var st=m[1].replace(/^(s'il te plait|stp)$/,'').trim(); if(st){ window.musiqueSigma.jouer(st).catch(function(){}); return 'Je lance '+st+'.'; } window.musiqueSigma.reprendre().catch(function(){}); return 'Je lance la musique.'; }
+    }
     var allume=/allume|eclaire/.test(s), eteint=/etein|coupe/.test(s);
     if(allume||eteint){
       var cibles=LUMIERES.filter(function(p){ return s.indexOf(p[0].replace(/s$/,''))>=0; });
@@ -1424,6 +1454,7 @@ h2 svg{color:var(--neon)}
       chantiers:etat.chantiers.map(function(c){ return {nom:c.n,avancement:c.p}; }),
       agenda:etat.agenda.map(function(r){ return {heure:r.h,titre:r.t,detail:r.d||''}; }),
       minuteur:{actif:!!fin&&!sonne,reste_secondes:reste(),sonne:sonne},
+      musique:window.musiqueSigma?window.musiqueSigma.etat():{en_cours:false,station:'',volume:60},
       lumieres:etat.lum, volets_ouverts:!!etat.volets, chauffage:etat.chauffage,
       famille:etat.famille.filter(function(m){ return m.n; }).map(function(m){ return {nom:m.n,a_la_maison:!!m.la}; }),
       meteo:(meteoTexte+' '+meteoSemaine).trim(),
@@ -1459,6 +1490,9 @@ h2 svg{color:var(--neon)}
         case 'volets': etat.volets=!!d.ouverts; modifie=true; break;
         case 'chauffage': if(+d.consigne>=15&&+d.consigne<=25){ etat.chauffage=Math.round(+d.consigne*2)/2; modifie=true; } break;
         case 'presence': i=trouverPar(etat.famille,'n',d.nom); if(i>=0){ etat.famille[i].la=!!d.a_la_maison; modifie=true; } break;
+        case 'jouer_radio': if(window.musiqueSigma&&typeof d.recherche==='string'&&d.recherche) window.musiqueSigma.jouer(d.recherche).catch(function(){}); break;
+        case 'arreter_musique': if(window.musiqueSigma) window.musiqueSigma.arreter(); break;
+        case 'volume_musique': if(window.musiqueSigma) window.musiqueSigma.volume(d.niveau); break;
         case 'actualiser_meteo': meteo(); break;
         case 'afficher_actualites': aller('actualites'); chargerActualites(typeof d.rubrique==='string'?d.rubrique:''); break;
         case 'changer_ville': if(typeof d.ville==='string'&&d.ville){ chercherLieu(d.ville,d.pays).then(function(l){ if(l.length){ choisirLieu(l[0]); aller('meteo'); } },function(){}); } break;
@@ -2196,6 +2230,73 @@ h2 svg{color:var(--neon)}
         else if(e.target===this||e.target.closest('[data-fermer]')) this.classList.remove('ouvert');
       });
     });
+
+    /* ---- musique : radios en ligne, trouvées dans l'annuaire libre Radio Browser ---- */
+    var SERVEURS_RADIO=['https://de1.api.radio-browser.info','https://nl1.api.radio-browser.info','https://at1.api.radio-browser.info','https://de2.api.radio-browser.info'];
+    var RAPIDES=['FIP','RTL2','NRJ','Nostalgie','Chérie FM','France Info','France Inter','Jazz Radio','Radio Classique','Skyrock'];
+    var svMu=lireJSON('dashboard-musique-v1',{})||{}, mu={volume:+svMu.volume>=0&&+svMu.volume<=100?+svMu.volume:60, station:typeof svMu.station==='string'?svMu.station.slice(0,80):'', url:/^https:\/\//.test(svMu.url||'')?svMu.url:'', joue:false, essai:0};
+    var son=$('mu-audio');
+    function garderMu(){ ecrireJSON('dashboard-musique-v1',{volume:mu.volume,station:mu.station,url:mu.url}); }
+    function affMu(msg){
+      $('mu-nom').textContent=mu.joue?mu.station:(mu.station?mu.station+' (arrêtée)':'Aucune radio'); if(msg!=null) $('mu-msg').textContent=msg;
+      $('cc-musique').classList.toggle('joue',mu.joue); $('mu-point').hidden=!mu.joue; $('cc-musique').title=mu.joue?'Musique : '+mu.station:'Musique';
+      $('mu-volume').value=mu.volume; $('mu-vol-t').textContent=mu.volume+' %';
+    }
+    function interroger(params,i){
+      i=i||0; if(i>=SERVEURS_RADIO.length) return Promise.reject(new Error('annuaire des radios injoignable'));
+      var ctrl=window.AbortController?new AbortController():null, t=setTimeout(function(){ if(ctrl) ctrl.abort(); },6000);
+      return fetch(SERVEURS_RADIO[i]+'/json/stations/search?hidebroken=true&order=clickcount&reverse=true&limit=15&'+params,{signal:ctrl?ctrl.signal:undefined})
+        .then(function(r){ clearTimeout(t); if(!r.ok) throw new Error(r.status); return r.json(); })
+        .catch(function(){ clearTimeout(t); return interroger(params,i+1); });
+    }
+    /* cherche d'abord une station française de ce nom, puis un genre, puis dans le monde entier */
+    function chercherRadios(q){
+      q=String(q||'').replace(/^(la |le |les |du |de la |des |radio )+/i,'').trim().slice(0,60); if(!q) return Promise.resolve([]);
+      var e=encodeURIComponent(q), essais=['countrycode=FR&name='+e,'countrycode=FR&tag='+encodeURIComponent(q.toLowerCase()),'name='+e,'tag='+encodeURIComponent(q.toLowerCase())];
+      function suite(k){ if(k>=essais.length) return Promise.resolve([]); return interroger(essais[k]).then(function(l){
+        l=(Array.isArray(l)?l:[]).filter(function(x){ return x&&/^https:\/\//i.test(x.url_resolved||'')&&x.name; }).map(function(x){ return {nom:String(x.name).trim().slice(0,80),url:x.url_resolved,pays:String(x.country||'').slice(0,40),genre:String(x.tags||'').split(',').slice(0,3).join(', ').slice(0,60)}; });
+        return l.length?l:suite(k+1); }); }
+      return suite(0);
+    }
+    function lireStation(liste,k){
+      k=k||0; if(k>=liste.length||k>=4) return Promise.reject(new Error('aucune station ne répond'));
+      var st=liste[k];
+      return new Promise(function(ok,ko){
+        var fini=false, t=setTimeout(function(){ echec(); },9000);
+        function nettoyer(){ clearTimeout(t); son.removeEventListener('playing',reussi); son.removeEventListener('error',echec); }
+        function reussi(){ if(fini) return; fini=true; nettoyer(); mu.station=st.nom; mu.url=st.url; mu.joue=true; garderMu(); affMu(''); ok(st); }
+        function echec(){ if(fini) return; fini=true; nettoyer(); lireStation(liste,k+1).then(ok,ko); }
+        son.addEventListener('playing',reussi); son.addEventListener('error',echec);
+        son.src=st.url; son.volume=mu.volume/100;
+        var p=son.play(); if(p&&p.catch) p.catch(function(x){ if(fini) return; if(x&&x.name==='NotAllowedError'){ fini=true; nettoyer(); ko(new Error('le navigateur bloque le son tant que vous n\'avez pas cliqué dans la page')); } });
+      });
+    }
+    function jouerRadio(q){
+      affMu('Recherche de « '+q+' »…');
+      return chercherRadios(q).then(function(l){ if(!l.length) throw new Error('aucune station trouvée pour « '+q+' »'); return lireStation(l); })
+        .then(function(st){ return st; },function(x){ mu.joue=!son.paused&&!son.error&&!!son.currentSrc&&son.currentSrc===mu.url; if(!mu.joue){ try{ son.pause(); }catch(e){} } affMu('Impossible : '+(x.message||'erreur')+'.'); throw x; });
+    }
+    function arreterMusique(){ try{ son.pause(); son.removeAttribute('src'); son.load(); }catch(e){} mu.joue=false; affMu(''); }
+    function volumeMusique(n){ mu.volume=Math.max(0,Math.min(100,Math.round(+n||0))); garderMu(); affMu(); }
+    function reprendre(){ if(mu.url) return lireStation([{nom:mu.station,url:mu.url}]).catch(function(){ return jouerRadio(mu.station||'FIP'); }); return jouerRadio('FIP'); }
+    window.musiqueSigma={jouer:jouerRadio,arreter:arreterMusique,volume:volumeMusique,reprendre:reprendre,etat:function(){ return {en_cours:mu.joue,station:mu.station,volume:mu.volume}; }};
+    /* le son baisse pendant que Sigma écoute, réfléchit ou parle, pour qu'elle vous entende et ne s'entende pas */
+    setInterval(function(){ if(!mu.joue) return; var c=$('ia').classList, bas=c.contains('ecoute')||c.contains('parle')||c.contains('pense'); var v=mu.volume/100*(bas?0.12:1); if(Math.abs(son.volume-v)>0.01) son.volume=v; },250);
+    son.addEventListener('ended',function(){ mu.joue=false; affMu('La radio s\'est interrompue.'); });
+    $('cc-musique').addEventListener('click',function(){ affMu(); $('mu-voile').classList.add('ouvert'); });
+    $('mu-voile').addEventListener('click',function(e){ if(e.target===this||e.target.closest('[data-fermer]')) this.classList.remove('ouvert'); });
+    $('mu-stop').addEventListener('click',arreterMusique);
+    $('mu-volume').addEventListener('input',function(){ volumeMusique(this.value); });
+    $('mu-rapides').innerHTML=RAPIDES.map(function(n){ return '<button class="bouton" type="button" data-radio="'+esc(n)+'">'+esc(n)+'</button>'; }).join('');
+    $('mu-rapides').addEventListener('click',function(e){ var b=e.target.closest('[data-radio]'); if(b) jouerRadio(b.getAttribute('data-radio')).catch(function(){}); });
+    var muTrouvees=[];
+    $('mu-form').addEventListener('submit',function(e){
+      e.preventDefault(); var q=$('mu-q').value.trim(); if(!q) return; $('mu-res').innerHTML='<div><small>Recherche</small><span>En cours…</span></div>';
+      chercherRadios(q).then(function(l){ muTrouvees=l; $('mu-res').innerHTML=l.length?l.map(function(x,i){ return '<button type="button" data-st="'+i+'"><small>'+esc(x.pays||'Radio')+'</small><span>'+esc(x.nom)+(x.genre?' · '+esc(x.genre):'')+'</span></button>'; }).join(''):'<div><small>Recherche</small><span>Aucune station trouvée.</span></div>'; },
+        function(x){ $('mu-res').innerHTML='<div><small>Erreur</small><span>'+esc(x.message||'erreur')+'</span></div>'; });
+    });
+    $('mu-res').addEventListener('click',function(e){ var b=e.target.closest('[data-st]'); if(b){ var i=+b.getAttribute('data-st'); lireStation(muTrouvees.slice(i,i+1)).catch(function(x){ affMu('Cette station ne répond pas.'); }); } });
+    affMu('');
 
     /* ---- rendu : à chaque changement de données ---- */
     function tout(){ finances(); chantiers(); planning(); echeances(); personnel(); entete(); }

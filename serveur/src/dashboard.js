@@ -32,6 +32,9 @@ export const TYPES = [
   "actualiser_meteo",
   "changer_ville",
   "afficher_actualites",
+  "jouer_radio",
+  "arreter_musique",
+  "volume_musique",
 ];
 
 /** @type {import("@anthropic-ai/sdk").Anthropic.Beta.BetaTool} */
@@ -59,6 +62,9 @@ export const OUTIL_DASHBOARD = {
     "- presence : { personne, a_la_maison (booléen) } — les personnes sont les salariés de l'entreprise ; a_la_maison vrai signifie « présent », faux « absent »",
     "- actualiser_meteo : {}",
     "- changer_ville : { ville, pays (facultatif) } — change la ville dont la météo est affichée, partout dans le monde",
+    "- jouer_radio : { recherche } — lance une radio en ligne : nom de station (« RTL2 », « FIP », « France Info ») ou genre (« jazz », « rock », « classique »). Pour « mets de la musique » sans précision, reprends la dernière station du bloc musique ou choisis « FIP »",
+    "- arreter_musique : {} — arrête la radio",
+    "- volume_musique : { niveau (0 à 100) } — règle le volume de la radio ; pour « plus fort » ou « moins fort », pars du volume du bloc musique et change-le de 20",
     "- afficher_actualites : { rubrique (identifiant donné par rubriques_actualites, facultatif) } — affiche à l'écran les titres de cette rubrique, avec source, heure et lien",
   ].join("\n"),
   input_schema: {
@@ -99,6 +105,11 @@ export function nettoyerEtat(brut) {
     agenda: tableau(e.agenda, 50)
       .map((r) => ({ heure: /^\d{2}:\d{2}$/.test(r?.heure) ? r.heure : "", titre: texte(r?.titre), detail: texte(r?.detail) }))
       .filter((r) => r.titre),
+    musique: {
+      en_cours: e.musique?.en_cours === true,
+      station: texte(e.musique?.station, 80),
+      volume: Math.round(nombre(e.musique?.volume, 0, 100, 60)),
+    },
     minuteur: {
       actif: m.actif === true,
       reste_secondes: Math.round(nombre(m.reste_secondes, 0, 720 * 60, 0)),
@@ -278,6 +289,17 @@ export function verifierAction(etat, entree) {
       const ici = booleen(d.a_la_maison);
       p.a_la_maison = ici;
       return { action: { type, donnees: { nom: p.nom, a_la_maison: ici } }, compte_rendu: `${p.nom} : ${ici ? "présent" : "absent"}.` };
+    }
+    case "jouer_radio": {
+      const recherche = texte(d.recherche, 60);
+      if (!recherche) throw new Error("Indique la station ou le genre.");
+      return { action: { type, donnees: { recherche } }, compte_rendu: `Recherche de la radio « ${recherche} » lancée : l'écran la joue si une station est trouvée. Ne dis pas qu'elle joue déjà, dis que tu la lances.` };
+    }
+    case "arreter_musique":
+      return { action: { type, donnees: {} }, compte_rendu: "Radio arrêtée." };
+    case "volume_musique": {
+      const niveau = Math.round(nombreRequis(d.niveau, 0, 100, "le niveau"));
+      return { action: { type, donnees: { niveau } }, compte_rendu: `Volume de la radio réglé à ${niveau} %.` };
     }
     case "actualiser_meteo":
       return { action: { type, donnees: {} }, compte_rendu: "Météo en cours d'actualisation." };
