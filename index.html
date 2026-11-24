@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* Scène fixe 1600 x 900 mise à l'échelle de l'écran (Echo Show 15, paysage).
+/* Scène large de 1600, haute de 900 à 1060 selon l'écran (16:9 Echo Show 15, 16:10 Echo Show 11), mise à l'échelle.
    Zone de vue en haut (Accueil ou un onglet), barre de navigation tactile en bas. */
 :root{
   color-scheme:dark;
@@ -423,7 +423,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function maj(s){s=String(s||'').trim();return s.charAt(0).toUpperCase()+s.slice(1);}
   function copie(o){return JSON.parse(JSON.stringify(o));}
 
-  function echelle(){ var s=Math.min(window.innerWidth/1600, window.innerHeight/900); $('scene').style.transform='scale('+s+') translate(-50%,-50%)'; }
+  function echelle(){ var w=window.innerWidth, h=window.innerHeight, H=Math.max(900,Math.min(1060,Math.round(1600*h/w))), s=Math.min(w/1600,h/H); $('scene').style.height=H+'px'; $('scene').style.transform='scale('+s+') translate(-50%,-50%)'; }
   window.addEventListener('resize',echelle); echelle();
 
   /* ---------- données gardées sur l'appareil ---------- */
