@@ -562,6 +562,7 @@ h2 svg{color:var(--neon)}
       </button>
       <div class="cc-actions">
         <button class="cc-rond" type="button" id="cc-chercher" aria-label="Recherche"><svg class="i" viewBox="0 0 24 24"><circle cx="10.500" cy="10.500" r="6.500"/><path d="M15.500 15.500L21 21"/></svg></button>
+        <button class="cc-rond" type="button" id="cc-plein" aria-label="Plein écran" title="Plein écran (touche F)"><svg class="i" viewBox="0 0 24 24"><path id="cc-plein-i" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
         <button class="cc-rond" type="button" id="cc-cloche" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V10.500a6 6 0 0 1 12 0V16l1.500 2h-15zM10 20.500a2 2 0 0 0 4 0"/></svg><span class="nb" id="cc-nb" hidden>0</span></button>
         <button class="cc-profil" type="button" id="cc-profil" data-aller="reglages" aria-label="Profil et réglages"><span id="cc-initiales">–</span><i></i></button>
       </div>
@@ -2038,6 +2039,13 @@ h2 svg{color:var(--neon)}
       (etat.famille||[]).forEach(function(x){ if(x.n&&ok(x.n)) l.push(['Personnel',x.n+' · '+(x.la===false?'absent':'présent'),'personnel']); });
       $('cc-res').innerHTML = l.length ? l.slice(0,20).map(function(x){ return '<button type="button" data-aller="'+x[2]+'"><small>'+esc(x[0])+'</small><span>'+esc(x[1])+'</span></button>'; }).join('') : '<div><small>Recherche</small><span>Aucun résultat.</span></div>';
     }
+    /* ---- plein écran : bouton de l'en-tête ou touche F ---- */
+    function enPlein(){ return !!(document.fullscreenElement||document.webkitFullscreenElement); }
+    function basculerPlein(){ var d=document.documentElement; try{ if(enPlein()){ (document.exitFullscreen||document.webkitExitFullscreen).call(document); } else { var r=(d.requestFullscreen||d.webkitRequestFullscreen).call(d); if(r&&r.catch) r.catch(function(){}); } }catch(e){} }
+    function iconePlein(){ var p=enPlein(); $('cc-plein-i').setAttribute('d',p?'M9 4v5H4M15 4v5h5M20 15h-5v5M4 15h5v5':'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5'); $('cc-plein').setAttribute('aria-label',p?'Quitter le plein écran':'Plein écran'); }
+    $('cc-plein').addEventListener('click',basculerPlein);
+    document.addEventListener('fullscreenchange',iconePlein); document.addEventListener('webkitfullscreenchange',iconePlein);
+    document.addEventListener('keydown',function(e){ if((e.key==='f'||e.key==='F')&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&!/INPUT|TEXTAREA|SELECT/.test((e.target||{}).tagName||'')) basculerPlein(); });
     $('cc-chercher').addEventListener('click',function(){ ouvrirListe('Recherche',true); });
     $('cc-cloche').addEventListener('click',function(){ ouvrirListe('Notifications',false); });
     $('cc-q').addEventListener('input',chercher);
