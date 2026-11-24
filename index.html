@@ -388,7 +388,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <button class="bouton ok" type="submit">Enregistrer et tester</button>
         <p class="info" id="a-msg">Laissez vide pour n'utiliser que les ordres simples, sans serveur.</p>
         <h2 style="margin-top:6px">Voix</h2>
-        <label for="v-voix">Voix de l'assistant<select id="v-voix"><option value="">Automatique : la plus naturelle disponible</option></select></label>
+        <label for="v-voix">Voix de l'assistant<select id="v-voix"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:19px">
           <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
           <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Hauteur</span><button class="rond" type="button" id="v-ton-m" aria-label="Voix plus grave">−</button><b id="v-ton" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-ton-p" aria-label="Voix plus aiguë">+</button></div>
@@ -679,18 +679,28 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   try{ var vl=JSON.parse(localStorage.getItem('dashboard-maison-voix')||'null'); if(vl){ voix.nom=vl.nom||''; voix.vitesse=+vl.vitesse||1; voix.ton=+vl.ton||1; } }catch(e){}
   function qualite(v){ var n=v.name.toLowerCase(); return (/natural|neural|naturel/.test(n)?4:0)+(/online|premium|enhanced|améliorée/.test(n)?2:0)+(/google/.test(n)?1:0)+(/^fr[-_]fr/i.test(v.lang)?0.5:0); }
   function voixFrancaises(){ try{ return (window.speechSynthesis?speechSynthesis.getVoices():[]).filter(function(v){ return /^fr/i.test(v.lang); }).sort(function(a,b){ return qualite(b)-qualite(a); }); }catch(e){ return []; } }
+  /* le navigateur n'indique pas le genre d'une voix : on le déduit du prénom qu'elle porte */
+  var HOMMES=/\b(henri|remy|rémy|paul|claude|thomas|nicolas|alain|jerome|jérôme|fabrice|gerard|gérard|antoine|jean|thierry|maurice|yves|lucien|daniel|guillaume|mathieu|jacques|male|homme)\b/i;
+  var FEMMES=/\b(denise|eloise|éloïse|vivienne|hortense|julie|amelie|amélie|audrey|aurelie|aurélie|marie|sylvie|caroline|charline|ariane|brigitte|celeste|céleste|coralie|jacqueline|josephine|joséphine|yvette|jeanne|virginie|chantal|lea|léa|female|femme)\b/i;
+  function genreDe(v){ return HOMMES.test(v.name)?'h':(FEMMES.test(v.name)||/google/i.test(v.name)?'f':''); }
+  function voixChoisie(){
+    var l=voixFrancaises(), i;
+    if(voix.nom && voix.nom.indexOf('auto:')!==0){ for(i=0;i<l.length;i++){ if(l[i].name===voix.nom) return l[i]; } }
+    var g = voix.nom==='auto:f' ? 'f' : 'h';       /* par défaut : voix d'homme */
+    for(i=0;i<l.length;i++){ if(genreDe(l[i])===g) return l[i]; }
+    return l[0]||null;                               /* aucune du genre voulu : la plus naturelle */
+  }
   function reglerVoix(u){
-    var l=voixFrancaises(), v=null;
-    for(var i=0;i<l.length;i++){ if(l[i].name===voix.nom){ v=l[i]; break; } }
-    if(!v&&l.length) v=l[0];            /* sans choix : la plus naturelle disponible */
+    var v=voixChoisie();
     if(v){ u.voice=v; u.lang=v.lang; }
     u.rate=voix.vitesse; u.pitch=voix.ton;
   }
   function afficherVoix(){
     var sel=$('v-voix'), l=voixFrancaises();
-    sel.innerHTML='<option value="">Automatique : la plus naturelle disponible</option>'+l.map(function(v){ return '<option value="'+esc(v.name)+'"'+(v.name===voix.nom?' selected':'')+'>'+esc(v.name)+' ('+esc(v.lang)+')</option>'; }).join('');
+    var auto = (voix.nom==='auto:f') ? 'auto:f' : (!voix.nom||voix.nom==='auto:h' ? 'auto:h' : '');
+    sel.innerHTML='<option value="auto:h"'+(auto==='auto:h'?' selected':'')+'>Automatique : voix d\'homme la plus naturelle</option><option value="auto:f"'+(auto==='auto:f'?' selected':'')+'>Automatique : voix de femme la plus naturelle</option>'+l.map(function(v){ return '<option value="'+esc(v.name)+'"'+(v.name===voix.nom?' selected':'')+'>'+esc(v.name)+' ('+esc(v.lang)+')</option>'; }).join('');
     $('v-vit').textContent=Math.round(voix.vitesse*100)+' %'; $('v-ton').textContent=Math.round(voix.ton*100)+' %';
-    $('v-msg').textContent = !window.speechSynthesis ? 'Cet appareil ne propose pas de synthèse vocale.' : (l.length ? l.length+' voix françaises sur cet appareil, les plus naturelles en tête de liste.' : 'Aucune voix française listée par ce navigateur : la voix par défaut sera utilisée.');
+    $('v-msg').textContent = !window.speechSynthesis ? 'Cet appareil ne propose pas de synthèse vocale.' : (l.length ? (function(){ var c=voixChoisie(), g=(voix.nom==='auto:f')?'f':'h', autoMode=(!voix.nom||voix.nom.indexOf('auto:')===0); return 'Voix utilisée : '+(c?c.name:'par défaut')+'.'+(autoMode&&c&&genreDe(c)!==g?' Aucune voix '+(g==='h'?'d\'homme':'de femme')+' reconnue sur cet appareil ; essayez Microsoft Edge.':''); })() : 'Aucune voix française listée par ce navigateur : la voix par défaut sera utilisée.');
   }
   function garderVoix(){ try{ localStorage.setItem('dashboard-maison-voix',JSON.stringify(voix)); }catch(e){} afficherVoix(); }
   function pas(v,d,a,b){ return Math.round(Math.max(a,Math.min(b,v+d))*10)/10; }
