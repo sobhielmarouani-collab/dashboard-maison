@@ -382,11 +382,19 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <button class="bouton ok" type="submit">Enregistrer les prénoms</button>
         <p class="info">Laissez une case vide pour retirer une personne de l'écran d'accueil.</p>
       </form>
-      <form class="carte form" id="a-form">
+      <form class="carte form" id="a-form" style="grid-row:span 2">
         <h2>Assistant</h2>
         <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev/assistant" autocomplete="off" spellcheck="false"></label>
         <button class="bouton ok" type="submit">Enregistrer et tester</button>
         <p class="info" id="a-msg">Laissez vide pour n'utiliser que les ordres simples, sans serveur.</p>
+        <h2 style="margin-top:6px">Voix</h2>
+        <label for="v-voix">Voix de l'assistant<select id="v-voix"><option value="">Automatique : la plus naturelle disponible</option></select></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:19px">
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
+          <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Hauteur</span><button class="rond" type="button" id="v-ton-m" aria-label="Voix plus grave">−</button><b id="v-ton" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-ton-p" aria-label="Voix plus aiguë">+</button></div>
+        </div>
+        <button class="bouton" type="button" id="v-test">Écouter la voix</button>
+        <p class="info" id="v-msg"></p>
       </form>
       <div class="carte form">
         <h2>Données</h2>
@@ -666,9 +674,38 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 
   /* ---------- assistant vocal ---------- */
   var Reco=window.SpeechRecognition||window.webkitSpeechRecognition, reco=null, ecoute=false;
+  /* ---------- choix de la voix (gardé sur l'appareil) ---------- */
+  var voix={nom:'',vitesse:1,ton:1};
+  try{ var vl=JSON.parse(localStorage.getItem('dashboard-maison-voix')||'null'); if(vl){ voix.nom=vl.nom||''; voix.vitesse=+vl.vitesse||1; voix.ton=+vl.ton||1; } }catch(e){}
+  function qualite(v){ var n=v.name.toLowerCase(); return (/natural|neural|naturel/.test(n)?4:0)+(/online|premium|enhanced|améliorée/.test(n)?2:0)+(/google/.test(n)?1:0)+(/^fr[-_]fr/i.test(v.lang)?0.5:0); }
+  function voixFrancaises(){ try{ return (window.speechSynthesis?speechSynthesis.getVoices():[]).filter(function(v){ return /^fr/i.test(v.lang); }).sort(function(a,b){ return qualite(b)-qualite(a); }); }catch(e){ return []; } }
+  function reglerVoix(u){
+    var l=voixFrancaises(), v=null;
+    for(var i=0;i<l.length;i++){ if(l[i].name===voix.nom){ v=l[i]; break; } }
+    if(!v&&l.length) v=l[0];            /* sans choix : la plus naturelle disponible */
+    if(v){ u.voice=v; u.lang=v.lang; }
+    u.rate=voix.vitesse; u.pitch=voix.ton;
+  }
+  function afficherVoix(){
+    var sel=$('v-voix'), l=voixFrancaises();
+    sel.innerHTML='<option value="">Automatique : la plus naturelle disponible</option>'+l.map(function(v){ return '<option value="'+esc(v.name)+'"'+(v.name===voix.nom?' selected':'')+'>'+esc(v.name)+' ('+esc(v.lang)+')</option>'; }).join('');
+    $('v-vit').textContent=Math.round(voix.vitesse*100)+' %'; $('v-ton').textContent=Math.round(voix.ton*100)+' %';
+    $('v-msg').textContent = !window.speechSynthesis ? 'Cet appareil ne propose pas de synthèse vocale.' : (l.length ? l.length+' voix françaises sur cet appareil, les plus naturelles en tête de liste.' : 'Aucune voix française listée par ce navigateur : la voix par défaut sera utilisée.');
+  }
+  function garderVoix(){ try{ localStorage.setItem('dashboard-maison-voix',JSON.stringify(voix)); }catch(e){} afficherVoix(); }
+  function pas(v,d,a,b){ return Math.round(Math.max(a,Math.min(b,v+d))*10)/10; }
+  $('v-voix').addEventListener('change',function(){ voix.nom=this.value; garderVoix(); });
+  $('v-vit-m').addEventListener('click',function(){ voix.vitesse=pas(voix.vitesse,-0.1,0.6,1.6); garderVoix(); });
+  $('v-vit-p').addEventListener('click',function(){ voix.vitesse=pas(voix.vitesse,0.1,0.6,1.6); garderVoix(); });
+  $('v-ton-m').addEventListener('click',function(){ voix.ton=pas(voix.ton,-0.1,0.5,1.8); garderVoix(); });
+  $('v-ton-p').addEventListener('click',function(){ voix.ton=pas(voix.ton,0.1,0.5,1.8); garderVoix(); });
+  $('v-test').addEventListener('click',function(){ dire('Assistant','Bonjour, voici la voix que j\'utiliserai pour vous répondre.',true); });
+  if(window.speechSynthesis){ try{ speechSynthesis.addEventListener('voiceschanged',afficherVoix); }catch(e){ speechSynthesis.onvoiceschanged=afficherVoix; } }
+  afficherVoix();
+
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
-    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
     else if(parler){ $('ia').classList.add('parle'); setTimeout(function(){ $('ia').classList.remove('parle'); },2500); }
   }
   function resume(){
