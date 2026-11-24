@@ -1,5 +1,5 @@
 /*
- * Étape 4 : agenda Google, en lecture seule.
+ * Étape 4 : agenda Google — lecture, et création de rendez-vous après confirmation.
  *
  * Relier : la page obtient de Google un « code d'autorisation » (fenêtre Google,
  * périmètre calendar.readonly) et l'envoie ici. Le serveur l'échange contre un jeton de
@@ -7,10 +7,15 @@
  * (AES-GCM) et le garde dans le Coffre. Les jetons d'accès (valables une heure) sont
  * redemandés à Google au besoin et gardés seulement en mémoire.
  *
+ * Création : le modèle ne crée rien. Il prépare une proposition (preparerEvenement), que
+ * l'utilisateur confirme à l'écran ; seule cette confirmation appelle creerEvenement.
+ *
  * Secrets Cloudflare utilisés : GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET.
  */
 
-export const PERIMETRE_AGENDA = "https://www.googleapis.com/auth/calendar.readonly";
+/* Lire et créer des événements (remplace calendar.readonly, demandé par les premières liaisons). */
+export const PERIMETRE_AGENDA = "https://www.googleapis.com/auth/calendar.events";
+const PERIMETRES_LECTURE = [PERIMETRE_AGENDA, "https://www.googleapis.com/auth/calendar.readonly"];
 const URL_JETON = "https://oauth2.googleapis.com/token";
 const URL_REVOCATION = "https://oauth2.googleapis.com/revoke";
 const URL_EVENEMENTS = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
@@ -109,18 +114,26 @@ export async function relierAgenda(env, coffre, emailSession, code) {
   if (email !== emailSession) {
     throw new Error(`Choisissez le compte Google ${emailSession}, celui de votre connexion au dashboard.`);
   }
-  if (!String(j.scope || "").split(" ").includes(PERIMETRE_AGENDA)) {
+  const accordes = String(j.scope || "").split(" ");
+  if (!accordes.includes(PERIMETRE_AGENDA)) {
     throw new Error("L'accès à l'agenda n'a pas été coché dans la fenêtre Google. Recommencez en le cochant.");
   }
   if (!j.refresh_token) {
     throw new Error("Google n'a pas fourni d'accès durable. Réessayez.");
   }
-  await coffre.enregistrerAgenda(email, await chiffrer(env, j.refresh_token, email));
+  await coffre.enregistrerAgenda(email, await chiffrer(env, j.refresh_token, email), accordes.filter((p) => PERIMETRES_LECTURE.includes(p)).join(" "));
   jetonsAcces.set(email, { jeton: j.access_token, expire: Date.now() + (j.expires_in - 60) * 1000 });
 }
 
 export async function agendaRelie(coffre, email) {
   return Boolean(await coffre.lireAgenda(email));
+}
+
+/* { relie, ecriture } : ecriture faux pour une liaison faite en lecture seule (à refaire). */
+export async function etatAgenda(coffre, email) {
+  const portee = await coffre.porteeAgenda(email);
+  if (portee === null) return { relie: false, ecriture: false };
+  return { relie: true, ecriture: portee.split(" ").includes(PERIMETRE_AGENDA) };
 }
 
 async function jetonAcces(env, coffre, email) {
@@ -267,4 +280,122 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
         lieu: String(e.location || "").slice(0, 200),
       };
     });
+}
+
+/* ---------- création d'un rendez-vous ---------- */
+
+const URL_CREATION = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+
+/* Instant (Date) correspondant à « AAAA-MM-JJ HH:MM » à l'heure de Paris. */
+function instantParis(jour, heure) {
+  const approx = new Date(`${jour}T${heure}:00Z`);
+  return new Date(approx.getTime() - decalageParis(approx) * 60_000);
+}
+
+function lireDateHeure(valeur, nom) {
+  const m = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{1,2})[:h](\d{2}))?$/.exec(String(valeur || "").trim());
+  if (!m || isNaN(Date.parse(m[1]))) throw new Error(`${nom} : format attendu AAAA-MM-JJTHH:MM, ou AAAA-MM-JJ pour une journée entière.`);
+  if (m[2] === undefined) return { jour: m[1], heure: null };
+  if (+m[2] > 23 || +m[3] > 59) throw new Error(`${nom} : heure invalide.`);
+  return { jour: m[1], heure: `${m[2].padStart(2, "0")}:${m[3]}` };
+}
+
+function texteBorne(v, max) {
+  return typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "";
+}
+
+const fJourLong = new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric" });
+function jourLisible(jour) {
+  return fJourLong.format(new Date(`${jour}T12:00:00Z`));
+}
+
+/*
+ * Vérifie et met en forme une demande de création (venue du modèle).
+ * Renvoie { titre, journee, jour, debut, jourFin, fin, lieu, description, resume } ou lève une erreur lisible.
+ * Heures à Paris ; fin par défaut : une heure après le début (ou le même jour pour une journée entière).
+ */
+export function preparerEvenement(entree) {
+  const titre = texteBorne(entree?.titre, 200);
+  if (!titre) throw new Error("Titre du rendez-vous manquant.");
+  const d = lireDateHeure(entree?.debut, "debut");
+  const journee = d.heure === null;
+  let f;
+  if (entree?.fin) {
+    f = lireDateHeure(entree.fin, "fin");
+    if ((f.heure === null) !== journee) throw new Error("debut et fin doivent être tous deux des dates (journée entière) ou tous deux des dates avec heure.");
+  } else if (journee) {
+    f = { jour: d.jour, heure: null };
+  } else {
+    const fin = new Date(instantParis(d.jour, d.heure).getTime() + 3_600_000);
+    f = {
+      jour: new Intl.DateTimeFormat("en-CA", { timeZone: FUSEAU }).format(fin),
+      heure: new Intl.DateTimeFormat("fr-FR", { timeZone: FUSEAU, hour: "2-digit", minute: "2-digit" }).format(fin),
+    };
+  }
+  const debutT = journee ? Date.parse(d.jour) : instantParis(d.jour, d.heure).getTime();
+  const finT = journee ? Date.parse(f.jour) : instantParis(f.jour, f.heure).getTime();
+  if (journee ? finT < debutT : finT <= debutT) throw new Error("La fin doit être après le début.");
+  if (finT - debutT > 14 * 86_400_000) throw new Error("Durée trop longue : 14 jours au plus.");
+  const maintenant = Date.now();
+  const limitePassee = journee ? Date.parse(aujourdhuiParis()) : maintenant - 5 * 60_000;
+  if (debutT < limitePassee) throw new Error("Cette date est déjà passée. Vérifie le jour avec l'utilisateur.");
+  if (debutT > maintenant + 2 * 365 * 86_400_000) throw new Error("Date trop lointaine : deux ans au plus.");
+
+  const lieu = texteBorne(entree?.lieu, 200);
+  const description = texteBorne(entree?.description, 1000);
+  const quand = journee
+    ? d.jour === f.jour
+      ? `${jourLisible(d.jour)}, toute la journée`
+      : `du ${jourLisible(d.jour)} au ${jourLisible(f.jour)}, journées entières`
+    : d.jour === f.jour
+      ? `${jourLisible(d.jour)}, de ${d.heure} à ${f.heure}`
+      : `du ${jourLisible(d.jour)} à ${d.heure} au ${jourLisible(f.jour)} à ${f.heure}`;
+  return { titre, journee, jour: d.jour, debut: d.heure, jourFin: f.jour, fin: f.heure, lieu, description, resume: `« ${titre} », ${quand}${lieu ? `, à ${lieu}` : ""}` };
+}
+
+/* Événements déjà présents qui chevauchent la proposition (pour prévenir l'utilisateur). */
+export async function chevauchements(env, coffre, email, p) {
+  const evenements = await lireEvenements(env, coffre, email, p.jour, p.jourFin);
+  if (p.journee) return evenements.filter((e) => !e.journee).map((e) => `${e.titre} (${e.jour === p.jour ? "" : e.jour + " "}${e.debut}–${e.fin})`).slice(0, 5);
+  return evenements
+    .filter((e) => !e.journee && e.jour === p.jour && e.debut < (p.jourFin === p.jour ? p.fin : "24:00") && e.fin > p.debut)
+    .map((e) => `${e.titre} (${e.debut}–${e.fin})`)
+    .slice(0, 5);
+}
+
+/* Crée l'événement confirmé dans l'agenda principal. */
+export async function creerEvenement(env, coffre, email, p) {
+  const { ecriture } = await etatAgenda(coffre, email);
+  if (!ecriture) throw new AgendaNonRelie("L'agenda est relié en lecture seule : reliez-le de nouveau dans Réglages pour autoriser la création.");
+  const jeton = await jetonAcces(env, coffre, email);
+  const lendemain = (jour) => {
+    const x = new Date(`${jour}T12:00:00Z`);
+    x.setUTCDate(x.getUTCDate() + 1);
+    return x.toISOString().slice(0, 10);
+  };
+  const corps = {
+    summary: p.titre,
+    location: p.lieu || undefined,
+    description: p.description || undefined,
+    start: p.journee ? { date: p.jour } : { dateTime: `${p.jour}T${p.debut}:00`, timeZone: FUSEAU },
+    end: p.journee ? { date: lendemain(p.jourFin) } : { dateTime: `${p.jourFin}T${p.fin}:00`, timeZone: FUSEAU },
+    extendedProperties: { private: { source: "assistant-dashboard" } },
+  };
+  const r = await fetch(`${URL_CREATION}?fields=id,htmlLink`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${jeton}`, "Content-Type": "application/json" },
+    body: JSON.stringify(corps),
+  });
+  if (r.status === 401) {
+    jetonsAcces.delete(email);
+    throw new Error("Jeton Google refusé, réessayez.");
+  }
+  if (r.status === 403) {
+    const j = await r.json().catch(() => ({}));
+    console.warn("Création refusée par Google :", JSON.stringify(j).slice(0, 300));
+    throw new Error("Google refuse la création : reliez l'agenda de nouveau dans Réglages (accès en écriture).");
+  }
+  if (!r.ok) throw new Error(`Création impossible (${r.status}).`);
+  const j = await r.json();
+  return { id: j.id, lien: j.htmlLink };
 }

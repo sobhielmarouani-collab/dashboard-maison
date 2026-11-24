@@ -5,7 +5,7 @@ Il est hébergé gratuitement chez **Cloudflare Workers** sous le nom `assistant
 
 - **Étape 1, conversation libre :** le serveur reçoit la phrase dite à l'avatar, la transmet à l'API Anthropic et renvoie la réponse à lire à voix haute.
 - **Étape 2, accès réservé :** le serveur ne répond qu'aux personnes connectées avec un compte Google figurant dans votre liste d'adresses autorisées. Le nombre de questions est limité par heure.
-- **Étape 4, agenda Google :** l'onglet Agenda affiche les vrais événements de votre agenda Google sur 7 jours, et l'assistant répond à « qu'est-ce que j'ai demain ? ». L'accès est en **lecture seule**.
+- **Étape 4, agenda Google :** l'onglet Agenda affiche les vrais événements de votre agenda Google sur 7 jours, et l'assistant répond à « qu'est-ce que j'ai demain ? ». Il peut aussi **ajouter un rendez-vous** à l'agenda Google, mais seulement après votre confirmation à l'écran ou à la voix. Il ne peut ni modifier ni supprimer un événement.
 - **Étape 3, actions du dashboard :** l'IA comprend les formulations libres (« j'ai fini le devis », « mets un rappel dans dix minutes », « passe le chantier Dupont à 80 % ») et agit sur l'écran : tâches, chantiers, rendez-vous du jour, minuteur, onglets, lumières, volets, chauffage, présence.
 
 > **Règle absolue : aucune valeur privée dans ce dépôt.** Il est public. La clé d'API, l'identifiant client Google et la liste des adresses se mettent uniquement dans le tableau de bord Cloudflare, sous forme de « secrets » chiffrés (type **Secret**, jamais **Texte** ni **Variable**).
@@ -139,7 +139,7 @@ Puis déconnectez-vous dans Réglages et dites « ajoute la tâche test » : la 
 
 ### I. Étape 4 : relier l'agenda Google
 
-Le serveur lit votre agenda **principal** en **lecture seule** : il ne peut ni créer, ni modifier, ni supprimer d'événement. Pour cela, il a besoin d'un second identifiant du client Google, le **code secret du client**. Il ne sert qu'au serveur et se range, comme les autres, en secret Cloudflare.
+Le serveur lit votre agenda **principal** et peut y **ajouter** un rendez-vous, uniquement après votre confirmation. Il ne modifie ni ne supprime aucun événement. Pour cela, il a besoin d'un second identifiant du client Google, le **code secret du client**. Il ne sert qu'au serveur et se range, comme les autres, en secret Cloudflare.
 
 **1. Activer l'API Google Calendar** (projet `dashboard-travail`)
 
@@ -147,12 +147,15 @@ Le serveur lit votre agenda **principal** en **lecture seule** : il ne peut ni c
 2. Dans le menu ☰, ouvrez **API et services › Bibliothèque**.
 3. Cherchez **Google Calendar API**, ouvrez-la et cliquez sur **Activer**.
 
-**2. Déclarer l'accès en lecture à l'agenda**
+**2. Déclarer l'accès à l'agenda : `calendar.events`**
+
+Le champ d'application est `https://www.googleapis.com/auth/calendar.events`. Il permet de lire les événements et d'en ajouter. Il **remplace `calendar.readonly`**, demandé par la première version de l'étape 4.
 
 1. Dans le menu ☰, ouvrez **API et services › Écran de consentement OAuth** (Google Auth Platform), puis **Accès aux données** (Data access) dans le menu de gauche.
 2. Cliquez sur **Ajouter ou supprimer des champs d'application**.
-3. Dans le filtre, tapez `calendar.readonly`. Cochez la ligne `…/auth/calendar.readonly` (« Afficher et télécharger tous les agendas auxquels vous avez accès »), puis cliquez sur **Mettre à jour**.
-4. Cliquez sur **Enregistrer** en bas de la page.
+3. Dans le filtre, tapez `calendar.events`. Cochez la ligne `…/auth/calendar.events` (« Afficher et modifier les événements de tous vos agendas »). Ne prenez pas `calendar.events.readonly` ni `calendar.events.owned`.
+4. Si `…/auth/calendar.readonly` est coché, décochez-le : il ne sert plus.
+5. Cliquez sur **Mettre à jour**, puis sur **Enregistrer** en bas de la page.
 
 Avec l'audience **Interne**, Google ne demande aucune validation de l'application et l'autorisation ne s'arrête pas au bout de 7 jours. Cette limite ne concerne que les applications externes en mode Test.
 
@@ -179,7 +182,9 @@ Sans ce secret, le dashboard fonctionne comme avant et le bouton de l'agenda n'a
 2. Sur le PC, ouvrez **Réglages**. Dans la carte **Assistant**, sous « Connecté », la ligne **Agenda Google : non relié** apparaît. Touchez **Relier mon agenda Google**.
 3. Une fenêtre Google s'ouvre, avec votre compte déjà proposé. Gardez **le même compte** que celui de la connexion au dashboard. Le serveur refuse tout autre compte, pour qu'on ne puisse pas afficher l'agenda de quelqu'un d'autre.
 4. Si Google affiche des cases à cocher, **cochez l'accès à l'agenda**, puis cliquez sur **Continuer** ou **Autoriser**.
-5. La ligne passe à **Agenda Google : relié**. L'onglet **Agenda** affiche les 7 prochains jours. L'accueil montre les prochains rendez-vous du jour, et le résumé du jour annonce le prochain.
+5. La ligne passe à **Agenda Google : relié**. L'onglet **Agenda** affiche les 7 prochains jours.
+
+**Si l'agenda était déjà relié avec la première version (lecture seule) :** après la mise à jour, Réglages affiche **Agenda Google : relié en lecture seule** et un bouton **Relier de nouveau**. Touchez-le et refaites les points 3 et 4. Google demande alors l'accès « Afficher et modifier les événements ». Tant que ce n'est pas fait, la lecture marche toujours, mais l'assistant répond qu'il faut relier de nouveau pour créer un rendez-vous. L'accueil montre les prochains rendez-vous du jour, et le résumé du jour annonce le prochain.
 
 Le lien est enregistré **sur le serveur, pour votre adresse**. Sur un autre PC où vous êtes connecté, l'agenda s'affiche sans avoir à le relier de nouveau.
 
@@ -190,7 +195,12 @@ Le lien est enregistré **sur le serveur, pour votre adresse**. Sur un autre PC 
 | « Qu'est-ce que j'ai demain ? » | lecture des événements du lendemain, dans l'ordre |
 | « Suis-je libre jeudi après-midi ? » | réponse d'après les événements de jeudi |
 | « Quels sont mes rendez-vous de la semaine ? » | résumé de la semaine |
-| « Ajoute une réunion demain à 10 heures » | l'assistant explique qu'il ne peut pas encore écrire dans l'agenda Google |
+| « Ajoute une réunion avec M. Martin demain à 10 heures au bureau » | une fenêtre « Ajouter à l'agenda Google ? » montre le titre, le jour, les heures (une heure par défaut), le lieu et un éventuel chevauchement. **Rien n'est créé** avant votre confirmation |
+| Toucher **Créer**, ou toucher **Répondre à voix haute** et dire « oui » | le rendez-vous est créé, l'assistant le confirme et l'onglet Agenda se met à jour |
+| Toucher **Annuler**, ou dire « non » | rien n'est créé |
+| Ne rien faire pendant 10 minutes | la proposition expire, rien n'est créé |
+
+**Comment la confirmation est garantie :** l'IA n'a aucun moyen de créer un événement. Son outil `creer_evenement` ne fait que préparer une proposition, gardée 10 minutes sur le serveur et liée à votre adresse. Seule la page, sur votre geste (bouton ou « oui » reconnu par le micro du navigateur, sans passer par l'IA), appelle la route de création. Chaque proposition ne sert qu'une fois : impossible de créer deux fois le même rendez-vous par erreur.
 
 **En cas de souci**
 
@@ -215,7 +225,7 @@ Le lien est enregistré **sur le serveur, pour votre adresse**. Sur un autre PC 
 - Chaque adresse a droit à 60 questions sur toute période de soixante minutes. Au-delà, l'assistant annonce le délai d'attente.
 - L'IA ne peut agir que sur les éléments listés plus haut, et seulement sur cet écran. Chaque action est vérifiée par le serveur puis par la page. Elle ne peut ni effacer toutes les données, ni toucher aux Réglages, ni envoyer quoi que ce soit à l'extérieur.
 - Le résumé de l'écran envoyé avec chaque question n'est pas conservé par le serveur. Il ne sert qu'à la question en cours.
-- **Agenda Google :** l'accès est en lecture seule, sur l'agenda principal. Le serveur garde seulement le jeton de rafraîchissement de Google. Il est chiffré (AES-GCM) avec une clé tirée de `GOOGLE_CLIENT_SECRET` et lié à votre adresse : copié sur une autre adresse, il est illisible. Les événements ne sont gardés ni sur le serveur ni dans le navigateur ; ils sont relus toutes les 5 minutes. L'assistant traite leur contenu (titres, lieux) comme une donnée et jamais comme une instruction, car une invitation reçue peut venir de n'importe qui.
+- **Agenda Google :** l'accès porte sur l'agenda principal : lecture, et ajout d'un rendez-vous seulement après votre confirmation. Aucune modification ni suppression n'est possible. Le serveur garde seulement le jeton de rafraîchissement de Google. Il est chiffré (AES-GCM) avec une clé tirée de `GOOGLE_CLIENT_SECRET` et lié à votre adresse : copié sur une autre adresse, il est illisible. Les événements ne sont gardés ni sur le serveur ni dans le navigateur ; ils sont relus toutes les 5 minutes. L'assistant traite leur contenu (titres, lieux) comme une donnée et jamais comme une instruction, car une invitation reçue peut venir de n'importe qui.
 - Gardez la limite de dépense mensuelle chez Anthropic (point A.3) comme filet de sécurité supplémentaire.
 - **Si vous pensez que la clé Anthropic a fuité :** platform.claude.com › API Keys, supprimez-la, créez-en une nouvelle et remplacez le secret dans Cloudflare.
 
@@ -242,7 +252,7 @@ Fichiers :
 | `src/google.js` | vérification du jeton d'identité Google (bibliothèque `jose`) |
 | `src/coffre.js` | Durable Object : sessions et compteurs (SQLite) |
 | `src/modele.js` | appel à Claude via le SDK officiel `@anthropic-ai/sdk`, boucle de l'outil `action_dashboard` (4 appels au plus par question) |
-| `src/agenda.js` | agenda Google : échange du code d'autorisation, chiffrement du jeton de rafraîchissement, lecture des événements à l'heure de Paris |
+| `src/agenda.js` | agenda Google : échange du code d'autorisation, chiffrement du jeton de rafraîchissement, lecture des événements à l'heure de Paris, vérification et création d'un rendez-vous confirmé |
 | `src/dashboard.js` | définition de l'outil, nettoyage de l'état envoyé par la page, vérification de chaque action |
 
 Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; tous sauf `/config` et `/connexion` exigent `Authorization: Bearer <session>`.
@@ -251,12 +261,14 @@ Points d'entrée. Tous exigent l'en-tête `Origin` d'une origine autorisée ; to
 |---|---|---|
 | `GET /config` | aucun | `{ client_id, agenda }` (`agenda` vaut `null` sans `GOOGLE_CLIENT_SECRET`) |
 | `POST /connexion` | `{ jeton_google }` | `{ session, email, expire }`, ou 401 (jeton refusé), 403 (adresse non autorisée), 503 (non configuré) |
-| `GET /agenda/etat` | aucun | `{ relie }`, ou 503 si `GOOGLE_CLIENT_SECRET` manque |
+| `GET /agenda/etat` | aucun | `{ relie, ecriture }` (`ecriture` faux pour une liaison en lecture seule), ou 503 si `GOOGLE_CLIENT_SECRET` manque |
+| `POST /agenda/confirmer` | `{ id }` | `{ cree: true, resume, lien }`, ou 410 (proposition expirée ou déjà utilisée), 409 (agenda à relier). Seule route qui crée un événement |
+| `POST /agenda/annuler` | `{ id }` | `{ annule: true }` |
 | `POST /agenda/relier` | `{ code }` | `{ relie: true }`, ou 502 (compte différent, accès agenda non coché, code refusé) |
 | `POST /agenda/delier` | aucun | `{ relie: false }` (révocation chez Google) |
-| `GET /agenda/evenements?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ` | aucun | `{ evenements: [{ jour, debut, fin, journee, titre, lieu }] }` (31 jours au plus), ou 409 si non relié |
+| `GET /agenda/evenements?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ` | aucun | `{ evenements: [{ jour, debut, fin, journee, titre, lieu }], ecriture }` (31 jours au plus), ou 409 si non relié |
 | `GET /session` | aucun | `{ email }` ou 401 |
 | `POST /deconnexion` | aucun | `{ ok: true }` |
-| `POST /assistant` | `{ phrase, historique, etat }` | `{ reponse, actions, restant }`, ou 401 (pas de session), 429 (limite horaire, en-tête `Retry-After`), 502/503 (IA indisponible) |
+| `POST /assistant` | `{ phrase, historique, etat }` | `{ reponse, actions, confirmation, restant }` (`confirmation` : proposition de rendez-vous à afficher, ou `null`), ou 401 (pas de session), 429 (limite horaire, en-tête `Retry-After`), 502/503 (IA indisponible) |
 
 Pour les essais locaux seulement, `GOOGLE_CLES_TEST` peut pointer vers un serveur de clés sur `http://localhost:…`. Toute autre valeur est ignorée et les clés de Google sont utilisées.

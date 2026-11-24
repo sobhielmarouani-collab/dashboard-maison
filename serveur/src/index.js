@@ -2,18 +2,21 @@
  * Serveur de l'assistant vocal du dashboard.
  * Étape 1 : conversation libre. Étape 2 : connexion Google et accès réservé.
  * Étape 3 : actions sur le dashboard (outil action_dashboard, exécuté par la page).
- * Étape 4 : agenda Google en lecture (outil lire_agenda, onglet Agenda).
+ * Étape 4 : agenda Google (outils lire_agenda et creer_evenement, onglet Agenda).
+ *   Une création n'a lieu que par POST /agenda/confirmer, appelé par la page quand l'utilisateur confirme.
  *
  * Points d'entrée (tous refusés si l'appel ne vient pas d'une origine autorisée) :
  *   GET  /config       → { client_id }                 identifiant client Google, public
  *   POST /connexion    { jeton_google } → { session, email, expire }
  *   GET  /session      (Authorization: Bearer <session>) → { email, expire }
  *   POST /deconnexion  (Authorization: Bearer <session>) → { ok: true }
- *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique, etat } → { reponse, actions, restant }
- *   GET  /agenda/etat        (session) → { relie }
+ *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique, etat } → { reponse, actions, confirmation, restant }
+ *   GET  /agenda/etat        (session) → { relie, ecriture }
  *   POST /agenda/relier      (session) { code } → { relie: true }    code d'autorisation Google
  *   POST /agenda/delier      (session) → { relie: false }
- *   GET  /agenda/evenements  (session) ?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ → { evenements }
+ *   GET  /agenda/evenements  (session) ?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ → { evenements, ecriture }
+ *   POST /agenda/confirmer   (session) { id } → { cree: true, resume, lien }   crée la proposition confirmée
+ *   POST /agenda/annuler     (session) { id } → { annule: true }
  *
  * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
  *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules),
@@ -22,7 +25,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
-import { relierAgenda, delierAgenda, agendaRelie, lireEvenements, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
+import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
 
@@ -159,11 +162,11 @@ async function assistant(requete, env, origine, session) {
   }
 
   try {
-    const { reponse, actions } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat, {
+    const { reponse, actions, confirmation } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat, {
       coffre: coffre(env),
       email: session.email,
     });
-    return json({ reponse, actions, restant: quota.restant }, 200, origine);
+    return json({ reponse, actions, confirmation: confirmation || null, restant: quota.restant }, 200, origine);
   } catch (e) {
     // le détail reste dans les journaux Cloudflare, jamais renvoyé à la page
     if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
@@ -196,7 +199,25 @@ async function agenda(chemin, requete, env, origine, session) {
   }
   try {
     if (chemin === "/agenda/etat") {
-      return json({ relie: await agendaRelie(c, session.email) }, 200, origine);
+      return json(await etatAgenda(c, session.email), 200, origine);
+    }
+    if (chemin === "/agenda/confirmer" || chemin === "/agenda/annuler") {
+      let corps;
+      try {
+        corps = await lireCorps(requete);
+      } catch {
+        return json({ erreur: "Corps JSON invalide." }, 400, origine);
+      }
+      if (typeof corps?.id !== "string" || !/^[A-Za-z0-9_-]{10,40}$/.test(corps.id)) {
+        return json({ erreur: "Proposition inconnue." }, 400, origine);
+      }
+      // usage unique : la proposition est effacée dès qu'elle est lue
+      const donnees = await c.prendreProposition(corps.id, session.email);
+      if (chemin === "/agenda/annuler") return json({ annule: true }, 200, origine);
+      if (!donnees) return json({ erreur: "Proposition expirée ou déjà traitée : redemandez le rendez-vous." }, 410, origine);
+      const p = JSON.parse(donnees);
+      const cree = await creerEvenement(env, c, session.email, p);
+      return json({ cree: true, resume: p.resume, lien: cree.lien || null }, 200, origine);
     }
     if (chemin === "/agenda/relier") {
       let corps;
@@ -218,7 +239,8 @@ async function agenda(chemin, requete, env, origine, session) {
     // /agenda/evenements
     const params = new URL(requete.url).searchParams;
     const evenements = await lireEvenements(env, c, session.email, params.get("debut"), params.get("fin"));
-    return json({ evenements }, 200, origine);
+    const { ecriture } = await etatAgenda(c, session.email);
+    return json({ evenements, ecriture }, 200, origine);
   } catch (e) {
     if (e instanceof AgendaNonRelie) return json({ erreur: e.message, relie: false }, 409, origine);
     console.warn("Agenda :", e?.message);
@@ -236,6 +258,8 @@ const ROUTES = {
   "/agenda/relier": "POST",
   "/agenda/delier": "POST",
   "/agenda/evenements": "GET",
+  "/agenda/confirmer": "POST",
+  "/agenda/annuler": "POST",
 };
 
 export default {

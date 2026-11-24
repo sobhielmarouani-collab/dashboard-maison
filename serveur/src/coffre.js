@@ -2,7 +2,8 @@
  * Coffre : Durable Object qui garde, côté serveur,
  *   - les sessions ouvertes (empreinte du jeton, adresse, date d'expiration) ;
  *   - les demandes récentes de chaque adresse, pour la limite par heure ;
- *   - le jeton de rafraîchissement de l'agenda Google de chaque adresse, chiffré (étape 4).
+ *   - le jeton de rafraîchissement de l'agenda Google de chaque adresse, chiffré, et le périmètre accordé (étape 4) ;
+ *   - les propositions de rendez-vous en attente de confirmation (étape 4), à usage unique, 10 minutes.
  * Une seule instance (« principal ») suffit pour un usage familial.
  * Le jeton de session lui-même n'est jamais stocké : seulement son empreinte SHA-256.
  */
@@ -30,7 +31,16 @@ export class Coffre extends DurableObject {
         chiffre TEXT NOT NULL,
         relie   INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS propositions (
+        id      TEXT PRIMARY KEY,
+        email   TEXT NOT NULL,
+        donnees TEXT NOT NULL,
+        expire  INTEGER NOT NULL
+      );
     `);
+    // colonne ajoutée après coup : les liaisons faites avant n'ont pas de périmètre (lecture seule)
+    const colonnes = this.sql.exec("PRAGMA table_info(agenda_google)").toArray().map((c) => c.name);
+    if (!colonnes.includes("portee")) this.sql.exec("ALTER TABLE agenda_google ADD COLUMN portee TEXT");
   }
 
   creerSession(empreinte, email, expire) {
@@ -52,13 +62,35 @@ export class Coffre extends DurableObject {
 
   /* ---------- agenda Google (jeton déjà chiffré par l'appelant) ---------- */
 
-  enregistrerAgenda(email, chiffre) {
+  enregistrerAgenda(email, chiffre, portee) {
     this.sql.exec(
-      "INSERT INTO agenda_google (email, chiffre, relie) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET chiffre = excluded.chiffre, relie = excluded.relie",
+      "INSERT INTO agenda_google (email, chiffre, relie, portee) VALUES (?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET chiffre = excluded.chiffre, relie = excluded.relie, portee = excluded.portee",
       email,
       chiffre,
       Date.now(),
+      portee || "",
     );
+  }
+
+  /* Périmètre accordé par Google lors de la liaison (chaîne vide pour une liaison antérieure). */
+  porteeAgenda(email) {
+    const ligne = this.sql.exec("SELECT portee FROM agenda_google WHERE email = ?", email).toArray()[0];
+    return ligne ? ligne.portee || "" : null;
+  }
+
+  /* ---------- propositions de rendez-vous en attente de confirmation ---------- */
+
+  creerProposition(id, email, donnees, expire) {
+    this.sql.exec("DELETE FROM propositions WHERE expire <= ? OR email = ?", Date.now(), email); // une seule à la fois par adresse
+    this.sql.exec("INSERT INTO propositions (id, email, donnees, expire) VALUES (?, ?, ?, ?)", id, email, donnees, expire);
+  }
+
+  /* Renvoie la proposition et l'efface aussitôt (usage unique), ou null si absente, expirée ou d'une autre adresse. */
+  prendreProposition(id, email) {
+    const ligne = this.sql.exec("SELECT donnees, expire FROM propositions WHERE id = ? AND email = ?", id, email).toArray()[0];
+    this.sql.exec("DELETE FROM propositions WHERE id = ? AND email = ?", id, email);
+    if (!ligne || ligne.expire <= Date.now()) return null;
+    return ligne.donnees;
   }
 
   lireAgenda(email) {
