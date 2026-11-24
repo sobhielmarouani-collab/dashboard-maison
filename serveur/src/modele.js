@@ -244,14 +244,16 @@ export async function demanderAuModele(env, phrase, historique, etatBrut, contex
   ];
 
   for (let tour = 1; tour <= TOURS_MAX; tour++) {
+    const modele = env.MODELE || MODELE_PAR_DEFAUT;
+    // Claude Haiku n'a pas de repli côté serveur : on n'envoie l'option qu'aux modèles qui l'acceptent
+    const repli = /haiku/i.test(modele) ? {} : { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" };
     const message = await client.beta.messages.create({
-      model: env.MODELE || MODELE_PAR_DEFAUT,
+      model: modele,
       max_tokens: 2048,
       // conversation courte à l'oral : effort bas, réponse rapide
       output_config: { effort: "low" },
       // si le modèle décline une demande, l'API la relance sur un modèle de repli
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      ...repli,
       // outils et consignes ne changent pas : le début de la requête est mis en cache
       cache_control: { type: "ephemeral" },
       tools: [OUTIL_DASHBOARD, OUTIL_AGENDA, OUTIL_CREATION],
