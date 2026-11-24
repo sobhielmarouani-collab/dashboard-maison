@@ -18,6 +18,7 @@
  *   POST /agenda/confirmer   (session) { id } → { cree: true, resume, lien }   crée la proposition confirmée
  *   POST /agenda/annuler     (session) { id } → { annule: true }
  *   GET  /actualites         (session) ?rubrique=<id> → { rubriques, rubrique: { id, nom, articles, sources } }
+ *   GET  /progbat            (session) ?annee=AAAA&forcer=1 → chiffres lus dans ProGBat (lecture seule) ou { configure: false }
  *   GET  /actualites/sources (session) → { rubriques, par_defaut }
  *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
  *
@@ -29,6 +30,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
+import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
 import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
@@ -304,6 +306,7 @@ const ROUTES = {
   "/agenda/confirmer": "POST",
   "/agenda/annuler": "POST",
   "/actualites": "GET",
+  "/progbat": "GET",
   "/actualites/sources": ["GET", "POST"],
 };
 
@@ -345,6 +348,15 @@ export default {
     }
     if (chemin.startsWith("/agenda/")) return agenda(chemin, requete, env, autorisee, session);
     if (chemin.startsWith("/actualites")) return actualites(chemin, requete, env, autorisee);
+    if (chemin === "/progbat") {
+      const q = new URL(requete.url).searchParams;
+      try {
+        return json({ configure: true, ...(await resumeProgbat(env, { annee: q.get("annee"), forcer: q.get("forcer") === "1" })) }, 200, autorisee);
+      } catch (e) {
+        if (e instanceof ProgbatNonConfigure) return json({ configure: false, erreur: e.message }, 200, autorisee);
+        return json({ erreur: String(e?.message || e).slice(0, 300) }, 502, autorisee);
+      }
+    }
     return assistant(requete, env, autorisee, session);
   },
 };

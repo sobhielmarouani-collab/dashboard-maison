@@ -880,7 +880,8 @@ h2 svg{color:var(--neon)}
         <label for="gf-clients">Meilleurs clients : nom | montant<textarea id="gf-clients" spellcheck="false"></textarea></label>
       </div>
       <label for="gf-url">Adresse de connexion à ProGBat (facultatif, pour le bouton « Ouvrir ProGBat »)<input id="gf-url" type="url" autocomplete="off" spellcheck="false" placeholder="https://"></label>
-      <div class="actions"><button class="bouton" type="button" id="ge-annuler">Annuler</button><button class="bouton ok" type="submit">Enregistrer</button></div>
+      <p class="info" id="pg-msg" style="white-space:pre-line;max-height:150px;overflow:auto"></p>
+      <div class="actions"><button class="bouton" type="button" id="pg-importer" style="margin-right:auto">Importer depuis ProGBat</button><button class="bouton" type="button" id="ge-annuler">Annuler</button><button class="bouton ok" type="submit">Enregistrer</button></div>
     </form>
   </div>
 
@@ -2145,6 +2146,22 @@ h2 svg{color:var(--neon)}
     $('c-liste').addEventListener('click',function(e){
       var b=e.target.closest('[data-st]'); if(!b) return; var c=etat.chantiers[+b.getAttribute('data-st')]; if(!c) return;
       var o=['','ok','attention','retard'], s=o[(o.indexOf(c.s||'')+1)%o.length]; if(s) c.s=s; else delete c.s; change();
+    });
+    /* ---- ProGBat : le serveur lit les factures (lecture seule) et remplit le formulaire ; rien n'est enregistré avant « Enregistrer » ---- */
+    var MOIS_C=['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+    $('pg-importer').addEventListener('click',function(){
+      var m=$('pg-msg'), b=this;
+      if(!adresseServeur()||!session()){ m.textContent='Connectez d\'abord Sigma avec Google dans Réglages : c\'est le serveur qui lit ProGBat.'; return; }
+      b.disabled=true; m.textContent='Lecture de ProGBat en cours…';
+      appelServeur('/progbat?forcer=1&annee='+ANNEE,{methode:'GET'}).then(function(j){
+        b.disabled=false;
+        if(j.configure===false){ m.textContent='ProGBat n\'est pas encore relié : ajoutez le secret PROGBAT_JETON dans Cloudflare, puis réessayez.'; return; }
+        $('gf-ca').value=champ(j.ca);
+        $('gf-mois').value=MOIS_C.map(function(n,i){ return n+' | '+champ((j.mois||[])[i]||0)+' | '+champ((j.acomptes||[])[i]||0); }).join('\n');
+        if((j.clients||[]).length) $('gf-clients').value=j.clients.map(function(c){ return c.n+' | '+champ(c.v); }).join('\n');
+        var c=(j.controle||[]).map(function(g){ return '• '+g.type+' · '+(g.validee?'validée':'brouillon')+' · statut '+g.statut+(g.statut_efacture?' · e-facture '+g.statut_efacture:'')+' : '+g.nombre+' facture(s), '+eur(g.total_ht)+' HT, reste à payer '+eur(g.reste_a_payer)+', '+g.echues+' échue(s)'; }).join('\n');
+        m.textContent='Lu dans ProGBat pour '+j.annee+' : '+j.factures_lues+' facture(s), dont '+j.factures_retenues+' validée(s) retenue(s). Chiffre d\'affaires HT calculé : '+eur(j.ca)+'. '+(j.chantiers||[]).length+' chantier(s) trouvé(s).'+(j.chantiers_erreur?' Chantiers non lus : '+j.chantiers_erreur:'')+'\nComparez avec votre tableau de bord ProGBat avant d\'enregistrer. Encours et impayés ne sont pas encore remplis.\n\nContrôle par type et statut :\n'+c;
+      },function(x){ b.disabled=false; m.textContent='Lecture ProGBat impossible : '+(x.message||'erreur')+'.'; });
     });
     function dateFr(i){ var p=String(i).split('-'); return p.length===3?p[2]+'/'+p[1]:''; }
     function listePlanning(){
