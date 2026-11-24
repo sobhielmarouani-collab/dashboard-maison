@@ -68,6 +68,7 @@ ul{list-style:none;padding:0}
 .ondes span:nth-child(2){animation-delay:.12s}.ondes span:nth-child(3){animation-delay:.24s}.ondes span:nth-child(4){animation-delay:.36s}.ondes span:nth-child(5){animation-delay:.48s}
 @keyframes onde{0%,100%{height:8px}50%{height:40px}}
 .ia.ecoute .ondes{display:flex}
+.ia.veille .micro{background:var(--vert);box-shadow:0 0 18px rgba(53,208,127,.8)}
 .ia.ecoute .micro{background:var(--jaune);box-shadow:0 0 22px rgba(255,210,58,.9)}
 .ia.ecoute::before{animation-duration:1.1s}
 .horloge{height:102px;text-align:center;flex:none}
@@ -449,6 +450,8 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         </form>
         <div class="carte form" id="v-carte">
           <h2 style="justify-content:space-between">Voix<button class="bouton" type="button" id="v-test">Écouter</button></h2>
+          <button class="bouton" type="button" id="v-libre" aria-pressed="false">Écoute permanente : désactivée</button>
+          <p class="info" id="v-libre-msg">Activée, il suffit de dire « Sigma » suivi de votre demande, sans toucher l'écran. Le micro reste alors ouvert tant que cette page est affichée, et le navigateur envoie ce qu'il entend à son service de reconnaissance vocale.</p>
           <label for="v-voix"><select id="v-voix" aria-label="Voix de l'assistant"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
           <div style="display:grid;grid-template-columns:1fr;gap:10px;font-size:19px">
             <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
@@ -845,13 +848,14 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   afficherVoix();
 
   var NOM='Sigma';   /* nom de l'assistant, affiché sous le visage */
+  var finParole=0;   /* instant où Sigma a fini de parler */
   var prenom='';     /* prénom de l'utilisateur, gardé sur l'appareil */
   try{ prenom=(localStorage.getItem('dashboard-prenom')||'').slice(0,40); }catch(e){}
   $('a-prenom').value=prenom;
   $('a-prenom').addEventListener('input',function(){ prenom=this.value.trim().slice(0,40); try{ localStorage.setItem('dashboard-prenom',prenom); }catch(e){} });
   function dire(titre,texte,parler){
     $('ia-etat').textContent=titre; $('ia-texte').textContent=texte;
-    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
+    if(parler&&window.speechSynthesis){ try{ var u=new SpeechSynthesisUtterance(texte); u.lang='fr-FR'; reglerVoix(u); u.onstart=function(){ $('ia').classList.add('parle'); }; u.onend=u.onerror=function(){ $('ia').classList.remove('parle'); finParole=Date.now(); }; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){} }
     else if(parler){ $('ia').classList.add('parle'); setTimeout(function(){ $('ia').classList.remove('parle'); },2500); }
   }
   function resume(){
@@ -1096,8 +1100,52 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     var fin=function(){ oublierSession(); try{ window.google&&window.google.accounts.id.disableAutoSelect(); }catch(e){} afficherCompte(); $('a-msg').textContent='Déconnecté.'; };
     appelServeur('/deconnexion').then(fin,fin);
   });
+  /* ---------- écoute permanente : « Sigma, … » sans toucher l'écran (réglage, désactivé par défaut) ---------- */
+  var mainsLibres=false, veille=null, veilleActive=false, arme=0, relance=null;
+  try{ mainsLibres = localStorage.getItem('dashboard-mains-libres')==='1'; }catch(e){}
+  var MOT=/(?:^|[\s,.;:!?'’-])(?:sigma|sygma|cigma|zigma|sig ma|six ma|c'est sigma)(?=$|[\s,.;:!?])[\s,.;:!?]*(.*)$/i;
+  function afficherVeille(msg){
+    var b=$('v-libre'); b.textContent='Écoute permanente : '+(mainsLibres?'activée':'désactivée'); b.setAttribute('aria-pressed',mainsLibres); b.classList.toggle('ok',mainsLibres);
+    $('ia').classList.toggle('veille',mainsLibres&&veilleActive);
+    if(msg) $('v-libre-msg').textContent=msg;
+  }
+  function sigmaParle(){ return $('ia').classList.contains('parle') || (window.speechSynthesis&&speechSynthesis.speaking) || Date.now()-finParole<900; }
+  function entendu(t){
+    t=String(t||'').trim(); if(!t||sigmaParle()) return;
+    var m=MOT.exec(' '+t);
+    if(m){
+      var suite=m[1].trim();
+      if(suite.length>1){ arme=0; repondre(suite); }
+      else { dire(NOM+' · j\'écoute','Oui'+(prenom?' '+prenom:'')+' ?',true); arme=Date.now()+12000; }
+    } else if(Date.now()<arme){ arme=0; repondre(t); }
+  }
+  function demarrerVeille(){
+    clearTimeout(relance);
+    if(!Reco||!mainsLibres||veilleActive||ecoute) return;
+    try{
+      veille=new Reco(); veille.lang='fr-FR'; veille.continuous=true; veille.interimResults=false; veille.maxAlternatives=1;
+      veille.onstart=function(){ veilleActive=true; afficherVeille(); if(!sigmaParle()) dire(NOM+' · dites « Sigma »','Je vous écoute en permanence. Dites « Sigma », puis votre demande.',false); };
+      veille.onresult=function(e){ for(var i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) entendu(e.results[i][0].transcript); } };
+      veille.onerror=function(e){
+        if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ mainsLibres=false; try{ localStorage.setItem('dashboard-mains-libres','0'); }catch(x){} afficherVeille('Le micro est refusé par ce navigateur : l\'écoute permanente ne peut pas fonctionner sur cet appareil.'); }
+      };
+      veille.onend=function(){ veilleActive=false; afficherVeille(); if(mainsLibres) relance=setTimeout(demarrerVeille,600); };
+      veille.start();
+    }catch(e){ veilleActive=false; if(mainsLibres) relance=setTimeout(demarrerVeille,3000); }
+  }
+  function arreterVeille(){ clearTimeout(relance); try{ if(veille) veille.abort(); }catch(e){} veilleActive=false; afficherVeille(); }
+  $('v-libre').addEventListener('click',function(){
+    if(!Reco){ afficherVeille('Ce navigateur ne propose pas la reconnaissance vocale : l\'écoute permanente est indisponible ici.'); return; }
+    mainsLibres=!mainsLibres; try{ localStorage.setItem('dashboard-mains-libres',mainsLibres?'1':'0'); }catch(e){}
+    if(mainsLibres){ afficherVeille('Activée. Dites « Sigma », puis votre demande. Le micro reste ouvert tant que cette page est affichée, et le navigateur envoie ce qu\'il entend à son service de reconnaissance vocale.'); demarrerVeille(); }
+    else { arreterVeille(); afficherVeille('Désactivée. Touchez le visage de Sigma pour lui parler.'); dire(NOM+' · touchez mon visage','L\'écoute permanente est arrêtée.',false); }
+  });
+  afficherVeille();
+  if(mainsLibres){ demarrerVeille(); document.addEventListener('pointerdown',function(){ if(mainsLibres&&!veilleActive) demarrerVeille(); }); }
+
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire(NOM+' · résumé du jour',resume(),true); return; }
+    if(veilleActive){ arme=Date.now()+10000; dire(NOM+' · j\'écoute','Parlez maintenant…',false); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
     reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
     reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
