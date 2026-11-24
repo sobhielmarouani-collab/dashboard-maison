@@ -149,7 +149,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 .entete h1 svg{width:44px;height:44px;color:var(--bleu)}
 .entete .h{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--discret)}
 .corps{min-height:0;display:grid;gap:14px}
-.corps>.carte{padding:18px 22px;min-height:0;overflow:auto}
+.corps>.carte,.corps>.colonne>.carte{padding:18px 22px;min-height:0;overflow:auto}
 .deux{grid-template-columns:1fr 430px}
 .ligne{display:grid;align-items:center;gap:16px;padding:10px 0;border-bottom:1px solid rgba(29,79,143,.5);font-size:22px;min-height:68px}
 .ligne:last-child{border:0}
@@ -157,6 +157,12 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
 .ligne time{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
 .l-rdv{grid-template-columns:86px 6px 1fr 56px}
 .l-rdv i{height:44px;border-radius:3px}
+.l-jour{list-style:none;font-size:17px;font-weight:700;color:var(--bleu);text-transform:uppercase;letter-spacing:.04em;padding:16px 0 4px;border-bottom:1px solid rgba(29,79,143,.5)}
+.l-jour:first-child{padding-top:0}
+.l-jour small{font-weight:400;text-transform:none;letter-spacing:0;color:var(--discret);margin-left:8px}
+.l-rdv.google{grid-template-columns:86px 6px 1fr}
+.l-rdv.google time{font-size:22px}
+.l-rdv.passe{opacity:.5}
 .l-tache{grid-template-columns:34px 1fr 56px}
 .l-chantier{grid-template-columns:1fr 56px 78px 56px 56px}
 .l-chantier .barre{height:12px}
@@ -358,9 +364,10 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   <section class="vue page" id="v-agenda">
     <div class="entete"><h1><svg class="i"><use href="#n-agenda"/></svg>Agenda</h1><span class="h" data-heure></span></div>
     <div class="corps deux">
-      <div class="carte"><ul id="g-liste"></ul></div>
+      <div class="carte" style="overflow:auto;min-height:0"><ul id="g-liste"></ul></div>
       <form class="carte form" id="g-form">
         <h2>Ajouter un rendez-vous</h2>
+        <p class="info" id="g-note" hidden>Ajouté pour aujourd'hui sur cet appareil seulement, pas dans l'agenda Google.</p>
         <label for="g-heure">Heure<input id="g-heure" type="time" required></label>
         <label for="g-titre">Intitulé<input id="g-titre" type="text" autocomplete="off" required></label>
         <label for="g-detail">Détail (facultatif)<input id="g-detail" type="text" autocomplete="off"></label>
@@ -433,13 +440,24 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   <section class="vue page" id="v-reglages">
     <div class="entete"><h1><svg class="i"><use href="#n-reglages"/></svg>Réglages</h1><span class="h" data-heure></span></div>
     <div class="corps" style="grid-template-columns:1fr 1fr 1fr;align-items:start">
-      <form class="carte form" id="r-form">
-        <h2>Prénoms des salariés</h2>
-        <div class="noms" id="r-noms"></div>
-        <button class="bouton ok" type="submit">Enregistrer les prénoms</button>
-        <p class="info">Laissez une case vide pour retirer un salarié de l'écran d'accueil.</p>
-      </form>
-      <form class="carte form" id="a-form" style="min-width:0;max-height:100%">
+      <div class="colonne" style="display:grid;gap:14px;align-content:start;min-width:0;max-height:100%;overflow:auto">
+        <form class="carte form" id="r-form">
+          <h2>Prénoms des salariés</h2>
+          <div class="noms" id="r-noms"></div>
+          <button class="bouton ok" type="submit">Enregistrer les prénoms</button>
+          <p class="info">Laissez une case vide pour retirer un salarié de l'écran d'accueil.</p>
+        </form>
+        <div class="carte form" id="v-carte">
+          <h2 style="justify-content:space-between">Voix<button class="bouton" type="button" id="v-test">Écouter</button></h2>
+          <label for="v-voix"><select id="v-voix" aria-label="Voix de l'assistant"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
+          <div style="display:grid;grid-template-columns:1fr;gap:10px;font-size:19px">
+            <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Hauteur</span><button class="rond" type="button" id="v-ton-m" aria-label="Voix plus grave">−</button><b id="v-ton" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-ton-p" aria-label="Voix plus aiguë">+</button></div>
+          </div>
+          <p class="info" id="v-msg"></p>
+        </div>
+      </div>
+      <form class="carte form" id="a-form" style="min-width:0;max-height:100%;overflow:auto">
         <h2>Assistant</h2>
         <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev" autocomplete="off" spellcheck="false"></label>
         <button class="bouton" type="submit">Enregistrer l'adresse</button>
@@ -448,21 +466,16 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
           <div id="a-connecte" hidden>
             <p style="margin:0 0 10px;font-size:18px">Connecté : <b id="a-email"></b></p>
             <div style="display:flex;gap:10px"><button class="bouton ok" type="button" id="a-tester" style="flex:1">Tester</button><button class="bouton" type="button" id="a-sortir" style="flex:1">Se déconnecter</button></div>
+            <div id="a-agenda-bloc" hidden style="margin-top:10px">
+              <div style="display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:17px">Agenda Google : <b id="a-agenda-etat">…</b></span><button class="bouton ok" type="button" id="a-agenda-relier">Relier mon agenda Google</button><button class="bouton" type="button" id="a-agenda-delier" hidden>Délier</button></div>
+            </div>
           </div>
         </div>
         <p class="info" id="a-msg">Laissez vide pour n'utiliser que les ordres simples, sans serveur.</p>
-        <h2 style="margin-top:6px">Voix</h2>
-        <label for="v-voix">Voix de l'assistant<select id="v-voix"><option value="auto:h">Automatique : voix d'homme la plus naturelle</option></select></label>
-        <div style="display:grid;grid-template-columns:1fr;gap:10px;font-size:19px">
-          <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Vitesse</span><button class="rond" type="button" id="v-vit-m" aria-label="Parler plus lentement">−</button><b id="v-vit" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-vit-p" aria-label="Parler plus vite">+</button></div>
-          <div style="display:flex;align-items:center;gap:10px"><span style="flex:1">Hauteur</span><button class="rond" type="button" id="v-ton-m" aria-label="Voix plus grave">−</button><b id="v-ton" style="width:64px;text-align:center">100 %</b><button class="rond" type="button" id="v-ton-p" aria-label="Voix plus aiguë">+</button></div>
-        </div>
-        <button class="bouton" type="button" id="v-test">Écouter la voix</button>
-        <p class="info" id="v-msg"></p>
       </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, après connexion avec un compte Google autorisé, les phrases dites à l'assistant lui sont envoyées avec un résumé de l'écran (tâches, chantiers, rendez-vous du jour, minuteur, présence) pour qu'il puisse répondre et agir. Si l'agenda Google est relié, le serveur lit ses événements (sans pouvoir les modifier) ; ils sont affichés ici sans être gardés sur l'appareil.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -562,11 +575,45 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function aller(v){
     if(!$('v-'+v)) v='accueil';
     vueActive = v;
+    if(v==='agenda' && Date.now()-agendaGoogle.maj>60000) rafraichirAgenda();
     ONGLETS.forEach(function(o){ $('v-'+o[0]).classList.toggle('active', o[0]===v); });
     [].forEach.call($('nav').children,function(b){ var a=b.getAttribute('data-aller')===v; b.classList.toggle('actif',a); if(a) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
     try{ if(location.hash.slice(1)!==v) location.hash = v; }catch(e){}
   }
   window.addEventListener('hashchange',function(){ aller(location.hash.slice(1)||'accueil'); });
+
+  /* ---------- agenda Google (étape 4) : événements lus par le serveur, gardés en mémoire seulement ---------- */
+  var agendaGoogle={relie:false,disponible:false,evenements:[],maj:0,erreur:''};
+  function jourISO(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+  function plusJours(d,n){ var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+  /* rendez-vous d'aujourd'hui : Google + saisis sur l'appareil, triés.
+     filtre 'accueil' : on retire les événements Google déjà terminés (les rendez-vous saisis, sans heure de fin, restent) ;
+     filtre 'prochain' : seulement ceux qui n'ont pas encore commencé, hors journées entières. */
+  function rendezVousDuJour(filtre){
+    var maintenant=new Date(), auj=jourISO(maintenant), hm=p2(maintenant.getHours())+':'+p2(maintenant.getMinutes());
+    var l=etat.agenda.map(function(r){ return {h:r.h,fin:'',t:r.t,d:r.d,c:r.c,journee:false,local:true}; });
+    if(agendaGoogle.relie) agendaGoogle.evenements.forEach(function(e){ if(e.jour===auj) l.push({h:e.journee?'':e.debut,fin:e.journee?'':e.fin,t:e.titre,d:e.journee?'Toute la journée':(e.debut+' – '+e.fin+(e.lieu?' · '+e.lieu:'')),c:'bleu',journee:e.journee}); });
+    if(filtre==='accueil') l=l.filter(function(r){ return r.local || r.journee || r.fin>=hm; });
+    if(filtre==='prochain') l=l.filter(function(r){ return !r.journee && r.h>=hm; });
+    return l.sort(function(a,b){ return a.journee!==b.journee ? (a.journee?-1:1) : (a.h<b.h?-1:a.h>b.h?1:0); });
+  }
+  var fJourLong=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  function listeAgendaGoogle(){
+    var auj=new Date(), h='', hm=p2(auj.getHours())+':'+p2(auj.getMinutes());
+    for(var n=0;n<7;n++){
+      var iso=jourISO(plusJours(auj,n)), ev=agendaGoogle.evenements.filter(function(e){ return e.jour===iso; })
+        .sort(function(a,b){ return a.journee!==b.journee ? (a.journee?-1:1) : (a.debut<b.debut?-1:a.debut>b.debut?1:0); });
+      var titre = n===0 ? 'Aujourd\'hui' : (n===1 ? 'Demain' : maj(fJourLong.format(plusJours(auj,n)).split(' ')[0]));
+      h+='<li class="l-jour">'+titre+'<small>'+esc(fJourLong.format(plusJours(auj,n)))+(n===0&&agendaGoogle.maj?' · agenda Google mis à jour à '+p2(new Date(agendaGoogle.maj).getHours())+':'+p2(new Date(agendaGoogle.maj).getMinutes()):'')+'</small></li>';
+      if(!ev.length){ h+='<li class="vide">Rien de prévu.</li>'; continue; }
+      h+=ev.map(function(e){
+        var passe = n===0 && !e.journee && e.fin<hm;
+        return '<li class="ligne l-rdv google'+(passe?' passe':'')+'"><time>'+esc(e.journee?'Jour':e.debut)+'</time><i style="background:'+COUL.bleu+'"></i><div>'+esc(e.titre)+'<small>'+esc(e.journee?'Toute la journée':(e.debut+' – '+e.fin))+(e.lieu?' · '+esc(e.lieu):'')+'</small></div></li>';
+      }).join('');
+    }
+    if(agendaGoogle.erreur) h='<li class="vide">'+esc(agendaGoogle.erreur)+'</li>'+h;
+    return h;
+  }
 
   /* ---------- rendu ---------- */
   function avatar(c){ return '<span class="avatar" style="--c:'+c+'"><svg><use href="#personne"/></svg></span>'; }
@@ -585,9 +632,9 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     $('a-pieces').innerHTML=h;
 
     /* accueil : agenda, tâches, chantiers, salariés (clé interne « famille » conservée) */
-    $('a-agenda').innerHTML = etat.agenda.length ? etat.agenda.slice(0,3).map(function(r){
-      return '<li class="rdv"><time>'+esc(r.h)+'</time><i style="background:'+(COUL[r.c]||COUL.bleu)+'"></i><div><strong>'+esc(r.t)+'</strong>'+(r.d?'<span>'+esc(r.d)+'</span>':'')+'</div></li>';
-    }).join('') : '<li class="vide">Aucun rendez-vous. Touchez ici pour en ajouter.</li>';
+    $('a-agenda').innerHTML = (function(){ var l=rendezVousDuJour('accueil').slice(0,3); return l.length ? l.map(function(r){
+      return '<li class="rdv"><time>'+esc(r.journee?'Jour':r.h)+'</time><i style="background:'+(COUL[r.c]||COUL.bleu)+'"></i><div><strong>'+esc(r.t)+'</strong>'+(r.d?'<span>'+esc(r.d)+'</span>':'')+'</div></li>';
+    }).join('') : '<li class="vide">'+(agendaGoogle.relie?'Plus de rendez-vous aujourd\'hui.':'Aucun rendez-vous. Touchez ici pour en ajouter.')+'</li>'; })();
     $('a-taches').innerHTML = etat.taches.length ? etat.taches.slice(0,4).map(function(t,i){
       return '<li class="tache"><label><input type="checkbox" data-act="coche" data-i="'+i+'"'+(t.f?' checked':'')+'><span>'+esc(t.t)+'</span></label></li>';
     }).join('') : '<li class="vide">Aucune tâche.</li>';
@@ -614,9 +661,15 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     }).join('') : '<li class="vide">Aucun chantier. Ajoutez-en un à droite.</li>';
 
     /* agenda */
-    $('g-liste').innerHTML = etat.agenda.length ? etat.agenda.map(function(r,i){
+    var locaux = etat.agenda.map(function(r,i){
       return '<li class="ligne l-rdv"><time>'+esc(r.h)+'</time><i style="background:'+(COUL[r.c]||COUL.bleu)+'"></i><div>'+esc(r.t)+(r.d?'<small>'+esc(r.d)+'</small>':'')+'</div><button class="rond suppr" type="button" data-act="suppr-rdv" data-i="'+i+'" aria-label="Supprimer '+esc(r.t)+'"><svg class="i"><use href="#corbeille"/></svg></button></li>';
-    }).join('') : '<li class="vide">Aucun rendez-vous. Ajoutez-en un à droite.</li>';
+    }).join('');
+    $('g-note').hidden = !agendaGoogle.relie;
+    if(agendaGoogle.relie){
+      $('g-liste').innerHTML = listeAgendaGoogle() + (locaux ? '<li class="l-jour">Sur cet appareil<small>rendez-vous du jour saisis ici</small></li>'+locaux : '');
+    } else {
+      $('g-liste').innerHTML = locaux || '<li class="vide">Aucun rendez-vous. Ajoutez-en un à droite.</li>';
+    }
 
     /* tâches */
     $('k-liste').innerHTML = etat.taches.length ? etat.taches.map(function(t,i){
@@ -798,7 +851,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   function resume(){
     var d=new Date(), hm=p2(d.getHours())+':'+p2(d.getMinutes()), t='Il est '+d.getHours()+' heures '+p2(d.getMinutes())+'. ';
     if(meteoTexte) t+=meteoTexte+' ';
-    var suite=etat.agenda.filter(function(r){return r.h>=hm;})[0];
+    var suite=rendezVousDuJour('prochain')[0];
     t+= suite ? 'Prochain rendez-vous à '+suite.h.replace(':',' heures ')+' : '+suite.t+'. ' : 'Plus de rendez-vous aujourd\'hui. ';
     var n=etat.taches.filter(function(x){return !x.f;}).length;
     t+= n===0 ? 'Toutes les tâches sont faites.' : (n===1 ? 'Il reste une tâche.' : 'Il reste '+n+' tâches.');
@@ -936,10 +989,11 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     });
   }
   /* connexion Google : le script de Google n'est chargé que si un serveur est réglé (jamais sur l'Echo Show sans réglage) */
-  var googlePret=null;
+  var googlePret=null, configServeur=null;
   function chargerGoogle(){
     if(googlePret) return googlePret;
     googlePret=appelServeur('/config',{methode:'GET'}).then(function(j){
+      configServeur=j;
       if(!j.client_id) throw new Error('connexion Google non configurée sur le serveur');
       return new Promise(function(ok,ko){
         function init(){ window.google.accounts.id.initialize({client_id:j.client_id,callback:surJetonGoogle,auto_select:false,cancel_on_tap_outside:true}); ok(); }
@@ -964,7 +1018,14 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     $('a-compte').hidden=!base;
     if(!base) return;
     $('a-connecte').hidden=!s; $('a-google').hidden=!!s;
-    if(s){ $('a-email').textContent=s.email; return; }
+    if(s){
+      $('a-email').textContent=s.email; afficherAgendaReglage();
+      chargerGoogle().then(afficherAgendaReglage,function(){});
+      rafraichirAgenda();
+      return;
+    }
+    if(agendaGoogle.relie||agendaGoogle.evenements.length){ agendaGoogle={relie:false,disponible:false,evenements:[],maj:0,erreur:''}; dessiner(); }
+    afficherAgendaReglage();
     chargerGoogle().then(function(){
       $('a-google').innerHTML='';
       window.google.accounts.id.renderButton($('a-google'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'fr',width:300});
@@ -982,6 +1043,47 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   $('a-tester').addEventListener('click',function(){
     var m=$('a-msg'); m.textContent='Test en cours…';
     demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r.reponse; },function(x){ m.textContent='Échec du test : '+x.message; });
+  });
+  /* ---------- agenda Google : relier, délier, rafraîchir ---------- */
+  var agendaEnCours=false;
+  function afficherAgendaReglage(){
+    var s=session(), dispo=!!(s&&configServeur&&configServeur.agenda);
+    $('a-agenda-bloc').hidden=!dispo;
+    if(!dispo) return;
+    $('a-agenda-etat').textContent= agendaGoogle.relie ? 'relié' : 'non relié';
+    $('a-agenda-relier').hidden=agendaGoogle.relie; $('a-agenda-delier').hidden=!agendaGoogle.relie;
+  }
+  function rafraichirAgenda(){
+    if(!session()||!adresseServeur()||agendaEnCours) return;
+    agendaEnCours=true;
+    var auj=new Date();
+    appelServeur('/agenda/evenements?debut='+jourISO(auj)+'&fin='+jourISO(plusJours(auj,6)),{methode:'GET'}).then(function(j){
+      agendaGoogle={relie:true,disponible:true,evenements:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now(),erreur:''};
+    },function(x){
+      if(x.statut===409||x.statut===503||x.statut===401) agendaGoogle={relie:false,disponible:x.statut===409,evenements:[],maj:0,erreur:''};
+      else if(agendaGoogle.relie) agendaGoogle.erreur='Agenda Google momentanément indisponible ('+x.message+'). Dernière version affichée.';
+    }).then(function(){ agendaEnCours=false; dessiner(); afficherAgendaReglage(); });
+  }
+  setInterval(rafraichirAgenda,5*60*1000);
+  $('a-agenda-relier').addEventListener('click',function(){
+    var m=$('a-msg'), s=session();
+    if(!s||!configServeur||!configServeur.agenda||!(window.google&&google.accounts&&google.accounts.oauth2)){ m.textContent='Connexion Google en cours de chargement, réessayez dans un instant.'; chargerGoogle(); return; }
+    /* fenêtre Google : l'utilisateur autorise la lecture de son agenda ; le code obtenu part au serveur */
+    google.accounts.oauth2.initCodeClient({
+      client_id:configServeur.client_id, scope:'openid email '+configServeur.agenda.perimetre, ux_mode:'popup', login_hint:s.email,
+      callback:function(r){
+        if(!r||r.error||!r.code){ m.textContent='Autorisation annulée.'; return; }
+        m.textContent='Liaison de l\'agenda en cours…';
+        appelServeur('/agenda/relier',{corps:{code:r.code}}).then(function(){ m.textContent='Agenda Google relié.'; agendaGoogle.relie=true; afficherAgendaReglage(); rafraichirAgenda(); },
+          function(x){ m.textContent='Liaison impossible : '+x.message; });
+      },
+      error_callback:function(e){ m.textContent= e&&e.type==='popup_closed' ? 'Fenêtre Google fermée avant la fin.' : 'Fenêtre Google bloquée ou indisponible.'; }
+    }).requestCode();
+  });
+  $('a-agenda-delier').addEventListener('click',function(){
+    var m=$('a-msg'); m.textContent='…';
+    appelServeur('/agenda/delier').then(function(){ m.textContent='Agenda Google délié : le dashboard n\'y a plus accès.'; },function(x){ m.textContent='Échec : '+x.message; })
+      .then(function(){ agendaGoogle={relie:false,disponible:true,evenements:[],maj:0,erreur:''}; dessiner(); afficherAgendaReglage(); });
   });
   $('a-sortir').addEventListener('click',function(){
     var fin=function(){ oublierSession(); try{ window.google&&window.google.accounts.id.disableAutoSelect(); }catch(e){} afficherCompte(); $('a-msg').textContent='Déconnecté.'; };

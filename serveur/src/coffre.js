@@ -1,7 +1,8 @@
 /*
  * Coffre : Durable Object qui garde, côté serveur,
  *   - les sessions ouvertes (empreinte du jeton, adresse, date d'expiration) ;
- *   - les demandes récentes de chaque adresse, pour la limite par heure.
+ *   - les demandes récentes de chaque adresse, pour la limite par heure ;
+ *   - le jeton de rafraîchissement de l'agenda Google de chaque adresse, chiffré (étape 4).
  * Une seule instance (« principal ») suffit pour un usage familial.
  * Le jeton de session lui-même n'est jamais stocké : seulement son empreinte SHA-256.
  */
@@ -24,6 +25,11 @@ export class Coffre extends DurableObject {
         quand INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS demandes_email ON demandes (email, quand);
+      CREATE TABLE IF NOT EXISTS agenda_google (
+        email   TEXT PRIMARY KEY,
+        chiffre TEXT NOT NULL,
+        relie   INTEGER NOT NULL
+      );
     `);
   }
 
@@ -42,6 +48,26 @@ export class Coffre extends DurableObject {
       return null;
     }
     return ligne.email;
+  }
+
+  /* ---------- agenda Google (jeton déjà chiffré par l'appelant) ---------- */
+
+  enregistrerAgenda(email, chiffre) {
+    this.sql.exec(
+      "INSERT INTO agenda_google (email, chiffre, relie) VALUES (?, ?, ?) ON CONFLICT(email) DO UPDATE SET chiffre = excluded.chiffre, relie = excluded.relie",
+      email,
+      chiffre,
+      Date.now(),
+    );
+  }
+
+  lireAgenda(email) {
+    const ligne = this.sql.exec("SELECT chiffre FROM agenda_google WHERE email = ?", email).toArray()[0];
+    return ligne ? ligne.chiffre : null;
+  }
+
+  supprimerAgenda(email) {
+    this.sql.exec("DELETE FROM agenda_google WHERE email = ?", email);
   }
 
   supprimerSession(empreinte) {

@@ -2,6 +2,7 @@
  * Serveur de l'assistant vocal du dashboard.
  * Étape 1 : conversation libre. Étape 2 : connexion Google et accès réservé.
  * Étape 3 : actions sur le dashboard (outil action_dashboard, exécuté par la page).
+ * Étape 4 : agenda Google en lecture (outil lire_agenda, onglet Agenda).
  *
  * Points d'entrée (tous refusés si l'appel ne vient pas d'une origine autorisée) :
  *   GET  /config       → { client_id }                 identifiant client Google, public
@@ -9,13 +10,19 @@
  *   GET  /session      (Authorization: Bearer <session>) → { email, expire }
  *   POST /deconnexion  (Authorization: Bearer <session>) → { ok: true }
  *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique, etat } → { reponse, actions, restant }
+ *   GET  /agenda/etat        (session) → { relie }
+ *   POST /agenda/relier      (session) { code } → { relie: true }    code d'autorisation Google
+ *   POST /agenda/delier      (session) → { relie: false }
+ *   GET  /agenda/evenements  (session) ?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ → { evenements }
  *
  * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
- *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules).
+ *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules),
+ *   GOOGLE_CLIENT_SECRET (étape 4, agenda).
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
+import { relierAgenda, delierAgenda, agendaRelie, lireEvenements, AgendaNonRelie, PERIMETRE_AGENDA } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
 
@@ -152,7 +159,10 @@ async function assistant(requete, env, origine, session) {
   }
 
   try {
-    const { reponse, actions } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat);
+    const { reponse, actions } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat, {
+      coffre: coffre(env),
+      email: session.email,
+    });
     return json({ reponse, actions, restant: quota.restant }, 200, origine);
   } catch (e) {
     // le détail reste dans les journaux Cloudflare, jamais renvoyé à la page
@@ -177,12 +187,55 @@ async function assistant(requete, env, origine, session) {
   }
 }
 
+/* ---------- agenda Google ---------- */
+
+async function agenda(chemin, requete, env, origine, session) {
+  const c = coffre(env);
+  if (!env.GOOGLE_CLIENT_SECRET) {
+    return json({ erreur: "Agenda Google non configuré sur le serveur (secret GOOGLE_CLIENT_SECRET absent)." }, 503, origine);
+  }
+  try {
+    if (chemin === "/agenda/etat") {
+      return json({ relie: await agendaRelie(c, session.email) }, 200, origine);
+    }
+    if (chemin === "/agenda/relier") {
+      let corps;
+      try {
+        corps = await lireCorps(requete);
+      } catch {
+        return json({ erreur: "Corps JSON invalide." }, 400, origine);
+      }
+      if (typeof corps?.code !== "string" || !corps.code || corps.code.length > 2000) {
+        return json({ erreur: "Code d'autorisation manquant." }, 400, origine);
+      }
+      await relierAgenda(env, c, session.email, corps.code);
+      return json({ relie: true }, 200, origine);
+    }
+    if (chemin === "/agenda/delier") {
+      await delierAgenda(env, c, session.email);
+      return json({ relie: false }, 200, origine);
+    }
+    // /agenda/evenements
+    const params = new URL(requete.url).searchParams;
+    const evenements = await lireEvenements(env, c, session.email, params.get("debut"), params.get("fin"));
+    return json({ evenements }, 200, origine);
+  } catch (e) {
+    if (e instanceof AgendaNonRelie) return json({ erreur: e.message, relie: false }, 409, origine);
+    console.warn("Agenda :", e?.message);
+    return json({ erreur: e?.message || "Erreur de l'agenda." }, 502, origine);
+  }
+}
+
 const ROUTES = {
   "/config": "GET",
   "/connexion": "POST",
   "/session": "GET",
   "/deconnexion": "POST",
   "/assistant": "POST",
+  "/agenda/etat": "GET",
+  "/agenda/relier": "POST",
+  "/agenda/delier": "POST",
+  "/agenda/evenements": "GET",
 };
 
 export default {
@@ -200,7 +253,16 @@ export default {
       return json({ erreur: "Méthode non autorisée." }, 405, autorisee);
     }
 
-    if (chemin === "/config") return json({ client_id: env.GOOGLE_CLIENT_ID || null }, 200, autorisee);
+    if (chemin === "/config") {
+      return json(
+        {
+          client_id: env.GOOGLE_CLIENT_ID || null,
+          agenda: env.GOOGLE_CLIENT_SECRET ? { perimetre: PERIMETRE_AGENDA } : null,
+        },
+        200,
+        autorisee,
+      );
+    }
     if (chemin === "/connexion") return connexion(requete, env, autorisee);
 
     // tout ce qui suit exige une session valide pour une adresse autorisée
@@ -212,6 +274,7 @@ export default {
       await coffre(env).supprimerSession(session.empreinte);
       return json({ ok: true }, 200, autorisee);
     }
+    if (chemin.startsWith("/agenda/")) return agenda(chemin, requete, env, autorisee, session);
     return assistant(requete, env, autorisee, session);
   },
 };

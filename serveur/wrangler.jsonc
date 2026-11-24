@@ -1,7 +1,7 @@
 // Configuration du serveur de l'assistant pour Cloudflare Workers.
 // Ne jamais écrire la clé d'API ici : ce fichier est public.
 // Les valeurs privées se mettent dans le tableau de bord Cloudflare (Variables et secrets),
-// en type « Secret » : ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES.
+// en type « Secret » : ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES, GOOGLE_CLIENT_SECRET.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "assistant-dashboard-travail",
