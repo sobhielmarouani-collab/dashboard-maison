@@ -1,4 +1,6 @@
 # Pour tester sur votre ordinateur uniquement : copiez ce fichier en « .dev.vars »
-# et remplacez la valeur. « .dev.vars » est ignoré par git et ne doit jamais être publié.
+# et remplacez les valeurs. « .dev.vars » est ignoré par git et ne doit jamais être publié.
 ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_CLIENT_ID=123456789-abc.apps.googleusercontent.com
+ADRESSES_AUTORISEES=vous@exemple.fr
 ORIGINES_AUTORISEES=http://localhost:8000,https://sobhielmarouani-collab.github.io

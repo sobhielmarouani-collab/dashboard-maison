@@ -375,7 +375,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   <!-- ===== RÉGLAGES ===== -->
   <section class="vue page" id="v-reglages">
     <div class="entete"><h1><svg class="i"><use href="#n-reglages"/></svg>Réglages</h1><span class="h" data-heure></span></div>
-    <div class="corps" style="grid-template-columns:1fr 1fr">
+    <div class="corps" style="grid-template-columns:1fr 1fr 1fr;align-items:start">
       <form class="carte form" id="r-form">
         <h2>Prénoms de la famille</h2>
         <div class="noms" id="r-noms"></div>
@@ -384,13 +384,20 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
       </form>
       <form class="carte form" id="a-form">
         <h2>Assistant</h2>
-        <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev/assistant" autocomplete="off" spellcheck="false"></label>
-        <button class="bouton ok" type="submit">Enregistrer et tester</button>
+        <label for="a-url">Adresse du serveur<input id="a-url" type="url" placeholder="https://….workers.dev" autocomplete="off" spellcheck="false"></label>
+        <button class="bouton" type="submit">Enregistrer l'adresse</button>
+        <div id="a-compte" hidden>
+          <div id="a-google" style="min-height:44px"></div>
+          <div id="a-connecte" hidden>
+            <p style="margin:0 0 10px;font-size:18px">Connecté : <b id="a-email"></b></p>
+            <div style="display:flex;gap:10px"><button class="bouton ok" type="button" id="a-tester" style="flex:1">Tester</button><button class="bouton" type="button" id="a-sortir" style="flex:1">Se déconnecter</button></div>
+          </div>
+        </div>
         <p class="info" id="a-msg">Laissez vide pour n'utiliser que les ordres simples, sans serveur.</p>
       </form>
       <div class="carte form">
         <h2>Données</h2>
-        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, seules les phrases dites à l'assistant lui sont envoyées.</p>
+        <p class="info">Rendez-vous, tâches, chantiers, prénoms et présence sont gardés sur cet appareil uniquement. La météo est téléchargée depuis Open-Meteo. Si un serveur d'assistant est réglé, seules les phrases dites à l'assistant lui sont envoyées, après connexion avec un compte Google autorisé.</p>
         <button class="bouton danger" type="button" data-act="raz">Tout remettre à zéro</button>
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
@@ -582,16 +589,6 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
   var couleur='bleu';
   $('g-couleurs').addEventListener('click',function(e){ var b=e.target.closest('.pastille'); if(!b) return; couleur=b.getAttribute('data-c'); [].forEach.call(this.children,function(x){x.classList.toggle('choisie',x===b);}); });
   $('g-form').addEventListener('submit',function(e){ e.preventDefault(); var t=maj($('g-titre').value), h=$('g-heure').value; if(!t||!h) return; etat.agenda.push({h:h,t:t,d:$('g-detail').value.trim(),c:couleur}); trierAgenda(); $('g-titre').value=''; $('g-detail').value=''; change(); });
-  $('a-url').value=adresseServeur();
-  $('a-form').addEventListener('submit',function(e){
-    e.preventDefault(); var v=$('a-url').value.trim(), m=$('a-msg');
-    if(v && !/^https:\/\//i.test(v)){ m.textContent='L\'adresse doit commencer par https://'; return; }
-    try{ if(v) localStorage.setItem('dashboard-maison-assistant',v); else localStorage.removeItem('dashboard-maison-assistant'); }catch(x){}
-    historique=[];
-    if(!v){ m.textContent='Aucun serveur : seuls les ordres simples sont reconnus.'; return; }
-    m.textContent='Test en cours…';
-    demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r; },function(x){ m.textContent='Le serveur ne répond pas ('+x.message+').'; });
-  });
   $('r-form').addEventListener('submit',function(e){ e.preventDefault(); etat.famille.forEach(function(m,i){ var c=$('r-n'+i); if(c) m.n=c.value.trim(); }); change(); $('r-msg').textContent='Prénoms enregistrés.'; });
 
   /* ---------- heure ---------- */
@@ -717,26 +714,101 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     if(/meteo|temps|temperature/.test(s)){ return meteoTexte||'La météo n\'est pas encore chargée.'; }
     return null;
   }
-  /* serveur d'assistant (conversation libre) : adresse réglée dans Réglages, gardée sur cet appareil */
-  var historique=[], dernierEchange=0;
-  function adresseServeur(){ try{ return localStorage.getItem('dashboard-maison-assistant')||''; }catch(e){ return ''; } }
-  function demanderServeur(phrase){
-    var url=adresseServeur(); if(!url||!window.fetch) return Promise.reject(new Error('aucun serveur'));
-    if(Date.now()-dernierEchange>10*60*1000) historique=[];
+  /* ---------- serveur d'assistant : adresse, connexion Google, conversation ----------
+     Adresse et session sont gardées sur cet appareil. La session est un jeton délivré par le serveur
+     après vérification du compte Google ; le serveur refuse toute question sans session valide. */
+  var CLE_ADRESSE='dashboard-maison-assistant', CLE_SESSION='dashboard-maison-session', historique=[], dernierEchange=0;
+  function lire(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
+  function ecrire(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); }catch(e){} }
+  function adresseServeur(){ return lire(CLE_ADRESSE).replace(/\/+$/,'').replace(/\/assistant$/,''); }
+  function session(){ try{ var s=JSON.parse(lire(CLE_SESSION)||'null'); if(s&&s.jeton&&s.expire>Date.now()) return s; }catch(e){} return null; }
+  function oublierSession(){ ecrire(CLE_SESSION,''); historique=[]; }
+  function appelServeur(chemin,options){
+    var base=adresseServeur(); if(!base||!window.fetch) return Promise.reject(Object.assign(new Error('aucun serveur'),{statut:0}));
+    options=options||{}; var h={}, s=session();
+    if(options.corps) h['Content-Type']='application/json';
+    if(s) h.Authorization='Bearer '+s.jeton;
     var ctrl=window.AbortController?new AbortController():null, minuterie=setTimeout(function(){ if(ctrl) ctrl.abort(); },30000);
-    return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phrase:phrase,historique:historique}),signal:ctrl?ctrl.signal:undefined})
-      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){ if(!r.ok||typeof j.reponse!=='string') throw new Error(j.erreur||('HTTP '+r.status)); return j.reponse; }); })
-      .then(function(rep){ historique.push({role:'user',content:phrase},{role:'assistant',content:rep}); historique=historique.slice(-20); dernierEchange=Date.now(); return rep; })
+    return fetch(base+chemin,{method:options.methode||'POST',headers:h,body:options.corps?JSON.stringify(options.corps):undefined,signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json().catch(function(){ return {}; }).then(function(j){
+        if(r.status===401&&chemin!=='/connexion'){ oublierSession(); afficherCompte(); }
+        if(!r.ok) throw Object.assign(new Error(j.erreur||('HTTP '+r.status)),{statut:r.status});
+        return j; }); })
       .finally(function(){ clearTimeout(minuterie); });
+  }
+  function demanderServeur(phrase){
+    if(!session()) return Promise.reject(Object.assign(new Error('Connexion requise.'),{statut:401}));
+    if(Date.now()-dernierEchange>10*60*1000) historique=[];
+    return appelServeur('/assistant',{corps:{phrase:phrase,historique:historique}}).then(function(j){
+      if(typeof j.reponse!=='string') throw Object.assign(new Error('réponse invalide'),{statut:0});
+      historique.push({role:'user',content:phrase},{role:'assistant',content:j.reponse}); historique=historique.slice(-20); dernierEchange=Date.now(); return j.reponse;
+    });
   }
   /* ordres fixes d'abord (ils agissent sur la page) ; sinon le serveur ; serveur absent ou en panne : message habituel */
   function repondre(phrase){
     var local=comprendre(phrase);
     if(local!=null){ dire('Assistant',local,true); return; }
     if(!adresseServeur()){ dire('Assistant','Je n\'ai pas compris « '+phrase+' ».',true); return; }
+    if(!session()){ dire('Assistant','Pour me poser cette question, connectez-vous avec Google dans l\'onglet Réglages.',true); return; }
     dire('Assistant · je réfléchis','« '+phrase+' »',false);
-    demanderServeur(phrase).then(function(rep){ dire('Assistant',rep,true); },function(){ dire('Assistant','Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.',true); });
+    demanderServeur(phrase).then(function(rep){ dire('Assistant',rep,true); },function(x){
+      if(x.statut===401) dire('Assistant','Votre connexion a expiré. Reconnectez-vous avec Google dans l\'onglet Réglages.',true);
+      else if(x.statut===429) dire('Assistant',x.message,true);
+      else dire('Assistant','Je n\'ai pas compris « '+phrase+' ». Le serveur de l\'assistant ne répond pas.',true);
+    });
   }
+  /* connexion Google : le script de Google n'est chargé que si un serveur est réglé (jamais sur l'Echo Show sans réglage) */
+  var googlePret=null;
+  function chargerGoogle(){
+    if(googlePret) return googlePret;
+    googlePret=appelServeur('/config',{methode:'GET'}).then(function(j){
+      if(!j.client_id) throw new Error('connexion Google non configurée sur le serveur');
+      return new Promise(function(ok,ko){
+        function init(){ window.google.accounts.id.initialize({client_id:j.client_id,callback:surJetonGoogle,auto_select:false,cancel_on_tap_outside:true}); ok(); }
+        if(window.google&&window.google.accounts&&window.google.accounts.id){ init(); return; }
+        var sc=document.createElement('script'); sc.src='https://accounts.google.com/gsi/client'; sc.async=true;
+        sc.onload=init; sc.onerror=function(){ ko(new Error('impossible de charger la connexion Google')); };
+        document.head.appendChild(sc);
+      });
+    });
+    googlePret.catch(function(){ googlePret=null; });
+    return googlePret;
+  }
+  function surJetonGoogle(r){
+    var m=$('a-msg'); m.textContent='Connexion en cours…';
+    appelServeur('/connexion',{corps:{jeton_google:r.credential}}).then(function(j){
+      ecrire(CLE_SESSION,JSON.stringify({jeton:j.session,email:j.email,expire:j.expire})); historique=[];
+      afficherCompte(); m.textContent='Connexion réussie. Vous pouvez parler à l\'assistant.';
+    },function(x){ m.textContent= x.statut===403 ? 'Ce compte Google n\'est pas autorisé sur ce serveur.' : 'Connexion impossible ('+x.message+').'; });
+  }
+  function afficherCompte(){
+    var base=adresseServeur(), s=session();
+    $('a-compte').hidden=!base;
+    if(!base) return;
+    $('a-connecte').hidden=!s; $('a-google').hidden=!!s;
+    if(s){ $('a-email').textContent=s.email; return; }
+    chargerGoogle().then(function(){
+      $('a-google').innerHTML='';
+      window.google.accounts.id.renderButton($('a-google'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'fr',width:300});
+    },function(x){ $('a-msg').textContent='Connexion Google indisponible ('+x.message+').'; });
+  }
+  $('a-url').value=adresseServeur();
+  $('a-form').addEventListener('submit',function(e){
+    e.preventDefault(); var v=$('a-url').value.trim().replace(/\/+$/,'').replace(/\/assistant$/,''), m=$('a-msg');
+    if(v && !/^https:\/\/[^\s/]+$/i.test(v)){ m.textContent='L\'adresse doit être de la forme https://nom.workers.dev'; return; }
+    if(v!==adresseServeur()){ oublierSession(); googlePret=null; }
+    ecrire(CLE_ADRESSE,v); $('a-url').value=v;
+    m.textContent= v ? 'Adresse enregistrée.' : 'Aucun serveur : seuls les ordres simples sont reconnus.';
+    afficherCompte();
+  });
+  $('a-tester').addEventListener('click',function(){
+    var m=$('a-msg'); m.textContent='Test en cours…';
+    demanderServeur('Réponds seulement : je suis prêt.').then(function(r){ historique=[]; m.textContent='Serveur joignable. Réponse : '+r; },function(x){ m.textContent='Échec du test : '+x.message; });
+  });
+  $('a-sortir').addEventListener('click',function(){
+    var fin=function(){ oublierSession(); try{ window.google&&window.google.accounts.id.disableAutoSelect(); }catch(e){} afficherCompte(); $('a-msg').textContent='Déconnecté.'; };
+    appelServeur('/deconnexion').then(fin,fin);
+  });
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire('Assistant · résumé du jour',resume(),true); return; }
     if(ecoute){ try{ reco.stop(); }catch(e){} return; }
@@ -748,6 +820,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     try{ reco.start(); }catch(e){ dire('Assistant · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
   });
 
+  afficherCompte();
   trierAgenda(); dessiner(); aller((location.hash||'').slice(1)||'accueil'); tic(); setInterval(tic,1000); meteo(); setInterval(meteo,15*60*1000);
 })();
 </script>

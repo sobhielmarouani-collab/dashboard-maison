@@ -1,167 +1,216 @@
 /*
- * Serveur de l'assistant vocal du dashboard — étape 1 : conversation libre.
+ * Serveur de l'assistant vocal du dashboard.
+ * Étape 1 : conversation libre. Étape 2 : connexion Google et accès réservé.
  *
- * Point d'entrée : POST /assistant
- *   corps   : { "phrase": "texte reconnu", "historique": [ { "role": "user"|"assistant", "content": "..." }, ... ] }
- *   réponse : { "reponse": "texte à lire à voix haute" }
+ * Points d'entrée (tous refusés si l'appel ne vient pas d'une origine autorisée) :
+ *   GET  /config       → { client_id }                 identifiant client Google, public
+ *   POST /connexion    { jeton_google } → { session, email, expire }
+ *   GET  /session      (Authorization: Bearer <session>) → { email, expire }
+ *   POST /deconnexion  (Authorization: Bearer <session>) → { ok: true }
+ *   POST /assistant    (Authorization: Bearer <session>) { phrase, historique } → { reponse, restant }
  *
- * Aucun secret ici : la clé d'API est lue dans la variable d'environnement
- * ANTHROPIC_API_KEY, enregistrée comme « secret » chez Cloudflare.
+ * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
+ *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules).
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { verifierJetonGoogle } from "./google.js";
+import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 
-const MODELE_PAR_DEFAUT = "claude-opus-5-5";
-const LONGUEUR_MAX_PHRASE = 1000; // caractères
-const LONGUEUR_MAX_MESSAGE = 2000; // caractères par message d'historique
-const HISTORIQUE_MAX = 20; // messages (10 échanges)
+export { Coffre } from "./coffre.js";
 
-function consignes() {
-  const aujourdhui = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: "Europe/Paris",
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date());
-  return [
-    "Tu es l'assistant vocal du tableau de bord d'une maison familiale, près d'Albi.",
-    "Tes réponses sont lues à voix haute par une synthèse vocale puis affichées sous ton avatar.",
-    "Réponds en français, en deux ou trois phrases courtes et naturelles, comme à l'oral.",
-    "N'utilise ni titres, ni listes, ni gras, ni émojis, ni liens : seulement des phrases.",
-    "Pour une question qui demande plus de détails, donne l'essentiel et propose de continuer.",
-    "Tu ne peux pas encore lire l'agenda, envoyer des mails, donner les actualités du jour, lancer de la musique ni ouvrir WhatsApp.",
-    "Si on te le demande, dis simplement que cette fonction arrive bientôt, sans inventer de résultat.",
-    `Nous sommes le ${aujourdhui}, heure de Paris.`,
-  ].join("\n");
+const TAILLE_MAX_CORPS = 64 * 1024; // octets
+const JOURS_SESSION_PAR_DEFAUT = 30;
+const LIMITE_PAR_HEURE_PAR_DEFAUT = 60;
+
+/* ---------- utilitaires ---------- */
+
+function liste(valeur) {
+  return String(valeur || "")
+    .split(/[\s,;]+/)
+    .map((x) => x.trim())
+    .filter(Boolean);
 }
 
-function originesAutorisees(env) {
-  return String(env.ORIGINES_AUTORISEES || "")
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
+function entier(valeur, defaut) {
+  const n = parseInt(valeur, 10);
+  return Number.isFinite(n) && n > 0 ? n : defaut;
 }
 
 function entetesCors(origine) {
   return {
     "Access-Control-Allow-Origin": origine,
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
 }
 
-function json(corps, statut, origine) {
+function json(corps, statut, origine, entetes = {}) {
   return new Response(JSON.stringify(corps), {
     status: statut,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
       ...(origine ? entetesCors(origine) : {}),
+      ...entetes,
     },
   });
 }
 
-/* Garde un historique propre : rôles alternés, textes bornés, commence par l'utilisateur. */
-function nettoyerHistorique(brut) {
-  if (!Array.isArray(brut)) return [];
-  const propre = [];
-  for (const m of brut.slice(-HISTORIQUE_MAX)) {
-    if (!m || (m.role !== "user" && m.role !== "assistant")) continue;
-    if (typeof m.content !== "string" || !m.content.trim()) continue;
-    const texte = m.content.slice(0, LONGUEUR_MAX_MESSAGE);
-    const dernier = propre[propre.length - 1];
-    if (dernier && dernier.role === m.role) dernier.content += "\n" + texte;
-    else propre.push({ role: m.role, content: texte });
-  }
-  while (propre.length && propre[0].role !== "user") propre.shift();
-  // le message suivant sera la nouvelle phrase de l'utilisateur
-  while (propre.length && propre[propre.length - 1].role !== "assistant") propre.pop();
-  return propre;
+async function lireCorps(requete) {
+  const texte = await requete.text();
+  if (texte.length > TAILLE_MAX_CORPS) throw new Error("trop long");
+  return JSON.parse(texte);
 }
 
-async function demanderAuModele(env, phrase, historique) {
-  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 25_000 });
-  const message = await client.beta.messages.create({
-    model: env.MODELE || MODELE_PAR_DEFAUT,
-    max_tokens: 2048,
-    // conversation courte à l'oral : effort bas, réponse rapide
-    output_config: { effort: "low" },
-    // si le modèle décline une demande, l'API la relance sur un modèle de repli
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    system: consignes(),
-    messages: [...historique, { role: "user", content: phrase }],
-  });
-
-  if (message.stop_reason === "refusal") {
-    return "Je préfère ne pas répondre à cette demande.";
-  }
-  const texte = message.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join(" ")
-    .trim();
-  return texte || "Je n'ai pas de réponse à cela.";
+function nouveauJeton() {
+  const octets = crypto.getRandomValues(new Uint8Array(32));
+  return btoa(String.fromCharCode(...octets)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
+
+async function empreinte(jeton) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(jeton));
+  return [...new Uint8Array(h)].map((o) => o.toString(16).padStart(2, "0")).join("");
+}
+
+function coffre(env) {
+  return env.COFFRE.get(env.COFFRE.idFromName("principal"));
+}
+
+function adresseAutorisee(env, email) {
+  return liste(env.ADRESSES_AUTORISEES).map((a) => a.toLowerCase()).includes(email);
+}
+
+/* Renvoie { email, empreinte } si la session est valide et l'adresse toujours autorisée, sinon null. */
+async function sessionValide(requete, env) {
+  const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(requete.headers.get("Authorization") || "");
+  if (!m) return null;
+  const e = await empreinte(m[1]);
+  const email = await coffre(env).lireSession(e);
+  if (!email || !adresseAutorisee(env, email)) return null;
+  return { email, empreinte: e };
+}
+
+/* ---------- points d'entrée ---------- */
+
+async function connexion(requete, env, origine) {
+  if (!env.GOOGLE_CLIENT_ID || !liste(env.ADRESSES_AUTORISEES).length) {
+    return json({ erreur: "Connexion non configurée sur le serveur." }, 503, origine);
+  }
+  let corps;
+  try {
+    corps = await lireCorps(requete);
+  } catch {
+    return json({ erreur: "Corps JSON invalide." }, 400, origine);
+  }
+  if (typeof corps?.jeton_google !== "string" || !corps.jeton_google) {
+    return json({ erreur: "Jeton Google manquant." }, 400, origine);
+  }
+  let email;
+  try {
+    email = await verifierJetonGoogle(corps.jeton_google, env);
+  } catch (e) {
+    console.warn("Jeton Google refusé :", e?.code || e?.message);
+    return json({ erreur: "Connexion Google refusée." }, 401, origine);
+  }
+  if (!adresseAutorisee(env, email)) {
+    console.warn("Adresse non autorisée :", email);
+    return json({ erreur: "Cette adresse n'est pas autorisée." }, 403, origine);
+  }
+  const jeton = nouveauJeton();
+  const expire = Date.now() + entier(env.JOURS_SESSION, JOURS_SESSION_PAR_DEFAUT) * 24 * 60 * 60 * 1000;
+  await coffre(env).creerSession(await empreinte(jeton), email, expire);
+  return json({ session: jeton, email, expire }, 200, origine);
+}
+
+async function assistant(requete, env, origine, session) {
+  if (!env.ANTHROPIC_API_KEY) {
+    return json({ erreur: "Clé d'API absente sur le serveur." }, 500, origine);
+  }
+  let corps;
+  try {
+    corps = await lireCorps(requete);
+  } catch {
+    return json({ erreur: "Corps JSON invalide." }, 400, origine);
+  }
+  const phrase = typeof corps?.phrase === "string" ? corps.phrase.trim() : "";
+  if (!phrase) return json({ erreur: "Phrase vide." }, 400, origine);
+  if (phrase.length > LONGUEUR_MAX_PHRASE) return json({ erreur: "Phrase trop longue." }, 413, origine);
+
+  const limite = entier(env.LIMITE_PAR_HEURE, LIMITE_PAR_HEURE_PAR_DEFAUT);
+  const quota = await coffre(env).compterDemande(session.email, limite);
+  if (!quota.accepte) {
+    const minutes = Math.max(1, Math.ceil(quota.reessayerDans / 60));
+    return json(
+      { erreur: `Limite de ${limite} demandes par heure atteinte. Réessayez dans ${minutes} minute${minutes > 1 ? "s" : ""}.` },
+      429,
+      origine,
+      { "Retry-After": String(quota.reessayerDans) },
+    );
+  }
+
+  try {
+    const reponse = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique));
+    return json({ reponse, restant: quota.restant }, 200, origine);
+  } catch (e) {
+    // le détail reste dans les journaux Cloudflare, jamais renvoyé à la page
+    if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
+      console.error("Clé d'API refusée :", e.status, e.message);
+      return json({ erreur: "Clé d'API refusée." }, 502, origine);
+    }
+    if (e instanceof Anthropic.RateLimitError) {
+      console.error("Limite de débit de l'API atteinte :", e.message);
+      return json({ erreur: "Trop de demandes, réessayez dans un instant." }, 503, origine);
+    }
+    if (e instanceof Anthropic.APIConnectionError) {
+      console.error("API injoignable :", e.message);
+      return json({ erreur: "Service d'IA injoignable." }, 502, origine);
+    }
+    if (e instanceof Anthropic.APIError) {
+      console.error("Erreur de l'API :", e.status, e.message);
+      return json({ erreur: "Erreur du service d'IA." }, 502, origine);
+    }
+    console.error("Erreur inattendue :", e);
+    return json({ erreur: "Erreur du serveur." }, 500, origine);
+  }
+}
+
+const ROUTES = {
+  "/config": "GET",
+  "/connexion": "POST",
+  "/session": "GET",
+  "/deconnexion": "POST",
+  "/assistant": "POST",
+};
 
 export default {
   async fetch(requete, env) {
-    const url = new URL(requete.url);
+    const chemin = new URL(requete.url).pathname;
     const origine = requete.headers.get("Origin");
-    const autorisee = origine && originesAutorisees(env).includes(origine) ? origine : null;
+    const autorisee = origine && liste(env.ORIGINES_AUTORISEES).includes(origine) ? origine : null;
 
-    if (url.pathname !== "/assistant") {
-      return json({ erreur: "Introuvable." }, 404, autorisee);
-    }
-    if (!autorisee) {
-      return json({ erreur: "Origine non autorisée." }, 403, null);
-    }
+    if (!ROUTES[chemin]) return json({ erreur: "Introuvable." }, 404, autorisee);
+    if (!autorisee) return json({ erreur: "Origine non autorisée." }, 403, null);
     if (requete.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: entetesCors(autorisee) });
     }
-    if (requete.method !== "POST") {
+    if (requete.method !== ROUTES[chemin]) {
       return json({ erreur: "Méthode non autorisée." }, 405, autorisee);
     }
-    if (!env.ANTHROPIC_API_KEY) {
-      return json({ erreur: "Clé d'API absente sur le serveur." }, 500, autorisee);
-    }
 
-    let corps;
-    try {
-      corps = await requete.json();
-    } catch {
-      return json({ erreur: "Corps JSON invalide." }, 400, autorisee);
-    }
-    const phrase = typeof corps?.phrase === "string" ? corps.phrase.trim() : "";
-    if (!phrase) return json({ erreur: "Phrase vide." }, 400, autorisee);
-    if (phrase.length > LONGUEUR_MAX_PHRASE) return json({ erreur: "Phrase trop longue." }, 413, autorisee);
+    if (chemin === "/config") return json({ client_id: env.GOOGLE_CLIENT_ID || null }, 200, autorisee);
+    if (chemin === "/connexion") return connexion(requete, env, autorisee);
 
-    try {
-      const reponse = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique));
-      return json({ reponse }, 200, autorisee);
-    } catch (e) {
-      // le détail reste dans les journaux Cloudflare, jamais renvoyé à la page
-      if (e instanceof Anthropic.AuthenticationError || e instanceof Anthropic.PermissionDeniedError) {
-        console.error("Clé d'API refusée :", e.status, e.message);
-        return json({ erreur: "Clé d'API refusée." }, 502, autorisee);
-      }
-      if (e instanceof Anthropic.RateLimitError) {
-        console.error("Limite de débit atteinte :", e.message);
-        return json({ erreur: "Trop de demandes, réessayez dans un instant." }, 503, autorisee);
-      }
-      if (e instanceof Anthropic.APIConnectionError) {
-        console.error("API injoignable :", e.message);
-        return json({ erreur: "Service d'IA injoignable." }, 502, autorisee);
-      }
-      if (e instanceof Anthropic.APIError) {
-        console.error("Erreur de l'API :", e.status, e.message);
-        return json({ erreur: "Erreur du service d'IA." }, 502, autorisee);
-      }
-      console.error("Erreur inattendue :", e);
-      return json({ erreur: "Erreur du serveur." }, 500, autorisee);
+    // tout ce qui suit exige une session valide pour une adresse autorisée
+    const session = await sessionValide(requete, env);
+    if (!session) return json({ erreur: "Connexion requise." }, 401, autorisee);
+
+    if (chemin === "/session") return json({ email: session.email }, 200, autorisee);
+    if (chemin === "/deconnexion") {
+      await coffre(env).supprimerSession(session.empreinte);
+      return json({ ok: true }, 200, autorisee);
     }
+    return assistant(requete, env, autorisee, session);
   },
 };
