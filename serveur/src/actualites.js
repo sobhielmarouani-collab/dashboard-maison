@@ -26,8 +26,9 @@ export const RUBRIQUES_PAR_DEFAUT = [
     nom: "BTP",
     description: "Actualité du bâtiment et des travaux publics",
     sources: [
+      { nom: "Batiactu", url: "https://www.batiactu.com/accueil.rss" },
+      { nom: "Google Actualités BTP", url: "https://news.google.com/rss/search?q=BTP+b%C3%A2timent+chantier&hl=fr&gl=FR&ceid=FR:fr" },
       { nom: "Le Moniteur", url: "https://www.lemoniteur.fr/rss/actualites.xml" },
-      { nom: "Batiactu", url: "https://www.batiactu.com/rss/index.php" },
     ],
   },
   {
