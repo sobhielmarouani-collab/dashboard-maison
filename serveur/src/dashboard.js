@@ -8,7 +8,7 @@
  * liste des actions validées, que la page exécute elle-même.
  */
 
-export const ONGLETS = ["accueil", "maison", "chantiers", "gestion", "agenda", "taches", "meteo", "reglages"];
+export const ONGLETS = ["accueil", "maison", "chantiers", "gestion", "agenda", "taches", "meteo", "reglages", "actualites"];
 export const PIECES = ["salon", "cuisine", "bureau", "chambres", "exterieur"];
 const COULEURS = ["bleu", "violet", "vert"];
 
@@ -31,6 +31,7 @@ export const TYPES = [
   "presence",
   "actualiser_meteo",
   "changer_ville",
+  "afficher_actualites",
 ];
 
 /** @type {import("@anthropic-ai/sdk").Anthropic.Beta.BetaTool} */
@@ -51,13 +52,14 @@ export const OUTIL_DASHBOARD = {
     "- supprimer_rendez_vous : { rendez_vous (titre), heure (facultatif, pour départager) }",
     "- lancer_minuteur : { minutes (nombre, décimales permises : 0.5 pour 30 secondes ; de 0.1 à 720) }",
     "- arreter_minuteur : {}",
-    "- changer_onglet : { onglet : accueil, maison, chantiers, gestion (chiffres de gestion ProGBat), agenda, taches, meteo ou reglages }",
+    "- changer_onglet : { onglet : accueil, maison, chantiers, gestion (chiffres de gestion ProGBat), agenda, taches, meteo, reglages ou actualites }",
     "- lumiere : { piece : salon, cuisine, bureau, chambres, exterieur ou toutes ; allume (booléen) ; intensite (0 à 100, facultatif) }",
     "- volets : { ouverts (booléen) }",
     "- chauffage : { consigne (degrés, de 15 à 25, par pas de 0.5) }",
     "- presence : { personne, a_la_maison (booléen) } — les personnes sont les salariés de l'entreprise ; a_la_maison vrai signifie « présent », faux « absent »",
     "- actualiser_meteo : {}",
     "- changer_ville : { ville, pays (facultatif) } — change la ville dont la météo est affichée, partout dans le monde",
+    "- afficher_actualites : { rubrique (identifiant donné par rubriques_actualites, facultatif) } — affiche à l'écran les titres de cette rubrique, avec source, heure et lien",
   ].join("\n"),
   input_schema: {
     type: "object",
@@ -243,7 +245,7 @@ export function verifierAction(etat, entree) {
       return { action: { type, donnees: {} }, compte_rendu: "Minuteur arrêté." };
     }
     case "changer_onglet": {
-      const onglet = simplifier(d.onglet).replace(/s$/, "").replace(/^tache$/, "taches").replace(/^reglage$/, "reglages").replace(/^chantier$/, "chantiers");
+      const onglet = simplifier(d.onglet).replace(/s$/, "").replace(/^tache$/, "taches").replace(/^reglage$/, "reglages").replace(/^chantier$/, "chantiers").replace(/^(actualite|info|nouvelle)$/, "actualites");
       if (!ONGLETS.includes(onglet)) throw new Error(`Onglet inconnu. Onglets : ${ONGLETS.join(", ")}.`);
       etat.onglet = onglet;
       return { action: { type, donnees: { onglet } }, compte_rendu: `Onglet ${onglet} affiché.` };
@@ -279,6 +281,11 @@ export function verifierAction(etat, entree) {
     }
     case "actualiser_meteo":
       return { action: { type, donnees: {} }, compte_rendu: "Météo en cours d'actualisation." };
+    case "afficher_actualites": {
+      const rubrique = simplifier(d.rubrique).replace(/ /g, "-").slice(0, 20);
+      etat.onglet = "actualites";
+      return { action: { type, donnees: { rubrique } }, compte_rendu: `Actualités${rubrique ? ` (${rubrique})` : ""} affichées à l'écran.` };
+    }
     case "changer_ville": {
       const ville = texte(d.ville, 80), pays = texte(d.pays, 60);
       if (!ville) throw new Error("Indique la ville.");

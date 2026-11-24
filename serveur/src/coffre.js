@@ -3,7 +3,8 @@
  *   - les sessions ouvertes (empreinte du jeton, adresse, date d'expiration) ;
  *   - les demandes récentes de chaque adresse, pour la limite par heure ;
  *   - le jeton de rafraîchissement de l'agenda Google de chaque adresse, chiffré, et le périmètre accordé (étape 4) ;
- *   - les propositions de rendez-vous en attente de confirmation (étape 4), à usage unique, 10 minutes.
+ *   - les propositions de rendez-vous en attente de confirmation (étape 4), à usage unique, 10 minutes ;
+ *   - des réglages communs à tous les appareils : rubriques et sources d'actualités (étape 6).
  * Une seule instance (« principal ») suffit pour un usage familial.
  * Le jeton de session lui-même n'est jamais stocké : seulement son empreinte SHA-256.
  */
@@ -30,6 +31,10 @@ export class Coffre extends DurableObject {
         email   TEXT PRIMARY KEY,
         chiffre TEXT NOT NULL,
         relie   INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS reglages (
+        cle    TEXT PRIMARY KEY,
+        valeur TEXT NOT NULL
       );
       CREATE TABLE IF NOT EXISTS propositions (
         id      TEXT PRIMARY KEY,
@@ -58,6 +63,19 @@ export class Coffre extends DurableObject {
       return null;
     }
     return ligne.email;
+  }
+
+  /* ---------- réglages communs (étape 6 : rubriques et sources d'actualités) ---------- */
+
+  lireReglage(cle) {
+    const ligne = this.sql.exec("SELECT valeur FROM reglages WHERE cle = ?", cle).toArray()[0];
+    return ligne ? ligne.valeur : null;
+  }
+
+  /* valeur null : retour à la valeur d'origine */
+  ecrireReglage(cle, valeur) {
+    if (valeur === null) this.sql.exec("DELETE FROM reglages WHERE cle = ?", cle);
+    else this.sql.exec("INSERT INTO reglages (cle, valeur) VALUES (?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur", cle, valeur);
   }
 
   /* ---------- agenda Google (jeton déjà chiffré par l'appelant) ---------- */
