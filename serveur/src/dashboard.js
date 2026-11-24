@@ -54,7 +54,7 @@ export const OUTIL_DASHBOARD = {
     "- lumiere : { piece : salon, cuisine, bureau, chambres, exterieur ou toutes ; allume (booléen) ; intensite (0 à 100, facultatif) }",
     "- volets : { ouverts (booléen) }",
     "- chauffage : { consigne (degrés, de 15 à 25, par pas de 0.5) }",
-    "- presence : { personne, a_la_maison (booléen) }",
+    "- presence : { personne, a_la_maison (booléen) } — les personnes sont les salariés de l'entreprise ; a_la_maison vrai signifie « présent », faux « absent »",
     "- actualiser_meteo : {}",
   ].join("\n"),
   input_schema: {
@@ -269,10 +269,10 @@ export function verifierAction(etat, entree) {
       return { action: { type, donnees: { consigne } }, compte_rendu: `Consigne de chauffage à ${consigne} °C (affichage de démonstration).` };
     }
     case "presence": {
-      const p = trouver(etat.famille, "nom", d.personne, "la personne");
+      const p = trouver(etat.famille, "nom", d.personne, "le salarié");
       const ici = booleen(d.a_la_maison);
       p.a_la_maison = ici;
-      return { action: { type, donnees: { nom: p.nom, a_la_maison: ici } }, compte_rendu: `${p.nom} : ${ici ? "à la maison" : "absent"}.` };
+      return { action: { type, donnees: { nom: p.nom, a_la_maison: ici } }, compte_rendu: `${p.nom} : ${ici ? "présent" : "absent"}.` };
     }
     case "actualiser_meteo":
       return { action: { type, donnees: {} }, compte_rendu: "Météo en cours d'actualisation." };

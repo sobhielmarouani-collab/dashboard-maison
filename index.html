@@ -323,7 +323,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
         <ul id="a-chantiers"></ul>
       </article>
       <article class="carte">
-        <h2><span><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16.500" cy="9.500" r="2.500"/><path d="M2.500 20a5.500 5.500 0 0 1 11 0M13.500 20a4.500 4.500 0 0 1 8 -2.800"/></svg>Famille</span><em style="font-style:normal;font-weight:400;font-size:15px;color:var(--discret)">Toucher pour changer la présence</em></h2>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="9" r="3"/><circle cx="16.500" cy="9.500" r="2.500"/><path d="M2.500 20a5.500 5.500 0 0 1 11 0M13.500 20a4.500 4.500 0 0 1 8 -2.800"/></svg>Salariés</span><em style="font-style:normal;font-weight:400;font-size:15px;color:var(--discret)">Toucher pour changer la présence</em></h2>
         <div class="foyer" id="a-foyer"></div>
       </article>
       <div class="outils">
@@ -434,10 +434,10 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     <div class="entete"><h1><svg class="i"><use href="#n-reglages"/></svg>Réglages</h1><span class="h" data-heure></span></div>
     <div class="corps" style="grid-template-columns:1fr 1fr 1fr;align-items:start">
       <form class="carte form" id="r-form">
-        <h2>Prénoms de la famille</h2>
+        <h2>Prénoms des salariés</h2>
         <div class="noms" id="r-noms"></div>
         <button class="bouton ok" type="submit">Enregistrer les prénoms</button>
-        <p class="info">Laissez une case vide pour retirer une personne de l'écran d'accueil.</p>
+        <p class="info">Laissez une case vide pour retirer un salarié de l'écran d'accueil.</p>
       </form>
       <form class="carte form" id="a-form" style="min-width:0;max-height:100%">
         <h2>Assistant</h2>
@@ -525,7 +525,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     agenda:[{h:'14:00',t:'Réunion de chantier',d:'Visio – 1 h',c:'bleu'},{h:'16:30',t:'Point BATIPILOT',d:'Suivi développement – 30 min',c:'violet'},{h:'19:30',t:'Dîner familial',d:'',c:'vert'}],
     chantiers:[{n:'Chantier A',p:72},{n:'Chantier B',p:36},{n:'Chantier C',p:58}],
     taches:[{t:'Finaliser un devis',f:false},{t:'Relancer un client',f:true},{t:'Préparer la réunion de chantier',f:true},{t:'Vérifier les plans',f:false}],
-    famille:[{n:'Personne 1',la:true},{n:'Personne 2',la:true},{n:'Personne 3',la:true},{n:'Personne 4',la:true}]
+    famille:[{n:'Salarié 1',la:true},{n:'Salarié 2',la:true},{n:'Salarié 3',la:true},{n:'Salarié 4',la:true}]
   };
   var CLE = 'dashboard-maison-v3';
   function $(id){return document.getElementById(id);}
@@ -584,7 +584,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     h+='<button type="button" class="piece p3 '+(ex?'on':'off')+'" data-act="lum" data-id="exterieur" aria-pressed="'+ex+'" style="background-image:url('+IMG.exterieur+')"><span class="v"></span><svg class="amp" fill="none"><use href="#amp"/></svg><span class="l">Extérieur<small>Éclairage • '+libLum('exterieur')+'</small></span></button>';
     $('a-pieces').innerHTML=h;
 
-    /* accueil : agenda, tâches, chantiers, famille */
+    /* accueil : agenda, tâches, chantiers, salariés (clé interne « famille » conservée) */
     $('a-agenda').innerHTML = etat.agenda.length ? etat.agenda.slice(0,3).map(function(r){
       return '<li class="rdv"><time>'+esc(r.h)+'</time><i style="background:'+(COUL[r.c]||COUL.bleu)+'"></i><div><strong>'+esc(r.t)+'</strong>'+(r.d?'<span>'+esc(r.d)+'</span>':'')+'</div></li>';
     }).join('') : '<li class="vide">Aucun rendez-vous. Touchez ici pour en ajouter.</li>';
@@ -596,7 +596,7 @@ input:checked+span{color:var(--discret);text-decoration:line-through}
     }).join('') : '<li class="vide">Aucun chantier.</li>';
     $('a-foyer').innerHTML = etat.famille.map(function(m,i){
       if(!m.n) return '';
-      return '<button type="button" class="membre'+(m.la?'':' absent')+'" data-act="presence" data-i="'+i+'" aria-pressed="'+m.la+'">'+avatar(TEINTES[i%TEINTES.length])+esc(m.n)+'<small>'+(m.la?'À la maison':'Absent')+'</small></button>';
+      return '<button type="button" class="membre'+(m.la?'':' absent')+'" data-act="presence" data-i="'+i+'" aria-pressed="'+m.la+'">'+avatar(TEINTES[i%TEINTES.length])+esc(m.n)+'<small>'+(m.la?'Présent':'Absent')+'</small></button>';
     }).join('') || '<span class="vide">Ajoutez des prénoms dans Réglages.</span>';
 
     /* maison */
