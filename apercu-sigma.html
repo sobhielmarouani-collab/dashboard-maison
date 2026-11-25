@@ -2393,6 +2393,7 @@ h2 svg{color:var(--neon)}
       while((m=re.exec(texte))){ if(m[2]){ file.push({t:t,o:0,r:0}); t+=(m[2]===','?170:330)/cadence; } else { var d=Math.max(110,m[1].length*62)/cadence; planifier(m[1],t,d*.9); t+=d; } }
     }
     /* ---- voix : celle du serveur (Google, avec minutage) si elle est réglée, sinon celle du navigateur ---- */
+    function diag(t){ try{ var e=$('ia-diag'); if(!e){ e=document.createElement('small'); e.id='ia-diag'; e.style.cssText='display:block;color:#FFB020;font-size:12px;line-height:1.25;margin-top:2px;max-height:46px;overflow:hidden'; $('ia-entendu').parentNode.insertBefore(e,$('ia-entendu').nextSibling); } e.textContent=t; e.style.color=/^Voix Google ·/.test(t)?'#00E5A0':'#FFB020'; }catch(x){} }
     var lecteur=new Audio(), enCours=false, tour=0, piste=[], iPiste=0, voixServeur=true;
     function brancher(u){ try{
         u.addEventListener('start',function(){ file=[]; reperes=false; texteEnCours=u.text||''; cadence=u.rate||1; parleDepuis=performance.now();
@@ -2420,18 +2421,23 @@ h2 svg{color:var(--neon)}
       if(natif&&natif.get) Object.defineProperty(speechSynthesis,'speaking',{configurable:true,get:function(){ return enCours||natif.get.call(speechSynthesis); }});
       speechSynthesis.cancel=function(){ tour++; if(enCours){ enCours=false; try{ lecteur.pause(); }catch(e){} } piste=[]; return couperNatif(); };
       speechSynthesis.speak=function(u){
-        function repli(){ enCours=false; piste=[]; brancher(u); return parlerNatif(u); }
-        if(!voixServeur||!natif||!adresseServeur()||!session()) return repli();
+        function repli(raison){ enCours=false; piste=[]; if(raison) diag('Voix Google non utilisée : '+raison); brancher(u); return parlerNatif(u); }
+        if(!voixServeur) return repli();
+        if(!natif) return repli('navigateur non compatible');
+        if(!adresseServeur()) return repli('aucun serveur réglé');
+        if(!session()) return repli('vous n\'êtes pas connecté avec Google sur cette page');
         var moi=++tour; enCours=true; piste=[]; iPiste=0; texteEnCours=u.text||''; reperes=true; file=[];
         appelServeur('/voix',{corps:{texte:u.text,vitesse:u.rate||1}}).then(function(j){
           if(moi!==tour) return;
-          if(j.configure===false||!j.audio){ voixServeur=false; repli(); return; }
+          if(j.configure===false){ voixServeur=false; repli('le serveur ne trouve pas le secret GOOGLE_TTS_CLE'); return; }
+          if(!j.audio){ repli('Google n\'a renvoyé aucun son'); return; }
+          diag('Voix Google'+(j.minutage?' · bouche synchronisée sur l\'audio':' · sans minutage, bouche estimée'));
           lecteur.onloadedmetadata=function(){ if(moi===tour){ piste=pisteDepuis(j.mots||[],isFinite(lecteur.duration)?lecteur.duration:(u.text.length*.07)); iPiste=0; } };
           lecteur.onended=function(){ if(moi!==tour) return; enCours=false; piste=[]; if(typeof u.onend==='function') u.onend({}); };
-          lecteur.onerror=function(){ if(moi===tour) repli(); };
+          lecteur.onerror=function(){ if(moi===tour) repli('le son reçu est illisible'); };
           lecteur.src='data:audio/mpeg;base64,'+j.audio; lecteur.volume=Math.max(0,Math.min(1,u.volume==null?1:u.volume));
-          var p=lecteur.play(); if(p&&p.catch) p.catch(function(){ if(moi===tour) repli(); });
-        },function(){ if(moi===tour) repli(); });
+          var p=lecteur.play(); if(p&&p.catch) p.catch(function(x){ if(moi===tour) repli('lecture refusée par le navigateur ('+((x&&x.name)||'erreur')+')'); });
+        },function(x){ if(moi===tour) repli(((x&&x.statut)?'erreur '+x.statut+' — ':'')+((x&&x.message)||'serveur injoignable')); });
       };
       window.__voix={etat:function(){ return {serveur:voixServeur,enCours:enCours,piste:piste.length,t:lecteur.currentTime}; }};
     }catch(e){}
