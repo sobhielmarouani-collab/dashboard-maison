@@ -35,7 +35,7 @@ import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique,
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
-import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
+import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, preparerEvenement, chevauchements, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
 
@@ -229,6 +229,23 @@ async function agenda(chemin, requete, env, origine, session) {
       const cree = await creerEvenement(env, c, session.email, p);
       return json({ cree: true, resume: p.resume, lien: cree.lien || null }, 200, origine);
     }
+    if (chemin === "/agenda/creer") {
+      // création demandée directement dans le formulaire de la page Agenda : l'utilisateur a saisi et validé lui-même
+      let corps, p;
+      try {
+        corps = await lireCorps(requete);
+      } catch {
+        return json({ erreur: "Corps JSON invalide." }, 400, origine);
+      }
+      try {
+        p = preparerEvenement(corps);
+      } catch (e) {
+        return json({ erreur: String(e?.message || e).slice(0, 200) }, 400, origine);
+      }
+      const conflits = await chevauchements(env, c, session.email, p).catch(() => []);
+      const cree = await creerEvenement(env, c, session.email, p);
+      return json({ cree: true, resume: p.resume, conflits, lien: cree.lien || null }, 200, origine);
+    }
     if (chemin === "/agenda/relier") {
       let corps;
       try {
@@ -307,6 +324,7 @@ const ROUTES = {
   "/agenda/relier": "POST",
   "/agenda/delier": "POST",
   "/agenda/evenements": "GET",
+  "/agenda/creer": "POST",
   "/agenda/confirmer": "POST",
   "/agenda/annuler": "POST",
   "/actualites": "GET",

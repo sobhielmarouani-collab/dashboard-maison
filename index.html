@@ -452,6 +452,54 @@ h2 svg{color:var(--neon)}
 .cc-mails .nl .c{color:var(--texte)}
 .cc-mails .nl .c b{font-weight:700}
 .cc-mails time{font-size:13.500px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* ---- page Agenda : calendrier du mois, journée choisie, nouveau rendez-vous ---- */
+.ag-corps{grid-template-columns:1.18fr 1fr .78fr;gap:14px}
+.ag-cal{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;padding:16px 18px;min-height:0}
+.ag-tete{display:grid;grid-template-columns:48px 1fr 48px auto;gap:10px;align-items:center}
+.ag-tete b{font-size:26px;text-align:center;text-transform:capitalize}
+.ag-tete .rond{width:48px;height:48px}
+.ag-tete .bouton{height:48px;font-size:17px;padding:0 16px}
+.ag-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:15px;font-weight:600;color:var(--discret);text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.ag-grille{display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:minmax(0,1fr);gap:6px;min-height:0}
+.ag-c{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:6px 9px;border-radius:10px;border:1px solid rgba(120,150,190,.22);background:rgba(8,19,37,.55);color:inherit;min-height:0;text-align:left;transition:border-color .2s,box-shadow .2s,background .2s}
+.ag-c:hover{border-color:rgba(0,191,255,.6)}
+.ag-c b{font-size:20px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.ag-c.hors{opacity:.38}
+.ag-c.we{background:rgba(8,19,37,.25)}
+.ag-c.passe b{color:var(--discret)}
+.ag-c.auj{border-color:var(--neon)}
+.ag-c.auj b{color:var(--neon)}
+.ag-c.choisi{background:linear-gradient(180deg,rgba(0,150,255,.42),rgba(0,90,200,.22));border-color:var(--neon);box-shadow:0 0 16px rgba(0,191,255,.45)}
+.ag-c.choisi b{color:#fff}
+.ag-c .pts{display:flex;gap:4px;align-items:center;height:12px}
+.ag-c .pts i{width:8px;height:8px;border-radius:50%;background:var(--bleu);box-shadow:0 0 6px rgba(59,130,246,.8)}
+.ag-c .pts i.j{background:var(--vert);box-shadow:0 0 6px rgba(0,229,160,.7)}
+.ag-c .pts small{font-size:12px;color:var(--discret);line-height:1}
+.ag-jour{display:flex;flex-direction:column;min-height:0;padding:16px 20px;overflow:hidden}
+.ag-jour h2{font-size:24px;flex:none;text-transform:capitalize}
+.ag-jour h2.ag-sous{font-size:17px;color:var(--discret);text-transform:uppercase;letter-spacing:.05em;margin-top:12px;padding-top:12px;border-top:1px solid rgba(120,150,190,.22)}
+.ag-liste{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px;overflow:auto;min-height:0;align-content:start}
+#ag-jour-liste{flex:1 1 auto}
+.ag-avenir{flex:0 0 auto;max-height:38%}
+.ag-liste li{display:grid;grid-template-columns:78px 4px 1fr;gap:12px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(8,19,37,.5);border:1px solid rgba(120,150,190,.16)}
+.ag-liste li.vide{display:block;background:none;border:0;color:var(--discret);font-size:18px;padding:14px 2px}
+.ag-liste .h{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.ag-liste .h small{display:block;font-size:14px;font-weight:400;color:var(--discret)}
+.ag-liste i{align-self:stretch;border-radius:3px;background:var(--bleu);box-shadow:0 0 8px rgba(59,130,246,.7)}
+.ag-liste li.j i{background:var(--vert);box-shadow:0 0 8px rgba(0,229,160,.6)}
+.ag-liste li.local i{background:var(--violet);box-shadow:none}
+.ag-liste .t{min-width:0}
+.ag-liste .t b{display:block;font-size:18px;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-liste .t small{display:block;font-size:14.500px;color:var(--discret);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-avenir li{grid-template-columns:104px 4px 1fr;padding:5px 10px}
+.ag-avenir .h{font-size:15.500px;font-weight:600}
+.ag-avenir .t b{font-size:16px}
+.ag-form{align-content:start;gap:12px;padding:16px 20px;min-height:0;overflow:auto}
+.ag-form h2{font-size:22px}
+.ag-form input[type=date],.ag-form input[type=time]{color-scheme:dark}
+.ag-heures{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ag-coche{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;font-size:17px;color:var(--texte)}
+.ag-coche input{width:24px;height:24px;flex:none;accent-color:#00BFFF}
 .cc-ag{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:0}
 .cc-ag li{display:grid;grid-template-columns:112px 66px 1fr;gap:10px;align-items:center;height:31px;font-size:16.500px;border-top:1px solid transparent}
 .cc-ag li.prem{border-top-color:rgba(120,150,190,.2)}
@@ -773,13 +821,41 @@ h2 svg{color:var(--neon)}
   <!-- ===== AGENDA ===== -->
   <section class="vue page" id="v-agenda">
     <div class="entete"><h1><svg class="i"><use href="#n-agenda"/></svg>Agenda</h1><span class="h" data-heure></span></div>
-    <div class="corps deux">
-      <div class="carte" style="overflow:auto;min-height:0"><ul id="g-liste"></ul></div>
-      <form class="carte form" id="g-form">
+    <div class="corps ag-corps">
+      <div class="carte ag-cal">
+        <div class="ag-tete">
+          <button class="rond" type="button" id="ag-prec" aria-label="Mois précédent"><svg class="i" viewBox="0 0 24 24"><path d="M14.500 6l-6 6 6 6"/></svg></button>
+          <b id="ag-mois" aria-live="polite"></b>
+          <button class="rond" type="button" id="ag-suiv" aria-label="Mois suivant"><svg class="i" viewBox="0 0 24 24"><path d="M9.500 6l6 6-6 6"/></svg></button>
+          <button class="bouton" type="button" id="ag-auj">Aujourd'hui</button>
+        </div>
+        <div class="ag-sem" aria-hidden="true"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+        <div class="ag-grille" id="ag-grille"></div>
+        <p class="info" id="ag-etat"></p>
+      </div>
+      <div class="carte ag-jour">
+        <h2 id="ag-jour-titre"></h2>
+        <ul class="ag-liste" id="ag-jour-liste"></ul>
+        <h2 class="ag-sous">Prochains rendez-vous</h2>
+        <ul class="ag-liste ag-avenir" id="ag-avenir"></ul>
+      </div>
+      <form class="carte form ag-form" id="ag-form">
+        <h2>Nouveau rendez-vous</h2>
+        <label for="ag-date">Date<input id="ag-date" type="date" required></label>
+        <label class="ag-coche" for="ag-journee"><input id="ag-journee" type="checkbox"><span>Journée entière</span></label>
+        <div class="ag-heures"><label for="ag-debut">Début<input id="ag-debut" type="time" required></label><label for="ag-fin">Fin<input id="ag-fin" type="time" required></label></div>
+        <label for="ag-titre">Intitulé<input id="ag-titre" type="text" autocomplete="off" required maxlength="200"></label>
+        <label for="ag-lieu">Lieu (facultatif)<input id="ag-lieu" type="text" autocomplete="off" maxlength="200"></label>
+        <button class="bouton ok" type="submit" id="ag-ajouter">Ajouter à l'agenda</button>
+        <p class="info" id="ag-msg" style="white-space:pre-line"></p>
+      </form>
+    </div>
+    <!-- ancienne liste et ancien formulaire, conservés hors écran car le code existant les alimente -->
+    <div hidden><ul id="g-liste"></ul><form class="carte form" id="g-form">
         <h2>Ajouter un rendez-vous</h2>
         <p class="info" id="g-note" hidden>Ajouté pour aujourd'hui sur cet appareil seulement, pas dans l'agenda Google.</p>
-        <label for="g-heure">Heure<input id="g-heure" type="time" required></label>
-        <label for="g-titre">Intitulé<input id="g-titre" type="text" autocomplete="off" required></label>
+        <label for="g-heure">Heure<input id="g-heure" type="time"></label>
+        <label for="g-titre">Intitulé<input id="g-titre" type="text" autocomplete="off"></label>
         <label for="g-detail">Détail (facultatif)<input id="g-detail" type="text" autocomplete="off"></label>
         <div><div class="sous">Couleur</div><div class="couleurs" id="g-couleurs">
           <button type="button" class="pastille choisie" data-c="bleu" style="background:var(--bleu)" aria-label="Bleu"></button>
@@ -787,8 +863,7 @@ h2 svg{color:var(--neon)}
           <button type="button" class="pastille" data-c="vert" style="background:var(--vert)" aria-label="Vert"></button>
         </div></div>
         <button class="bouton ok" type="submit">Ajouter</button>
-      </form>
-    </div>
+      </form></div>
   </section>
 
   <!-- ===== TÂCHES ===== -->
@@ -2415,6 +2490,80 @@ h2 svg{color:var(--neon)}
     });
     $('mu-res').addEventListener('click',function(e){ var b=e.target.closest('[data-st]'); if(b){ var i=+b.getAttribute('data-st'); lireStation(muTrouvees.slice(i,i+1)).catch(function(x){ affMu('Cette station ne répond pas.'); }); } });
     affMu('');
+
+    /* ---- page Agenda : calendrier du mois, rendez-vous du jour choisi, création dans l'agenda Google ---- */
+    (function(){
+      var auj0=new Date(); auj0.setHours(0,0,0,0);
+      var cal={mois:new Date(auj0.getFullYear(),auj0.getMonth(),1),choisi:jourISO(auj0),parJour:{},charges:{},enCours:false};
+      var fMois=new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}), fLong=new Intl.DateTimeFormat('fr-FR',{weekday:'long',day:'numeric',month:'long'}), fCourt=new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'2-digit',month:'2-digit'});
+      function dateDe(i){ var p=i.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+      function bornes(){ var d=new Date(cal.mois), dec=(d.getDay()+6)%7, deb=plusJours(d,-dec); return {deb:deb,fin:plusJours(deb,41)}; }
+      function relie(){ return !!(agendaGoogle.relie&&session()&&adresseServeur()); }
+      function duJour(i){
+        var l=(cal.parJour[i]||[]).slice();
+        if(i===jourISO(new Date())) (etat.agenda||[]).forEach(function(x){ l.push({jour:i,debut:x.h,fin:'',titre:x.t,lieu:x.d||'',journee:false,local:true}); });
+        return l.sort(function(a,b){ return (a.journee?'':a.debut||'')<(b.journee?'':b.debut||'')?-1:1; });
+      }
+      function ranger(liste,deb,fin){ var i, d; for(d=new Date(deb);d<=fin;d=plusJours(d,1)) cal.parJour[jourISO(d)]=[]; liste.forEach(function(e){ (cal.parJour[e.jour]=cal.parJour[e.jour]||[]).push(e); }); }
+      function charger(forcer){
+        if(!relie()){ $('ag-etat').textContent=session()&&adresseServeur()?'Agenda Google non relié : reliez-le dans Réglages pour voir et créer vos rendez-vous.':'Connectez Sigma dans Réglages pour afficher votre agenda Google.'; return; }
+        var b=bornes(), cle=jourISO(b.deb); if(cal.enCours||(!forcer&&cal.charges[cle]&&Date.now()-cal.charges[cle]<5*60*1000)) return;
+        cal.enCours=true; $('ag-etat').textContent='Lecture de l\'agenda Google…';
+        appelServeur('/agenda/evenements?debut='+jourISO(b.deb)+'&fin='+jourISO(b.fin),{methode:'GET'}).then(function(j){
+          cal.enCours=false; cal.charges[cle]=Date.now(); ranger(Array.isArray(j.evenements)?j.evenements:[],b.deb,b.fin);
+          var d=new Date(); $('ag-etat').textContent='Agenda Google · à jour à '+p2(d.getHours())+':'+p2(d.getMinutes()); dessinerCal();
+        },function(x){ cal.enCours=false; $('ag-etat').textContent='Agenda Google indisponible : '+(x.message||'erreur')+'.'; });
+      }
+      function ligne(e,avecJour){
+        var h=e.journee?'Journée':esc(e.debut||''), sous=[]; if(e.lieu) sous.push(esc(e.lieu)); if(e.local) sous.push('sur cet appareil');
+        if(avecJour) h=maj(fCourt.format(dateDe(e.jour)).replace('.',''))+(e.journee?'':' '+esc(e.debut||''));
+        return '<li class="'+(e.journee?'j':'')+(e.local?' local':'')+'"><span class="h">'+h+(!avecJour&&!e.journee&&e.fin?'<small>'+esc(e.fin)+'</small>':'')+'</span><i></i><span class="t"><b>'+esc(e.titre||'(sans titre)')+'</b>'+(sous.length?'<small>'+sous.join(' · ')+'</small>':'')+'</span></li>';
+      }
+      function dessinerCal(){
+        var b=bornes(), isoAuj=jourISO(new Date()), m=cal.mois.getMonth(), h='', d, i, l, k;
+        $('ag-mois').textContent=fMois.format(cal.mois);
+        for(k=0;k<42;k++){ d=plusJours(b.deb,k); i=jourISO(d); l=duJour(i);
+          h+='<button type="button" class="ag-c'+(d.getMonth()!==m?' hors':'')+(d.getDay()===0||d.getDay()===6?' we':'')+(i<isoAuj?' passe':'')+(i===isoAuj?' auj':'')+(i===cal.choisi?' choisi':'')+'" data-j="'+i+'" aria-label="'+esc(fLong.format(d))+(l.length?', '+l.length+' rendez-vous':'')+'"'+(i===cal.choisi?' aria-pressed="true"':'')+'><b>'+d.getDate()+'</b><span class="pts">'+l.slice(0,3).map(function(e){ return '<i'+(e.journee?' class="j"':'')+'></i>'; }).join('')+(l.length>3?'<small>+'+(l.length-3)+'</small>':'')+'</span></button>'; }
+        $('ag-grille').innerHTML=h;
+        var lj=duJour(cal.choisi);
+        $('ag-jour-titre').textContent=(cal.choisi===isoAuj?'Aujourd\'hui · ':'')+fLong.format(dateDe(cal.choisi));
+        $('ag-jour-liste').innerHTML=lj.length?lj.map(function(e){ return ligne(e,false); }).join(''):'<li class="vide">Rien de prévu ce jour-là.</li>';
+        var av=[], ref=cal.choisi>isoAuj?cal.choisi:isoAuj;
+        Object.keys(cal.parJour).sort().forEach(function(j){ if(j>ref) cal.parJour[j].forEach(function(e){ av.push(e); }); });
+        if(!av.length) (agendaGoogle.evenements||[]).forEach(function(e){ if(e.jour>ref) av.push(e); });
+        $('ag-avenir').innerHTML=av.length?av.slice(0,4).map(function(e){ return ligne(e,true); }).join(''):'<li class="vide" style="font-size:16px;padding:6px 2px">Aucun autre rendez-vous sur la période affichée.</li>';
+        $('ag-ajouter').textContent=relie()&&agendaGoogle.ecriture?'Ajouter à l\'agenda Google':'Ajouter (sur cet appareil)';
+      }
+      function choisir(i){ cal.choisi=i; var d=dateDe(i); if(d.getMonth()!==cal.mois.getMonth()||d.getFullYear()!==cal.mois.getFullYear()){ cal.mois=new Date(d.getFullYear(),d.getMonth(),1); charger(false); } if(i>=jourISO(new Date())) $('ag-date').value=i; dessinerCal(); }
+      function bouger(n){ cal.mois=new Date(cal.mois.getFullYear(),cal.mois.getMonth()+n,1); dessinerCal(); charger(false); }
+      $('ag-grille').addEventListener('click',function(e){ var b=e.target.closest('[data-j]'); if(b) choisir(b.getAttribute('data-j')); });
+      $('ag-prec').addEventListener('click',function(){ bouger(-1); }); $('ag-suiv').addEventListener('click',function(){ bouger(1); });
+      $('ag-auj').addEventListener('click',function(){ var n=new Date(); cal.mois=new Date(n.getFullYear(),n.getMonth(),1); choisir(jourISO(n)); charger(false); });
+      /* formulaire : date du jour choisi, début à la prochaine heure pleine, fin une heure après */
+      function plusUneHeure(h){ var p=h.split(':'), m=(+p[0]*60+ +p[1]+60); return m>=24*60?'23:59':p2(Math.floor(m/60))+':'+p2(m%60); }
+      function preparerForm(){ var n=new Date(); $('ag-date').min=jourISO(n); if(!$('ag-date').value||$('ag-date').value<jourISO(n)) $('ag-date').value=cal.choisi>=jourISO(n)?cal.choisi:jourISO(n); if(!$('ag-debut').value){ var hh=Math.min(23,n.getHours()+1); $('ag-debut').value=p2(hh)+':00'; $('ag-fin').value=plusUneHeure($('ag-debut').value); } }
+      $('ag-debut').addEventListener('change',function(){ if(this.value) $('ag-fin').value=plusUneHeure(this.value); });
+      $('ag-journee').addEventListener('change',function(){ $('ag-debut').disabled=$('ag-fin').disabled=this.checked; });
+      $('ag-form').addEventListener('submit',function(e){
+        e.preventDefault(); var jour=$('ag-date').value, titre=$('ag-titre').value.trim(), lieu=$('ag-lieu').value.trim(), journee=$('ag-journee').checked, deb=$('ag-debut').value, fin=$('ag-fin').value, m=$('ag-msg'), b=$('ag-ajouter');
+        if(!jour||!titre||(!journee&&(!deb||!fin))) return;
+        if(!journee&&fin<=deb){ m.textContent='L\'heure de fin doit être après l\'heure de début.'; return; }
+        if(!(relie()&&agendaGoogle.ecriture)){
+          if(jour!==jourISO(new Date())||journee){ m.textContent='Sans agenda Google relié en écriture, seul un rendez-vous d\'aujourd\'hui avec une heure peut être noté sur cet appareil. Reliez l\'agenda dans Réglages pour les autres dates.'; return; }
+          etat.agenda.push({h:deb,t:maj(titre),d:lieu,c:'bleu'}); trierAgenda(); change(); $('ag-titre').value=''; $('ag-lieu').value=''; m.textContent='Noté pour aujourd\'hui, sur cet appareil.'; dessinerCal(); return;
+        }
+        b.disabled=true; m.textContent='Création dans l\'agenda Google…';
+        appelServeur('/agenda/creer',{corps:{titre:titre,debut:journee?jour:jour+'T'+deb,fin:journee?jour:jour+'T'+fin,lieu:lieu}}).then(function(j){
+          b.disabled=false; $('ag-titre').value=''; $('ag-lieu').value='';
+          m.textContent='Ajouté : '+(j.resume||titre)+'.'+((j.conflits||[]).length?'\nAttention, chevauche : '+j.conflits.join(' ; ')+'.':'');
+          cal.choisi=jour; cal.charges={}; charger(true); rafraichirAgenda();
+        },function(x){ b.disabled=false; m.textContent='Création impossible : '+(x.message||'erreur')+'.'; });
+      });
+      var allerAvant=aller;
+      aller=function(v){ allerAvant(v); if(vueActive==='agenda'){ preparerForm(); dessinerCal(); charger(false); } };
+      setInterval(function(){ if(vueActive==='agenda'&&!document.hidden) charger(false); },5*60*1000);
+      window.__agendaPage={dessiner:dessinerCal};
+    })();
 
     /* ---- application installable : installation, mise à jour, connexion, micro ---- */
     (function(){

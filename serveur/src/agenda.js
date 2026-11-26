@@ -21,7 +21,7 @@ const URL_JETON = "https://oauth2.googleapis.com/token";
 const URL_REVOCATION = "https://oauth2.googleapis.com/revoke";
 const URL_EVENEMENTS = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
 const FUSEAU = "Europe/Paris";
-export const JOURS_MAX = 31;
+export const JOURS_MAX = 45; // une grille de calendrier mensuel couvre jusqu'à 6 semaines
 
 export class AgendaNonRelie extends Error {
   constructor(message = "L'agenda Google n'est pas relié.") {
