@@ -903,7 +903,9 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .cc-sem{grid-template-rows:auto auto minmax(0,1fr)}
 #rdv-barre{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 20px;border-radius:99px;font-size:16.5px;white-space:nowrap;
   background:var(--verre);border:1px solid color-mix(in srgb,var(--rouge) 65%,transparent);box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
-#rdv-barre[hidden]{display:none}
+#rdv-barre[hidden],.rdv-bouton[hidden]{display:none}
+.rdv-bouton{font:inherit;font-size:15px;font-weight:700;color:#fff;background:linear-gradient(180deg,#ff6b7d,#d4264a);border:1px solid rgba(255,255,255,.5);border-radius:99px;padding:3px 14px;margin-right:8px;white-space:nowrap;box-shadow:0 0 14px rgba(255,82,103,.55);cursor:pointer}
+.rdv-bouton.arme{background:linear-gradient(180deg,#ffb020,#e07a00);box-shadow:0 0 16px rgba(255,176,32,.7)}
 #rdv-barre button{height:40px;padding:0 16px;font-size:16px}
 #rdv-msg{color:var(--discret);font-size:15px}
 .cc-sem [data-rdv],.cc-mois [data-rdv]{cursor:pointer}
@@ -1033,7 +1035,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><span id="p2-vues" hidden><button class="cc-lien" type="button" id="p2-prec" aria-label="Précédent">‹</button><button class="cc-lien" type="button" id="p2-auj">Aujourd'hui</button><button class="cc-lien" type="button" id="p2-suiv" aria-label="Suivant">›</button><button class="cc-lien" type="button" data-vue="semaine">Semaine</button><button class="cc-lien" type="button" data-vue="mois">Mois</button></span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="rdv-bouton" type="button" data-rdv-suppr hidden></button><span id="p2-vues" hidden><button class="cc-lien" type="button" id="p2-prec" aria-label="Précédent">‹</button><button class="cc-lien" type="button" id="p2-auj">Aujourd'hui</button><button class="cc-lien" type="button" id="p2-suiv" aria-label="Suivant">›</button><button class="cc-lien" type="button" data-vue="semaine">Semaine</button><button class="cc-lien" type="button" data-vue="mois">Mois</button></span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -1181,6 +1183,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       </div>
       <div class="carte ag-jour">
         <h2 id="ag-jour-titre"></h2>
+        <button class="rdv-bouton" type="button" data-rdv-suppr hidden style="align-self:flex-start"></button>
         <ul class="ag-liste" id="ag-jour-liste"></ul>
         <h2 class="ag-sous">Prochains rendez-vous</h2>
         <ul class="ag-liste ag-avenir" id="ag-avenir"></ul>
@@ -2500,12 +2503,15 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var n=Object.keys(rdvChoix).length; $('rdv-barre').hidden=!n; if(!n) rdvArme=false;
       $('rdv-nb').textContent=n+' rendez-vous coché'+(n>1?'s':'');
       $('rdv-suppr').textContent=rdvArme?'Confirmer la suppression':'Supprimer'; $('rdv-msg').textContent=rdvArme?'Suppression définitive dans Google Agenda.':'';
+      // le même bouton est aussi placé dans la fenêtre Agenda et dans la page Agenda, à côté des rendez-vous
+      [].forEach.call(document.querySelectorAll('[data-rdv-suppr]'),function(b){ b.hidden=!n; b.textContent=rdvArme?'Confirmer la suppression ('+n+')':'Supprimer ('+n+')'; b.classList.toggle('arme',rdvArme); });
     }
     function rdvBasculer(id,etat){ if(!id) return; if(etat===undefined) etat=!rdvChoix[id]; if(etat) rdvChoix[id]=1; else delete rdvChoix[id]; rdvArme=false; rdvBarre(); }
     function rdvRafraichir(){ planning(); document.dispatchEvent(new Event('rdv-change')); }
     $('p2').addEventListener('click',function(e){ var b=e.target.closest('[data-rdv]'); if(!b) return; rdvBasculer(b.getAttribute('data-rdv')); rdvRafraichir(); });
     document.addEventListener('change',function(e){ var c=e.target; if(c.matches&&c.matches('input[data-rdv]')){ rdvBasculer(c.getAttribute('data-rdv'),c.checked); planning(); } });
     $('rdv-annuler').addEventListener('click',function(){ Object.keys(rdvChoix).forEach(function(k){ delete rdvChoix[k]; }); rdvBarre(); rdvRafraichir(); });
+    document.addEventListener('click',function(e){ if(e.target.closest('[data-rdv-suppr]')) $('rdv-suppr').click(); });
     $('rdv-suppr').addEventListener('click',function(){
       if(!rdvArme){ rdvArme=true; rdvBarre(); clearTimeout(tArme); tArme=setTimeout(function(){ rdvArme=false; rdvBarre(); },6000); return; }
       clearTimeout(tArme); var ids=Object.keys(rdvChoix), rate=0; $('rdv-suppr').disabled=true; $('rdv-msg').textContent='Suppression…';
@@ -3687,7 +3693,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       // quelques pixels de dépassement existent déjà dans la mise en page d'origine : on ne réagit qu'au-delà
       if(z.scrollHeight>z.clientHeight+8||z.scrollWidth>z.clientWidth+8) return true;
       var l=z.querySelectorAll('*'), n=Math.min(l.length,400);
-      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues')) continue;
+      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues,.rdv-bouton')) continue;
         if(e.scrollWidth>e.clientWidth+6) return true;
         if((e.tagName==='LI'||e.parentNode===z)&&e.scrollHeight>e.clientHeight+6) return true;
         // texte coupé par « … » : on compare la largeur réelle du texte à celle de sa case
