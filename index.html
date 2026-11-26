@@ -3389,7 +3389,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function permise(e){ return (e.getAttribute('data-pour')||profil()).split(' ').indexOf(profil())>=0; }
     function blocs(){ return [].slice.call(V.querySelectorAll('[data-groupe="blocs"]')); }
     function enReserve(){ return blocs().filter(function(e){ return e.parentNode===RES&&permise(e); }); }
-    setInterval(function(){ var r=$('nav-reste'), t=r?r.textContent.trim():''; $('mi-reste').textContent=t||'–'; $('mi-etat').textContent=t?'Temps restant':'Aucun minuteur en cours'; },1000);
+    setInterval(function(){ var r=$('nav-reste'), t=(r?r.textContent.trim():'')||'–'; if($('mi-reste').textContent!==t){ $('mi-reste').textContent=t; $('mi-etat').textContent=t!=='–'?'Temps restant':'Aucun minuteur en cours'; } },1000);
 
     function appliquer(){
       var d=D();
@@ -3477,7 +3477,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       e.preventDefault(); e.stopPropagation();
       var k=echelle(), x0=e.clientX, y0=e.clientY;
       function bouge(ev){ suivre(sens==='v'?(ev.clientX-x0)/k:(ev.clientY-y0)/k); }
-      function fin(){ document.removeEventListener('pointermove',bouge); document.removeEventListener('pointerup',fin); garderD(); poignees(); }
+      function fin(){ document.removeEventListener('pointermove',bouge); document.removeEventListener('pointerup',fin); garderD(); poignees(); ajuster(); }
       document.addEventListener('pointermove',bouge); document.addEventListener('pointerup',fin);
     }
 
@@ -3523,7 +3523,37 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     // changement de profil ou menu redessiné : la disposition du profil affiché est remise en place
     window.dispositionMenu=menu;
     new MutationObserver(function(){ appliquer(); }).observe(R,{attributes:true,attributeFilter:['data-profil']});
-    appliquer();
+
+    /* ---- le contenu s'adapte à la taille de la fenêtre ----
+       Quand une fenêtre est trop petite pour son contenu (texte coupé, lignes écrasées), son contenu est réduit
+       par paliers jusqu'à tenir en entier. Les mails et les actualités, toujours plus longs que la ligne, restent coupés. */
+    var PALIERS=[1,.94,.88,.82,.76,.7,.64,.58];
+    var mesure=document.createRange();
+    function deborde(z){
+      // quelques pixels de dépassement existent déjà dans la mise en page d'origine : on ne réagit qu'au-delà
+      if(z.scrollHeight>z.clientHeight+8||z.scrollWidth>z.clientWidth+8) return true;
+      var l=z.querySelectorAll('*'), n=Math.min(l.length,400);
+      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span')) continue;
+        if(e.scrollWidth>e.clientWidth+6) return true;
+        if((e.tagName==='LI'||e.parentNode===z)&&e.scrollHeight>e.clientHeight+6) return true;
+        // texte coupé par « … » : on compare la largeur réelle du texte à celle de sa case
+        if(!e.firstElementChild&&e.firstChild){ var st=getComputedStyle(e); if(st.textOverflow==='ellipsis'||st.whiteSpace==='nowrap'){ mesure.selectNodeContents(e); if(mesure.getBoundingClientRect().width>e.getBoundingClientRect().width+2) return true; } } }
+      return false;
+    }
+    function ajusterZone(z){ if(!z) return; for(var i=0;i<PALIERS.length;i++){ z.style.zoom=PALIERS[i]===1?'':PALIERS[i]; if(!deborde(z)) return; } }
+    function ajuster(){
+      [].forEach.call(V.querySelectorAll('.cc-kpis>[data-fen], .cc-deux>[data-fen], .cc-bas>[data-fen]'),function(f){
+        if(getComputedStyle(f).display==='none') return;
+        if(f.classList.contains('cc-kpi')){ ajusterZone(f.lastElementChild); return; }
+        [].forEach.call(f.children,ajusterZone);
+      });
+    }
+    var tAj=null; function demanderAjustement(){ clearTimeout(tAj); tAj=setTimeout(ajuster,140); }
+    var obs=new MutationObserver(demanderAjustement);
+    GRILLES.forEach(function(g){ obs.observe(boite(g[1]),{childList:true,subtree:true,characterData:true}); });
+    if(window.ResizeObserver){ var ro=new ResizeObserver(demanderAjustement); GRILLES.forEach(function(g){ ro.observe(boite(g[1])); }); blocs().forEach(function(e){ ro.observe(e); }); }
+    window.addEventListener('resize',demanderAjustement);
+    appliquer(); demanderAjustement();
   })();
 
 })();
