@@ -10,7 +10,7 @@
  * Mise à jour : la page est toujours demandée au réseau d'abord, le cache ne sert que de
  * secours hors connexion. Une nouvelle version est donc prise au prochain chargement.
  */
-const CACHE = "signature-interface-v1";
+const CACHE = "signature-interface-v2";
 const INTERFACE = ["./", "index.html", "manifest.webmanifest", "logo-signature.png", "sigma-5.jpg", "icones/icone-192.png", "icones/icone-512.png", "icones/apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -28,7 +28,8 @@ self.addEventListener("fetch", (e) => {
   if (r.method !== "GET") return;
   const url = new URL(r.url);
   if (url.origin !== self.location.origin) return; // serveur, Google, radios, météo : jamais interceptés
-  const page = r.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith(".html");
+  // la page et le manifeste (nom, icônes de l'application) doivent toujours être à jour
+  const page = r.mode === "navigate" || url.pathname.endsWith("/") || url.pathname.endsWith(".html") || url.pathname.endsWith(".webmanifest");
   if (page) {
     // la page : réseau d'abord (toujours la dernière version), cache en secours hors connexion
     e.respondWith(
