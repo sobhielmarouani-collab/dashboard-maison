@@ -321,7 +321,7 @@ async function executerLireProgbat(env, bloc) {
       `Par mois : ${r.mois.map((v, i) => `${MOIS_FR[i]} ${e(v)}`).join(", ")}.`,
       `Acomptes facturés hors taxes : ${e(r.acomptes.reduce((a, b) => a + b, 0))}.`,
       r.encours != null
-        ? `Reste à encaisser toutes taxes comprises : ${e(r.encours)} sur ${r.encours_nombre} factures, dont en retard de paiement : ${e(r.retard)} sur ${r.retard_nombre} factures.`
+        ? `Reste à encaisser toutes taxes comprises sur les factures de l'exercice : ${e(r.encours)} sur ${r.encours_nombre} factures, dont en retard de paiement : ${e(r.retard)} sur ${r.retard_nombre} factures.`
         : "Reste à encaisser et retards : non calculables, aucun règlement n'est pointé dans ProGBat.",
       d.lus != null
         ? `Devis de l'exercice : ${d.etablis} établis pour ${e(d.etablis_total)} hors taxes, ${d.acceptes_nombre} acceptés pour ${e(d.acceptes)}, ${d.en_attente} en attente pour ${e(d.en_attente_total)}, ${d.a_envoyer} à l'étude ou en brouillon.`

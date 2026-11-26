@@ -103,9 +103,10 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
   const debut = `${an}-01-01`, fin = `${an}-12-31`;
   const factures = toutes.filter((f) => String(f.documentDate || "").slice(0, 10) >= debut && String(f.documentDate || "").slice(0, 10) <= fin);
 
-  // reste à encaisser : net à payer TTC de chaque facture validée, moins les règlements pointés en banque
+  // reste à encaisser : net à payer TTC de chaque facture validée de l'exercice (du 1er janvier au 31 décembre),
+  // moins les règlements pointés en banque
   const restes = new Map();
-  for (const f of toutes) {
+  for (const f of factures) {
     if (!f.validated || f.test || f.type === "model") continue;
     const signe = /credit/.test(f.type || "") ? -1 : 1;
     const du = signe * Math.abs(nombre(f.toBePaid) || nombre(f.atiTotal));
