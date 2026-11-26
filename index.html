@@ -929,19 +929,14 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .cc-mois em{font-size:clamp(8.5px,min(1.6cqw,3.6cqh),15px)}
 .cc-mois span{font-size:clamp(8px,1.4cqw,13px)}
 @container (max-height:250px){
-  /* fenêtre basse : plus de grille des heures, chaque jour liste ses rendez-vous dans l'ordre */
-  .cc-sem .sem-tete,.cc-sem .sem-corps{grid-template-columns:repeat(7,minmax(0,1fr))}
-  .cc-sem .sem-tete>span:first-child,.cc-sem .sem-h,.cc-sem .sem-col i,.cc-sem .sem-col u{display:none}
+  /* fenêtre basse : les heures restent affichées, une sur deux pour rester lisibles */
+  .cc-sem .sem-h span:nth-child(even){display:none}
   .cc-sem .sem-j{grid-auto-flow:column;justify-content:center;align-items:center;gap:6px}
   .cc-sem .sem-j b{font-size:clamp(12px,2cqw,18px)}
   .cc-sem .sem-corps{margin-top:2px}
-  .cc-sem .sem-col{display:flex;flex-direction:column;gap:2px;padding:0 2px;overflow:hidden}
-  .cc-sem .sem-ev{position:static!important;width:auto!important;height:auto!important;flex:none;display:flex;gap:5px;align-items:baseline;padding:1px 5px}
-  .cc-sem .sem-ev b{order:2;display:block;white-space:nowrap;text-overflow:ellipsis;min-width:0;flex:1}
-  .cc-sem .sem-ev small{order:1;flex:none;max-width:3.2em;overflow:hidden;text-overflow:clip}
-  .cc-mois>div{padding:0 3px;gap:0;grid-auto-flow:column;grid-template-columns:auto 1fr;align-items:center}
-  .cc-mois>div em:nth-of-type(n+2),.cc-mois>div span{display:none}
+  .cc-sem .sem-ev{min-height:5px;border-radius:4px}
 }
+@container (max-height:150px){ .cc-sem .sem-h span:not(:nth-child(4n+1)){display:none} }
 @container (max-width:430px){
   .cc-sem .sem-ev small{display:none}
   .cc-sem .sem-ev{padding:1px 3px;border-left-width:2px}
@@ -961,11 +956,15 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .fi-lignes>div>span{color:var(--discret);font-size:17px}
 .fi-lignes>div>b{font-weight:600;overflow-wrap:anywhere}
 #fi-form[hidden],#fi-lecture[hidden]{display:none}
-#fi-form input,#fi-form select{width:100%}
+#fi-form input:not([type=checkbox]),#fi-form select{width:100%}
+#fi-form .ag-coche{display:flex;grid-auto-flow:column;align-items:center;gap:12px;color:var(--texte);font-size:18px;cursor:pointer}
+#fi-form .ag-coche input{width:26px;height:26px;flex:none;margin:0}
+#fi-form .ag-heures{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ag-liste li.fiche{cursor:pointer}
 .ag-liste li.fiche i{background:var(--k);box-shadow:0 0 8px var(--k)}
 .ag-liste li.fiche:hover{border-color:color-mix(in srgb,var(--neon) 60%,transparent)}
-#ag-rep-bloc[hidden]{display:none}
+#ag-rep-bloc[hidden],#fi-rep-bloc[hidden],#fi-rep-ligne[hidden]{display:none}
+.cc-sem .sem-col,.cc-mois>div[data-jour]{cursor:cell}
 #ag-rep-bloc select,#ag-rep-bloc input{font-size:16.5px;padding:6px 8px}
 .ag-coche input:checked+span{text-decoration:none;color:inherit}
 </style>
@@ -1392,7 +1391,9 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         <div class="ag-heures" style="grid-template-columns:1.3fr 1fr 1fr"><label for="fi-f-date">Date<input id="fi-f-date" type="date" required></label><label for="fi-f-debut">Début<input id="fi-f-debut" type="time"></label><label for="fi-f-fin">Fin<input id="fi-f-fin" type="time"></label></div>
         <label class="ag-coche" for="fi-f-journee"><input id="fi-f-journee" type="checkbox"><span>Journée entière</span></label>
         <label for="fi-f-lieu">Adresse<input id="fi-f-lieu" type="text" autocomplete="off" maxlength="200"></label>
-        <label for="fi-f-type">Type de rendez-vous<select id="fi-f-type"><option value="exterieur">Extérieur · orange</option><option value="bureau">Bureau · bleu</option></select></label>
+        <label for="fi-f-type">Type de rendez-vous<select id="fi-f-type"><option value="exterieur">Extérieur (orange)</option><option value="bureau">Bureau (bleu)</option></select></label>
+        <label class="ag-coche" for="fi-f-rep" id="fi-rep-ligne" hidden><input id="fi-f-rep" type="checkbox"><span>Rendez-vous récurrent</span></label>
+        <div class="ag-heures" id="fi-rep-bloc" hidden><label for="fi-f-rep-f">Répéter<select id="fi-f-rep-f"><option value="semaine">Chaque semaine</option><option value="2semaines">Toutes les 2 semaines</option><option value="mois">Chaque mois</option></select></label><label for="fi-f-rep-fin">Jusqu'au<input id="fi-f-rep-fin" type="date"></label></div>
         <div class="actions" style="display:flex;gap:10px"><button class="bouton ok" type="submit" id="fi-enregistrer">Enregistrer</button><button class="bouton" type="button" id="fi-annuler">Annuler</button></div>
       </form>
       <p class="info" id="fi-msg" style="min-height:1.3em"></p>
@@ -2561,6 +2562,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       $('fi-serie').hidden=!e.serie;
       $('fi-lecture').hidden=!!edition; $('fi-form').hidden=!edition; $('fi-suppr-serie').hidden=true; ficheArme='';
       $('fi-suppr').textContent='Supprimer';
+      $('fi-rep-ligne').hidden=true; $('fi-rep-bloc').hidden=true; $('fi-enregistrer').textContent='Enregistrer';
       if(edition){ $('fi-f-titre').value=e.titre||''; $('fi-f-date').value=e.jour; $('fi-f-journee').checked=!!e.journee; $('fi-f-debut').value=e.debut||'09:00'; $('fi-f-fin').value=e.fin||'10:00';
         $('fi-f-debut').disabled=$('fi-f-fin').disabled=!!e.journee; $('fi-f-lieu').value=e.lieu||''; $('fi-f-type').value=t; }
       ficheMsg(edition&&e.serie?'Ce rendez-vous fait partie d\'une série : seule cette date sera modifiée.':'');
@@ -2570,12 +2572,22 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function ficheApres(){ calCache={}; agendaGoogle.maj=0; rafraichirAgenda(); document.dispatchEvent(new Event('rdv-supprime')); planning(); }
     $('fi-voile').addEventListener('click',function(e){ if(e.target===this||e.target.closest('[data-fermer]')) ficheFermer(); });
     $('fi-modifier').addEventListener('click',function(){ ficheAfficher(true); });
-    $('fi-annuler').addEventListener('click',function(){ ficheAfficher(false); });
+    $('fi-annuler').addEventListener('click',function(){ if(ficheId) ficheAfficher(false); else ficheFermer(); });
     $('fi-f-journee').addEventListener('change',function(){ $('fi-f-debut').disabled=$('fi-f-fin').disabled=this.checked; });
     $('fi-form').addEventListener('submit',function(ev){
       ev.preventDefault(); var j=$('fi-f-date').value, jr=$('fi-f-journee').checked, d=$('fi-f-debut').value, f=$('fi-f-fin').value, t=$('fi-f-titre').value.trim();
       if(!t||!j||(!jr&&(!d||!f))) return; if(!jr&&f<=d){ ficheMsg('L\'heure de fin doit être après l\'heure de début.'); return; }
-      ficheMsg('Enregistrement…'); $('fi-enregistrer').disabled=true;
+      $('fi-enregistrer').disabled=true;
+      if(!ficheId){ // création
+        var rp=$('fi-f-rep').checked, rf=$('fi-f-rep-fin').value;
+        if(rp&&(!rf||rf<=j)){ $('fi-enregistrer').disabled=false; ficheMsg('Choisissez une date de fin après le premier rendez-vous.'); return; }
+        ficheMsg('Création dans l\'agenda Google…');
+        appelServeur('/agenda/creer',{corps:{titre:t,debut:jr?j:j+'T'+d,fin:jr?j:j+'T'+f,lieu:$('fi-f-lieu').value.trim(),type:$('fi-f-type').value,repeter:rp?$('fi-f-rep-f').value:'',jusqu:rp?rf:''}}).then(function(){
+          $('fi-enregistrer').disabled=false; ficheFermer(); ficheApres();
+        },function(x){ $('fi-enregistrer').disabled=false; ficheMsg('Création impossible : '+(x.message||'erreur')+'.'); });
+        return;
+      }
+      ficheMsg('Enregistrement…');
       appelServeur('/agenda/modifier',{corps:{id:ficheId,titre:t,debut:jr?j:j+'T'+d,fin:jr?j:j+'T'+f,lieu:$('fi-f-lieu').value.trim(),type:$('fi-f-type').value}}).then(function(){
         $('fi-enregistrer').disabled=false; ficheFermer(); ficheApres();
       },function(x){ $('fi-enregistrer').disabled=false; ficheMsg('Modification impossible : '+(x.message||'erreur')+'.'); });
@@ -2593,7 +2605,29 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       ficheMsg('Suppression définitive dans Google Agenda.');
     });
     $('fi-suppr-serie').addEventListener('click',function(){ if(ficheArme) ficheEffacer(true); });
-    $('p2').addEventListener('click',function(e){ var b=e.target.closest('[data-fiche]'); if(b) window.ouvrirFicheRdv(b.getAttribute('data-fiche')); });
+    $('p2').addEventListener('click',function(e){
+      var b=e.target.closest('[data-fiche]'); if(b){ window.ouvrirFicheRdv(b.getAttribute('data-fiche')); return; }
+      // case vide : nouveau rendez-vous à ce jour (et à cette heure dans la vue semaine, arrondie à la demi-heure)
+      var c=e.target.closest('.sem-col[data-jour], .cc-mois>div[data-jour]'); if(!c) return;
+      var heure='09:00';
+      if(c.classList.contains('sem-col')){ var corps=c.parentNode, r=c.getBoundingClientRect(), m=(+corps.getAttribute('data-h0'))+(e.clientY-r.top)/r.height*(+corps.getAttribute('data-duree'));
+        m=Math.max(0,Math.min(23*60,Math.floor(m/30)*30)); heure=p2(Math.floor(m/60))+':'+p2(m%60); }
+      ficheCreer(c.getAttribute('data-jour'),heure);
+    });
+    function ficheCreer(jour,heure){
+      ficheId=''; ficheArme='';
+      $('fi-titre').textContent='Nouveau rendez-vous'; $('fi-pastille').style.background=TYPES_RDV.exterieur[1];
+      $('fi-lecture').hidden=true; $('fi-form').hidden=false; $('fi-rep-ligne').hidden=false; $('fi-f-rep').checked=false; $('fi-rep-bloc').hidden=true; $('fi-f-rep-fin').value='';
+      var hh=+heure.slice(0,2), fin=p2(Math.min(23,hh+1))+':'+heure.slice(3);
+      $('fi-f-titre').value=''; $('fi-f-date').value=jour; $('fi-f-journee').checked=false; $('fi-f-debut').value=heure; $('fi-f-fin').value=fin; $('fi-f-debut').disabled=$('fi-f-fin').disabled=false;
+      $('fi-f-lieu').value=''; $('fi-f-type').value='exterieur'; $('fi-enregistrer').textContent='Ajouter à l\'agenda';
+      ficheMsg(agendaGoogle.ecriture?'':'L\'agenda Google doit être relié en écriture (Réglages) pour créer un rendez-vous.');
+      $('fi-voile').classList.add('ouvert'); setTimeout(function(){ $('fi-f-titre').focus(); },60);
+    }
+    $('fi-f-type').addEventListener('change',function(){ if(!ficheId) $('fi-pastille').style.background=TYPES_RDV[this.value][1]; });
+    $('fi-f-debut').addEventListener('change',function(){ if(!ficheId&&this.value){ var hh=+this.value.slice(0,2); $('fi-f-fin').value=p2(Math.min(23,hh+1))+':'+this.value.slice(3); } });
+    $('fi-f-rep').addEventListener('change',function(){ $('fi-rep-bloc').hidden=!this.checked;
+      if(this.checked&&!$('fi-f-rep-fin').value){ var f=new Date(($('fi-f-date').value||isoDe(new Date()))+'T12:00:00'); f.setMonth(f.getMonth()+6); $('fi-f-rep-fin').value=isoDe(f); } });
     document.addEventListener('click',function(e){ var b=e.target.closest('#v-agenda [data-fiche]'); if(b) window.ouvrirFicheRdv(b.getAttribute('data-fiche')); });
     window.rdvChoix={};
 
@@ -2627,7 +2661,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var jours=[], d=new Date(pl.deb); while(d<=pl.fin){ jours.push(new Date(d)); d.setDate(d.getDate()+1); }
       if(calVue==='semaine'){
         $('p2-titre').textContent='Semaine du '+(pl.deb.getMonth()===pl.fin.getMonth()?pl.deb.getDate():fC.format(pl.deb).replace('.',''))+' au '+fC.format(pl.fin).replace('.','');
-        var h0=8*60, h1=18*60;
+        var h0=7*60, h1=20*60;
         tous.forEach(function(e){ if(e.journee) return; var x=calMn(e.debut), y=calMn(e.fin); if(x==null) return; if(y==null||y<=x) y=x+60; h0=Math.min(h0,Math.floor(x/60)*60); h1=Math.max(h1,Math.ceil(y/60)*60); });
         h0=Math.max(0,h0); h1=Math.min(24*60,h1); var duree=h1-h0, heures='', lignes='', hh;
         for(hh=h0;hh<=h1;hh+=60){ heures+='<span style="top:'+((hh-h0)/duree*100)+'%">'+(hh/60)+' h</span>'; lignes+='<i style="top:'+((hh-h0)/duree*100)+'%"></i>'; }
@@ -2640,21 +2674,21 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
           var blocs=duJour.filter(function(e){ return !e.journee&&calMn(e.debut)!=null; }).map(function(e){ var x=calMn(e.debut), y=calMn(e.fin); if(y==null||y<=x) y=x+60; return {e:e,d:x,f:y,c:0}; }).sort(function(u,v){ return u.d-v.d; });
           var fins=[]; blocs.forEach(function(q){ var c=0; while(fins[c]!=null&&fins[c]>q.d) c++; fins[c]=q.f; q.c=c; });
           var nb=Math.max(1,fins.length), m=mnt.getHours()*60+mnt.getMinutes();
-          colonnes+='<div class="sem-col'+(auj?' auj':'')+'">'+lignes+blocs.map(function(q){
+          colonnes+='<div class="sem-col'+(auj?' auj':'')+'" data-jour="'+iso+'">'+lignes+blocs.map(function(q){
             if(q.e.id) fiches[q.e.id]=q.e;
             return '<div class="sem-ev"'+(q.e.id?' data-fiche="'+esc(q.e.id)+'"':'')+' style="--k:'+teinteRdv(q.e)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(5,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"></div>'; }).join('')
             +(auj&&m>=h0&&m<=h1?'<u style="top:'+((m-h0)/duree*100)+'%"></u>':'')+'</div>';
         });
-        h='<div class="cc-sem"><div class="sem-tete">'+entete+'</div>'+(aJournee?'<div class="sem-tete sem-jrs">'+journees+'</div>':'<div></div>')+'<div class="sem-corps"><div class="sem-h">'+heures+'</div>'+colonnes+'</div></div>';
+        h='<div class="cc-sem"><div class="sem-tete">'+entete+'</div>'+(aJournee?'<div class="sem-tete sem-jrs">'+journees+'</div>':'<div></div>')+'<div class="sem-corps" data-h0="'+h0+'" data-duree="'+duree+'"><div class="sem-h">'+heures+'</div>'+colonnes+'</div></div>';
       } else {
         $('p2-titre').textContent=maj(fM.format(pl.mois));
         var noms=['LUN','MAR','MER','JEU','VEN','SAM','DIM'], mo=pl.mois.getMonth();
         h='<div class="cc-mois" style="grid-template-rows:auto repeat('+(jours.length/7)+',minmax(0,1fr))">'+noms.map(function(n){ return '<small>'+n+'</small>'; }).join('')+jours.map(function(j){
           var iso=isoDe(j), duJour=tous.filter(function(e){ return e.jour===iso; }).sort(function(u,v){ return (u.journee?'':u.debut||'')<(v.journee?'':v.debut||'')?-1:1; });
-          return '<div class="'+(iso===auj0?'auj':'')+(j.getMonth()!==mo?' hors':'')+'"><b>'+j.getDate()+'</b><span class="pts">'+duJour.slice(0,10).map(function(e){ if(e.id) fiches[e.id]=e; return '<i'+(e.id?' data-fiche="'+esc(e.id)+'"':'')+' style="--k:'+teinteRdv(e)+'" title="'+esc((e.journee?'':(e.debut||'')+' ')+(e.titre||''))+'"></i>'; }).join('')+'</span>'+'</div>'; }).join('')+'</div>';
+          return '<div class="'+(iso===auj0?'auj':'')+(j.getMonth()!==mo?' hors':'')+'" data-jour="'+iso+'"><b>'+j.getDate()+'</b><span class="pts">'+duJour.slice(0,10).map(function(e){ if(e.id) fiches[e.id]=e; return '<i'+(e.id?' data-fiche="'+esc(e.id)+'"':'')+' style="--k:'+teinteRdv(e)+'" title="'+esc((e.journee?'':(e.debut||'')+' ')+(e.titre||''))+'"></i>'; }).join('')+'</span>'+'</div>'; }).join('')+'</div>';
       }
       $('p2').style.display='flex'; $('p2').style.flexDirection='column';
-      $('p2').innerHTML=h+'<div class="cal-leg"><span><i style="background:'+TYPES_RDV.bureau[1]+'"></i>Bureau</span><span><i style="background:'+TYPES_RDV.exterieur[1]+'"></i>Extérieur</span><small>Cliquez sur une pastille pour voir le rendez-vous</small></div>';
+      $('p2').innerHTML=h+'<div class="cal-leg"><span><i style="background:'+TYPES_RDV.bureau[1]+'"></i>Bureau</span><span><i style="background:'+TYPES_RDV.exterieur[1]+'"></i>Extérieur</span><small>Pastille : voir le rendez-vous · case vide : en créer un</small></div>';
     }
     $('p2-vues').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
       if(b.hasAttribute('data-vue')){ calVue=b.getAttribute('data-vue'); calDecal=0; try{ localStorage.setItem('dashboard-agenda-vue',calVue); }catch(x){} }
