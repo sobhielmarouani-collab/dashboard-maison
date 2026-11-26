@@ -52,6 +52,12 @@ export class Coffre extends DurableObject {
         cree    INTEGER NOT NULL,
         modifie INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS partage (
+        cle     TEXT PRIMARY KEY,
+        valeur  TEXT NOT NULL,
+        modifie INTEGER NOT NULL,
+        auteur  TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS taches (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
         texte    TEXT NOT NULL,
@@ -119,6 +125,16 @@ export class Coffre extends DurableObject {
       email, nom, profil, actif ? 1 : 0, droits, maintenant, maintenant,
     );
     if (!actif) this.sql.exec("DELETE FROM sessions WHERE email = ?", email);
+  }
+
+  /* ---------- listes partagées (droits vérifiés dans partage.js) ---------- */
+
+  lirePartage(cle) {
+    return this.sql.exec("SELECT valeur, modifie FROM partage WHERE cle = ?", cle).toArray()[0] || null;
+  }
+
+  ecrirePartage(cle, valeur, auteur) {
+    this.sql.exec("INSERT INTO partage (cle, valeur, modifie, auteur) VALUES (?, ?, ?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur, modifie = excluded.modifie, auteur = excluded.auteur", cle, valeur, Date.now(), auteur);
   }
 
   /* ---------- tâches partagées (les règles d'accès sont dans taches.js) ---------- */

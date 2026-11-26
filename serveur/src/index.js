@@ -25,6 +25,8 @@
  *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
  *   GET  /taches             (session) → { taches, avis, personnes, moi }   seulement ce que la personne a le droit de voir
  *   POST /taches             (session) { action: creer|cocher|modifier|supprimer|importer|lu, … } → liste à jour
+ *   GET  /partage            (session) ?cles=chantiers,alertes… → { listes, refuses }   listes partagées, selon les droits
+ *   POST /partage            (session) { cle, lignes } → remplace une liste (droit vérifié, lignes nettoyées)
  *   GET  /comptes            (direction) → { comptes, profils, droits }
  *   POST /comptes            (direction) { email, nom, profil, actif, droits } → crée ou modifie un compte
  *   GET  /journal            (direction) → historique des actions importantes
@@ -42,6 +44,7 @@ import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./mod
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { compteDe, validerCompte, listerComptes, PROFILS, DROITS } from "./comptes.js";
 import { lireTaches, agirTache, TacheRefusee } from "./taches.js";
+import { lirePartage, ecrirePartage, PartageRefuse, LISTES } from "./partage.js";
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
@@ -381,6 +384,7 @@ const ROUTES = {
   "/voix": "POST",
   "/actualites/sources": ["GET", "POST"],
   "/taches": ["GET", "POST"],
+  "/partage": ["GET", "POST"],
   "/comptes": ["GET", "POST"],
   "/journal": "GET",
 };
@@ -424,6 +428,29 @@ export default {
     if (chemin === "/deconnexion") {
       await coffre(env).supprimerSession(session.empreinte);
       return json({ ok: true }, 200, autorisee);
+    }
+    if (chemin === "/partage") {
+      const c = coffre(env);
+      try {
+        let cles;
+        if (requete.method === "POST") {
+          let corps;
+          try {
+            corps = await lireCorps(requete);
+          } catch {
+            return json({ erreur: "Corps JSON invalide." }, 400, autorisee);
+          }
+          cles = [await ecrirePartage(c, compte, corps)];
+        } else {
+          const demande = new URL(requete.url).searchParams.get("cles");
+          cles = demande ? demande.split(",").slice(0, 20) : Object.keys(LISTES);
+        }
+        return json(await lirePartage(c, compte, cles), 200, autorisee);
+      } catch (e) {
+        if (e instanceof PartageRefuse) return json({ erreur: e.message }, e.statut, autorisee);
+        console.error("Partage :", e);
+        return json({ erreur: "Erreur du serveur." }, 500, autorisee);
+      }
     }
     if (chemin === "/taches") {
       const c = coffre(env);

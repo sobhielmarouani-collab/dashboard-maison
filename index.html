@@ -655,7 +655,9 @@ h2 svg{color:var(--neon)}
 </style>
 <script>
 /* thème appliqué avant l'affichage, pour éviter un éclair de la mauvaise couleur */
-(function(){ try{ if(localStorage.getItem('dashboard-theme')==='clair') document.documentElement.setAttribute('data-theme','clair'); }catch(e){} })();
+(function(){ var R=document.documentElement, p='direction'; try{ if(localStorage.getItem('dashboard-theme')==='clair') R.setAttribute('data-theme','clair');
+  var o=JSON.parse(localStorage.getItem('dashboard-profil')||'null'), v=localStorage.getItem('dashboard-voir-comme');
+  if(o&&(o.profil==='conducteur'||o.profil==='secretaire')) p=o.profil; else if(v==='conducteur'||v==='secretaire') p=v; }catch(e){} R.setAttribute('data-profil',p); })();
 </script>
 <style>
 /* ============ STYLE « VERRE LIQUIDE » ============
@@ -771,6 +773,62 @@ html[data-theme="clair"] .nav.actif{background:linear-gradient(160deg,color-mix(
 html[data-theme="clair"] .nav.actif svg{color:var(--neon)}
 html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;opacity:.7}
 .demo{background:var(--creux);border-color:var(--trait);color:var(--discret)}
+/* ============ PROFILS : Direction, Conducteur de travaux, Secrétaire ============
+   Un seul écran : les éléments marqués data-pour ne s'affichent que pour les profils cités.
+   Le profil vient du serveur ; cacher une fenêtre ici n'est qu'une question d'affichage,
+   les données elles-mêmes sont refusées par le serveur aux profils qui n'y ont pas droit. */
+html[data-profil="direction"] [data-pour]:not([data-pour~="direction"]),
+html[data-profil="conducteur"] [data-pour]:not([data-pour~="conducteur"]),
+html[data-profil="secretaire"] [data-pour]:not([data-pour~="secretaire"]){display:none!important}
+.bas{grid-template-rows:none;grid-auto-rows:minmax(0,1fr)}
+html:not([data-profil="direction"]) #v-accueil{grid-template-rows:64px 1fr 250px}
+html:not([data-profil="direction"]) .cc-bas{grid-template-columns:1.05fr .95fr 1.1fr 1.1fr}
+html:not([data-profil="direction"]) .nav{font-size:14px}
+html:not([data-profil="direction"]) .nav svg{width:28px;height:28px}
+.cc-kpi .v small{font-size:19px;font-weight:600;margin-left:6px}
+
+/* étiquettes de statut */
+.pf-etq{font-style:normal;font-size:13.5px;font-weight:600;border:1px solid var(--k,var(--neon));color:var(--k,var(--neon));background:color-mix(in srgb,var(--k,var(--neon)) 14%,transparent);border-radius:8px;padding:1px 9px;line-height:1.5;white-space:nowrap;text-align:center;font-variant-numeric:tabular-nums}
+html[data-theme="clair"] .pf-etq{color:color-mix(in srgb,var(--k,var(--neon)) 64%,#0B1B33);border-color:color-mix(in srgb,var(--k,var(--neon)) 64%,#0B1B33)}
+.cc-ch.pf li{grid-template-columns:46px 1fr 58px 104px;gap:12px}
+.cc-ch.pf .ph{background:var(--creux);border:1px solid var(--trait);display:grid;place-items:center;color:var(--discret);border-radius:8px}
+.cc-ch.pf .ph svg{width:20px;height:20px}
+
+/* listes compactes des fenêtres du bas */
+.pf-l{list-style:none;padding:0;margin:4px 0 0;flex:1;min-height:0;display:grid;grid-auto-rows:minmax(0,1fr);overflow:hidden}
+.pf-l li{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;min-height:0;font-size:16.5px;border-top:1px solid var(--trait)}
+.pf-l li:first-child{border-top:0}
+.pf-l li>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.pf-l li>span small{display:block;font-size:13.5px;color:var(--discret);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-l li.total{background:color-mix(in srgb,var(--neon) 16%,transparent);border:1px solid color-mix(in srgb,var(--neon) 50%,transparent);border-radius:12px;padding:0 10px;font-weight:700}
+.pf-t li{grid-template-columns:26px 1fr auto}
+.pf-t input[type=checkbox]{width:22px;height:22px;border-radius:50%;margin:0}
+.pf-t li.fait>span{text-decoration:line-through;color:var(--discret)}
+.pf-t .prio{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:7px;background:var(--k);box-shadow:0 0 6px var(--k)}
+.pf-al{flex:1;min-height:0;display:grid;grid-auto-rows:minmax(0,1fr);gap:8px;margin-top:6px;overflow:hidden}
+.pf-al div{border:1px solid var(--k);background:color-mix(in srgb,var(--k) 13%,transparent);border-radius:14px;padding:6px 12px;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;min-height:0;overflow:hidden}
+.pf-al svg{width:28px;height:28px;color:var(--k)}
+.pf-al b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pf-al span span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:14.5px;line-height:1.25;color:color-mix(in srgb,var(--texte) 82%,var(--discret))}
+
+/* pages de saisie des listes partagées */
+.pf-page .corps{display:grid;grid-template-columns:1fr 420px;gap:14px;min-height:0}
+.pf-page .carte{padding:18px 22px;min-height:0;overflow:auto}
+.pf-tab{width:100%;border-collapse:collapse;font-size:18px}
+.pf-tab th{text-align:left;font-size:14.5px;font-weight:600;color:var(--discret);padding:4px 10px 8px;text-transform:uppercase;letter-spacing:.04em}
+.pf-tab td{padding:9px 10px;border-top:1px solid var(--trait);vertical-align:middle}
+.pf-tab td.a{white-space:nowrap;text-align:right;width:1%}
+.pf-tab td.a button{height:40px;padding:0 14px;font-size:15px;margin-left:6px}
+.pf-tab tr.fait td:first-child{text-decoration:line-through;color:var(--discret)}
+.pf-page .form input,.pf-page .form select{width:100%}
+.pf-page .info{color:var(--discret);font-size:15.5px;line-height:1.35}
+.pf-avis{border:1px solid color-mix(in srgb,var(--neon) 55%,transparent);background:color-mix(in srgb,var(--neon) 12%,transparent);border-radius:14px;padding:10px 14px;margin-bottom:12px;font-size:16.5px;display:grid;gap:4px}
+#pf-apercu{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:12px;padding:6px 8px 6px 18px;border-radius:99px;font-size:16px;
+  background:var(--verre);border:1px solid color-mix(in srgb,var(--jaune) 70%,transparent);box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
+#pf-apercu[hidden]{display:none}
+#pf-apercu button{height:36px;padding:0 14px;font-size:15px}
+html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout select{color-scheme:light}
+.cc-ch.pf .n,.cc-ch.pf .bar{display:block}
 </style>
 </head>
 <body>
@@ -791,6 +849,9 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
   <symbol id="n-meteo" viewBox="0 0 24 24"><circle cx="16" cy="8" r="3"/><path d="M7 19a4.500 4.500 0 0 1 .5-9 6 6 0 0 1 11.500 2 3.500 3.500 0 0 1-.5 7z"/></symbol>
   <symbol id="n-gestion" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2M20 20v-4"/></symbol>
   <symbol id="n-personnel" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2.2"/><circle cx="19" cy="10" r="2.2"/><path d="M6.500 20a5.500 5.500 0 0 1 11 0M1.800 18.500A3.600 3.600 0 0 1 6 15M22.200 18.500A3.600 3.600 0 0 0 18 15"/></symbol>
+  <symbol id="n-livraisons" viewBox="0 0 24 24"><path d="M2.500 6h11v10h-11zM13.500 9.500h4l3 3.500v3h-7"/><circle cx="7" cy="17.500" r="2"/><circle cx="17" cy="17.500" r="2"/></symbol>
+  <symbol id="n-mails" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></symbol>
+  <symbol id="n-planning" viewBox="0 0 24 24"><path d="M4 6h9M4 12h13M9 18h11"/><path d="M4 3v18"/></symbol>
   <symbol id="n-minuteur" viewBox="0 0 24 24"><circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/></symbol>
   <symbol id="n-sigma" viewBox="0 0 24 24"><path d="M9 4.500a2.700 2.700 0 0 0-2.700 2.700A3 3 0 0 0 4 10a3 3 0 0 0 1 2.300A3 3 0 0 0 6.500 17 2.700 2.700 0 0 0 12 17V7.200A2.700 2.700 0 0 0 9 4.500zM15 4.500a2.700 2.700 0 0 1 2.700 2.700A3 3 0 0 1 20 10a3 3 0 0 1-1 2.300 3 3 0 0 1-1.500 4.700A2.700 2.700 0 0 1 12 17M8.500 10h1.500M14 10h1.500M12 21v-1.500"/></symbol>
   <symbol id="n-reglages" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/></symbol>
@@ -836,18 +897,26 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
 
       <div class="cc-droite">
         <div class="cc-kpis">
-          <button class="carte cc-kpi cc-bloc" type="button" data-aller="gestion" style="--c:#00BFFF"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V13M9 20V9M14 20v-6M19 20V7M4 9l5-4 5 3 6-5M16 3h4v4"/></svg><svg class="sp" id="k-ca-g" viewBox="0 0 66 24" preserveAspectRatio="none"></svg></span><span><span class="t" id="k-ca-t">Chiffre d'affaires</span><span class="v" id="k-ca">–</span><span class="s" id="k-ca-s"></span></span></button>
-          <button class="carte cc-kpi cc-bloc" type="button" data-aller="gestion" style="--c:#00E5A0"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 15.500h5M10 8.500h1.500"/></svg></span><span><span class="t" id="k-tr-t">Devis acceptés</span><span class="v" id="k-tr">–</span><span class="s" id="k-tr-s"></span></span></button>
-          <button class="carte cc-kpi cc-bloc coul" type="button" data-aller="gestion" style="--c:#FFB020"><span class="ic"><svg class="i" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="5.500" ry="2.500"/><path d="M3.500 7v4c0 1.400 2.500 2.500 5.500 2.500M3.500 11v4c0 1.400 2.500 2.500 5.500 2.500"/><ellipse cx="15.500" cy="13.500" rx="5" ry="2.300"/><path d="M10.500 13.500v4c0 1.300 2.200 2.300 5 2.300s5-1 5-2.300v-4"/></svg></span><span><span class="t">À encaisser</span><span class="v" id="k-enc">–</span><span class="s" id="k-enc-s"></span></span></button>
-          <button class="carte cc-kpi cc-bloc coul" type="button" data-aller="gestion" style="--c:#FF5267"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg></span><span><span class="t">Impayés</span><span class="v" id="k-imp">–</span><span class="s" id="k-imp-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc" data-pour="direction" type="button" data-aller="gestion" style="--c:#00BFFF"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V13M9 20V9M14 20v-6M19 20V7M4 9l5-4 5 3 6-5M16 3h4v4"/></svg><svg class="sp" id="k-ca-g" viewBox="0 0 66 24" preserveAspectRatio="none"></svg></span><span><span class="t" id="k-ca-t">Chiffre d'affaires</span><span class="v" id="k-ca">–</span><span class="s" id="k-ca-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc" data-pour="direction" type="button" data-aller="gestion" style="--c:#00E5A0"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 15.500h5M10 8.500h1.500"/></svg></span><span><span class="t" id="k-tr-t">Devis acceptés</span><span class="v" id="k-tr">–</span><span class="s" id="k-tr-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="direction" type="button" data-aller="gestion" style="--c:#FFB020"><span class="ic"><svg class="i" viewBox="0 0 24 24"><ellipse cx="9" cy="7" rx="5.500" ry="2.500"/><path d="M3.500 7v4c0 1.400 2.500 2.500 5.500 2.500M3.500 11v4c0 1.400 2.500 2.500 5.500 2.500"/><ellipse cx="15.500" cy="13.500" rx="5" ry="2.300"/><path d="M10.500 13.500v4c0 1.300 2.200 2.300 5 2.300s5-1 5-2.300v-4"/></svg></span><span><span class="t">À encaisser</span><span class="v" id="k-enc">–</span><span class="s" id="k-enc-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="direction" type="button" data-aller="gestion" style="--c:#FF5267"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg></span><span><span class="t">Impayés</span><span class="v" id="k-imp">–</span><span class="s" id="k-imp-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="conducteur" type="button" data-aller="lchantiers" style="--c:#00BFFF"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M6 21V4l12 3M6 8h13M16 8v4M3 21h18M10 21v-6h4v6"/></svg></span><span><span class="t">Chantiers en cours</span><span class="v" id="kc-ch">–</span><span class="s" id="kc-ch-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="conducteur" type="button" data-aller="laffectations" style="--c:#00E5A0"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2.200"/><circle cx="19" cy="10" r="2.200"/><path d="M6.500 20a5.500 5.500 0 0 1 11 0"/></svg></span><span><span class="t">Personnel mobilisé</span><span class="v" id="kc-pe">–</span><span class="s" id="kc-pe-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="conducteur" type="button" data-aller="llivraisons" style="--c:#FFB020"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M2.500 6h11v10h-11zM13.500 9.500h4l3 3.500v3h-7"/><circle cx="7" cy="17.500" r="2"/><circle cx="17" cy="17.500" r="2"/></svg></span><span><span class="t">Livraisons à venir</span><span class="v" id="kc-li">–</span><span class="s" id="kc-li-s"></span></span></button>
+          <button class="carte cc-kpi cc-bloc coul" data-pour="conducteur" type="button" data-aller="lalertes" style="--c:#FF5267"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg></span><span><span class="t">Alertes chantier</span><span class="v" id="kc-al">–</span><span class="s" id="kc-al-s"></span></span></button>
         </div>
         <div class="cc-deux">
-          <article class="carte cc-bloc">
+          <article class="carte cc-bloc" data-pour="conducteur">
+            <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c3-nb"></em></span><button class="cc-lien" type="button" data-aller="lchantiers">Voir tout →</button></h2>
+            <ul class="cc-ch pf" id="c3-liste"></ul>
+          </article>
+          <article class="carte cc-bloc" data-pour="direction">
             <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c2-nb"></em></span><button class="cc-lien" type="button" data-aller="chantiers">Voir tout →</button></h2>
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="cc-lien" type="button" id="p2-gerer">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -855,25 +924,41 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
     </div>
 
     <div class="cc-bas">
-      <article class="carte cc-bloc">
+      <article class="carte cc-bloc" data-pour="direction">
         <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.500h6v3H9zM9 11h6M9 15h6"/></svg>Tâches à traiter <em id="t2-nb"></em></span><button class="cc-lien" type="button" data-aller="taches">Voir tout →</button></h2>
         <ul id="a-taches"></ul>
       </article>
-      <article class="carte cc-bloc">
+      <article class="carte cc-bloc" data-pour="direction">
         <h2><span><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.500"/><path d="M12 12V3.500M12 12l6 6"/></svg>Finances <em id="f2-an"></em></span><button class="cc-lien" type="button" data-aller="gestion">Détail →</button></h2>
         <div class="cc-fin" id="f2"></div>
       </article>
-      <article class="carte cc-bloc">
+      <article class="carte cc-bloc" data-pour="direction">
         <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances <em id="e2-nb"></em></span><button class="cc-lien" type="button" id="e2-gerer">Voir tout →</button></h2>
         <ul class="cc-ech" id="e2"></ul>
       </article>
-      <article class="carte cc-bloc">
+      <article class="carte cc-bloc" data-pour="direction">
         <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></svg>Mails <em id="m2-nb"></em></span><a class="cc-lien" id="m2-ouvrir" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Gmail →</a></h2>
         <ul class="cc-mails" id="m2"></ul>
       </article>
+      <article class="carte cc-bloc" data-pour="conducteur">
+        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.500h6v3H9zM9 11h6M9 15h6"/></svg>Tâches à traiter <em id="tc-nb"></em></span><button class="cc-lien" type="button" data-aller="tachesp">Voir tout →</button></h2>
+        <ul class="pf-l pf-t" id="tc"></ul>
+      </article>
+      <article class="carte cc-bloc" data-pour="conducteur">
+        <h2><span><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2.200"/><circle cx="19" cy="10" r="2.200"/><path d="M6.500 20a5.500 5.500 0 0 1 11 0"/></svg>Affectations <em id="af-nb"></em></span><button class="cc-lien" type="button" data-aller="laffectations">Voir tout →</button></h2>
+        <ul class="pf-l" id="af"></ul>
+      </article>
+      <article class="carte cc-bloc" data-pour="conducteur">
+        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M2.500 6h11v10h-11zM13.500 9.500h4l3 3.500v3h-7"/><circle cx="7" cy="17.500" r="2"/><circle cx="17" cy="17.500" r="2"/></svg>Livraisons à venir <em id="lv-nb"></em></span><button class="cc-lien" type="button" data-aller="llivraisons">Voir tout →</button></h2>
+        <ul class="pf-l" id="lv"></ul>
+      </article>
+      <article class="carte cc-bloc" data-pour="conducteur">
+        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg>Alertes chantier <em id="al-nb"></em></span><button class="cc-lien" type="button" data-aller="lalertes">Voir tout →</button></h2>
+        <div class="pf-al" id="al"></div>
+      </article>
     </div>
 
-    <section class="carte cc-actus" aria-label="Actualités BTP">
+    <section class="carte cc-actus" data-pour="direction" aria-label="Actualités BTP">
       <h2><svg class="i"><use href="#n-actualites"/></svg>Actualités BTP</h2>
       <div class="cc-fil" id="n2"></div>
       <div class="cc-fin-actus"><span class="cc-pages" id="n2-pages" hidden><button class="cc-rond" type="button" id="n2-prec" aria-label="Actualités précédentes"><svg class="i" viewBox="0 0 24 24"><path d="M14.500 6l-6 6 6 6"/></svg></button><b id="n2-num">1 / 1</b><button class="cc-rond" type="button" id="n2-suiv" aria-label="Actualités suivantes"><svg class="i" viewBox="0 0 24 24"><path d="M9.500 6l6 6-6 6"/></svg></button></span><button class="cc-tout" type="button" data-aller="actualites">Voir toute l'actualité →</button></div>
@@ -1121,6 +1206,9 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Taille de l'affichage</span><button class="rond" type="button" data-act="zoom-" aria-label="Réduire l'affichage">−</button><b id="r-zoom" style="width:80px;text-align:center;font-size:24px">100 %</b><button class="rond" type="button" data-act="zoom+" aria-label="Agrandir l'affichage">+</button></div>
+        <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Profil</span><b id="pf-profil-nom" style="font-size:20px">Direction</b></div>
+        <div id="pf-voir-bloc" style="display:flex;align-items:center;gap:14px;font-size:20px"><label for="pf-voir" style="flex:1">Voir l'écran comme</label><select id="pf-voir" style="min-width:250px"><option value="direction">Direction</option><option value="conducteur">Conducteur de travaux</option></select></div>
+        <button class="bouton" type="button" id="pf-comptes">Gérer les comptes et les profils</button>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Thème</span><button class="bouton" type="button" id="r-theme" style="min-width:210px">Sombre</button></div>
         <button class="bouton" type="button" data-act="ecran">Passer en plein écran</button>
       </div>
@@ -1129,6 +1217,7 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
   </div>
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
+  <div id="pf-apercu" hidden><span>Aperçu du profil <b id="pf-apercu-nom"></b></span><button class="bouton ok" type="button" id="pf-revenir">Revenir à Direction</button></div>
 
   <div class="voile" id="ge-voile">
     <form class="boite g-boite form" id="ge-form">
@@ -2922,6 +3011,244 @@ html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;op
   })();
 
   trierAgenda(); dessiner(); aller((location.hash||'').slice(1)||'accueil'); tic(); setInterval(tic,1000); meteo(); setInterval(meteo,15*60*1000);
+
+  /* ============ PROFILS : Direction, Conducteur de travaux, Secrétaire ============
+     Le profil est donné par le serveur à la connexion (et revérifié à chaque ouverture).
+     La page n'en fait qu'un usage d'affichage : quelles fenêtres et quels raccourcis montrer.
+     Les données elles-mêmes sont filtrées par le serveur selon les droits du compte. */
+  (function(){
+    var CLE_PROFIL='dashboard-profil', CLE_VOIR='dashboard-voir-comme';
+    var NOMS={direction:'Direction',conducteur:'Conducteur de travaux',secretaire:'Secrétaire de direction'};
+    var NAVS={
+      conducteur:[['accueil','Accueil','accueil'],['chantiers','Chantiers','lchantiers'],['personnel','Personnel','laffectations'],['planning','Planning','lplanning'],['livraisons','Livraisons','llivraisons'],['agenda','Agenda','agenda'],['taches','Tâches','tachesp'],['mails','Mails','mails'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']]
+    };
+    var STATUTS={en_cours:['En cours','#00E5A0'],preparation:['Préparation','#FFB020'],finition:['Finition','#00BFFF'],arret:['À l\'arrêt','#FF5267'],termine:['Terminé','#9FB4CE']};
+    var LIVR={prevue:['Prévue','#FFB020'],confirmee:['Confirmée','#00E5A0'],retard:['En retard','#FF5267'],livree:['Livrée','#9FB4CE']};
+    var NIVEAUX={bloquant:['Bloquant','#FF5267'],attention:['À surveiller','#FFB020']};
+    var PRIOS={normale:['Normale','#9FB4CE'],haute:['Haute','#FFB020'],urgente:['Urgente','#FF5267']};
+    function lib(o){ var r={}; Object.keys(o).forEach(function(k){ r[k]=o[k][0]; }); return r; }
+    /* listes partagées : [champ, libellé, type, choix] — les mêmes champs que ceux acceptés par le serveur */
+    var DEFS={
+      chantiers:{titre:'Chantiers',icone:'chantiers',un:'un chantier',champs:[['nom','Chantier','texte'],['lieu','Commune','texte'],['avancement','Avancement (%)','nombre'],['statut','Statut','choix',lib(STATUTS)]]},
+      alertes:{titre:'Alertes chantier',icone:'chantiers',un:'une alerte',champs:[['chantier','Chantier','chantier'],['texte','Point à traiter','texte'],['niveau','Niveau','choix',lib(NIVEAUX)]]},
+      planning:{titre:'Planning des chantiers',icone:'planning',un:'une intervention',champs:[['chantier','Chantier','chantier'],['lot','Intervention','texte'],['debut','Début','date'],['fin','Fin','date']]},
+      affectations:{titre:'Affectation du personnel',icone:'personnel',un:'une équipe',champs:[['equipe','Équipe','texte'],['chantier','Chantier','chantier'],['effectif','Nombre de personnes','nombre']]},
+      livraisons:{titre:'Livraisons',icone:'livraisons',un:'une livraison',champs:[['date','Date','date'],['materiaux','Matériaux','texte'],['fournisseur','Fournisseur','texte'],['chantier','Chantier','chantier'],['statut','Statut','choix',lib(LIVR)]]}
+    };
+    var reel=(function(){ try{ var o=JSON.parse(lire(CLE_PROFIL)||'null'); if(o&&NOMS[o.profil]) return o; }catch(e){} return {profil:'direction',nom:''}; })();
+    var L={}, T={taches:[],avis:[],personnes:[],moi:''}, etatDonnees='', dernier=0, verifie=0, enEdition={};
+    function vu(){ var v=lire(CLE_VOIR); return reel.profil==='direction' ? (NAVS[v]?v:'direction') : reel.profil; }
+    function auj(){ return jourISO(new Date()); }
+    function dateCourte(iso){ return iso&&iso.length===10 ? iso.slice(8,10)+'/'+iso.slice(5,7) : ''; }
+    function lignes(cle){ return (L[cle]&&L[cle].lignes)||[]; }
+    function vide(t){ return '<p class="cc-nd">'+t+'</p>'; }
+    function etq(t,c){ return '<em class="pf-etq" style="--k:'+c+'">'+esc(t)+'</em>'; }
+
+    /* ---- menu selon le profil ---- */
+    function dessinerNav(){
+      var p=vu(), l=NAVS[p]||RACCOURCIS, reste=$('nav-reste')?$('nav-reste').textContent:'';
+      $('nav').innerHTML=l.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste">'+esc(reste)+'</small>':'')+'</button>'; }).join('');
+      [].forEach.call($('nav').children,function(b){ b.classList.toggle('actif',b.getAttribute('data-aller')===vueActive); });
+    }
+    function appliquer(){
+      var p=vu();
+      document.documentElement.setAttribute('data-profil',p);
+      dessinerNav();
+      var s=document.querySelector('#ia .cc-nom>span>span'); if(s) s.textContent = p==='direction' ? 'Assistant IA' : 'Assistant IA – '+NOMS[p];
+      var b=$('pf-apercu'); b.hidden = !(reel.profil==='direction'&&p!=='direction'); $('pf-apercu-nom').textContent=NOMS[p];
+      $('pf-voir-bloc').style.display = reel.profil==='direction' ? 'flex' : 'none'; $('pf-comptes').hidden = reel.profil!=='direction'; $('pf-voir').value=p;
+      $('pf-profil-nom').textContent=NOMS[reel.profil];
+      if(p!=='direction'){ dessiner(); charger(true); }
+      // une page réservée à un autre profil ne reste pas ouverte
+      var vue=$('v-'+vueActive); if(vue&&vue.hasAttribute('data-pour')&&vue.getAttribute('data-pour').split(' ').indexOf(p)<0) aller('accueil');
+    }
+    function retenir(j){ if(j&&NOMS[j.profil]){ reel={profil:j.profil,nom:j.nom||''}; ecrire(CLE_PROFIL,JSON.stringify(reel)); if(reel.profil!=='direction') ecrire(CLE_VOIR,''); appliquer(); } }
+    /* le profil est redemandé au serveur à l'ouverture et après chaque connexion */
+    function verifier(){
+      var s=session(); if(!s||Date.now()-verifie<30000) return; verifie=Date.now();
+      appelServeur('/session',{methode:'GET'}).then(retenir,function(){ verifie=0; });
+    }
+    var compteAvant=afficherCompte;
+    afficherCompte=function(){ compteAvant(); verifier(); };
+
+    /* ---- données partagées ---- */
+    function charger(forcer){
+      if(vu()==='direction') return;
+      if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; dessiner(); return; }
+      if(!forcer&&Date.now()-dernier<45000) return; dernier=Date.now();
+      appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; dessiner(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; dessiner(); });
+      appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; dessiner(); },function(){});
+      chargerMails();
+    }
+    function enregistrer(cle,l){
+      return appelServeur('/partage',{corps:{cle:cle,lignes:l}}).then(function(j){ if(j.listes&&j.listes[cle]) L[cle]=j.listes[cle]; dessiner(); });
+    }
+    function tache(corps){ return appelServeur('/taches',{corps:corps}).then(function(j){ T=j; dessiner(); }); }
+
+    /* ---- accueil du conducteur ---- */
+    function dessinerConducteur(){
+      var nd=etatDonnees, a=auj(), dans7=jourISO(plusJours(new Date(),7));
+      var ch=lignes('chantiers').filter(function(c){ return c.statut!=='termine'; });
+      var af=lignes('affectations'), total=af.reduce(function(s,x){ return s+(x.effectif||0); },0), surCh={}; af.forEach(function(x){ if(x.effectif) surCh[x.chantier.toLowerCase()]=1; });
+      var lv=lignes('livraisons').filter(function(x){ return x.statut!=='livree'&&(x.date>=a||x.statut==='retard'); }).sort(function(x,y){ return x.date<y.date?-1:1; });
+      var al=lignes('alertes').slice().sort(function(x,y){ return (x.niveau==='bloquant'?0:1)-(y.niveau==='bloquant'?0:1); });
+      function kpi(id,v,unite,s){ $(id).innerHTML = nd ? '–' : v+'<small>'+unite+'</small>'; $(id+'-s').textContent = nd || s; }
+      var prod=ch.filter(function(c){ return c.statut==='en_cours'||c.statut==='finition'; }).length;
+      kpi('kc-ch',ch.length,ch.length>1?'chantiers':'chantier', ch.length?'Dont '+prod+' en production':'Aucun chantier saisi');
+      kpi('kc-pe',total,total>1?'compagnons':'compagnon', total?'Sur '+Object.keys(surCh).length+' chantier'+(Object.keys(surCh).length>1?'s':''):'Aucune équipe saisie');
+      var sem=lv.filter(function(x){ return x.date<=dans7; }).length, ret=lv.filter(function(x){ return x.statut==='retard'; }).length;
+      kpi('kc-li',lv.length,lv.length>1?'livraisons':'livraison', lv.length?(ret?ret+' en retard':sem+' sous 7 jours'):'Aucune livraison prévue');
+      var bl=al.filter(function(x){ return x.niveau==='bloquant'; }).length;
+      kpi('kc-al',al.length,al.length>1?'alertes':'alerte', al.length?(bl?bl+' point'+(bl>1?'s':'')+' bloquant'+(bl>1?'s':''):'Aucun point bloquant'):'Aucune alerte');
+
+      $('c3-nb').textContent=ch.length?'('+ch.length+')':'';
+      $('c3-liste').innerHTML = nd ? '<li style="display:block">'+vide(nd)+'</li>' : ch.length ? ch.slice(0,6).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours;
+        return '<li><span class="ph"><svg class="i"><use href="#n-chantiers"/></svg></span><span><span class="n"><b>'+esc(c.nom)+'</b>'+(c.lieu?' – '+esc(c.lieu):'')+'</span><span class="bar"><i style="width:'+c.avancement+'%"></i></span></span><span class="p">'+c.avancement+' %</span>'+etq(s[0],s[1])+'</li>'; }).join('')
+        : '<li style="display:block">'+vide('Aucun chantier saisi.<br>Ouvrez « Chantiers » pour en ajouter.')+'</li>';
+
+      var tt=T.taches||[], aFaire=tt.filter(function(t){ return !t.fait; }), vues=aFaire.concat(tt.filter(function(t){ return t.fait; })).slice(0,5);
+      $('tc-nb').textContent=aFaire.length?'('+aFaire.length+')':'';
+      $('tc').innerHTML = nd ? '<li style="display:block;border:0">'+vide(nd)+'</li>' : vues.length ? vues.map(function(t){ var pr=PRIOS[t.priorite]||PRIOS.normale, tard=!t.fait&&t.limite&&t.limite<a;
+        return '<li class="'+(t.fait?'fait':'')+'"><input type="checkbox" data-tache="'+t.id+'"'+(t.fait?' checked':'')+(t.pour!==T.moi?' disabled':'')+' aria-label="Terminer"><span>'+(t.priorite!=='normale'&&!t.fait?'<i class="prio" style="--k:'+pr[1]+'" title="'+pr[0]+'"></i>':'')+esc(t.texte)+(t.auteur!==t.pour?'<small>'+(t.pour===T.moi?'De '+esc(t.auteur_nom):'Pour '+esc(t.pour_nom))+'</small>':'')+'</span>'+(t.limite&&!t.fait?etq(dateCourte(t.limite),tard?'#FF5267':'#9FB4CE'):'<span></span>')+'</li>'; }).join('')
+        : '<li style="display:block;border:0">'+vide('Aucune tâche.')+'</li>';
+
+      $('af').innerHTML = nd ? '<li style="display:block;border:0">'+vide(nd)+'</li>' : af.length ? af.slice(0,4).map(function(x){ return '<li><span>'+esc(x.equipe)+' – '+esc(x.chantier)+'</span>'+etq(x.effectif+' pers.','#00BFFF')+'</li>'; }).join('')+'<li class="total"><span>Total mobilisé</span>'+etq(total+' pers.','#00BFFF')+'</li>'
+        : '<li style="display:block;border:0">'+vide('Aucune équipe saisie.')+'</li>';
+
+      $('lv-nb').textContent=lv.length?'('+lv.length+')':'';
+      $('lv').innerHTML = nd ? '<li style="display:block;border:0">'+vide(nd)+'</li>' : lv.length ? lv.slice(0,5).map(function(x){ var s=LIVR[x.statut]||LIVR.prevue, tard=x.statut==='retard'||x.date<a;
+        return '<li><span>'+esc(x.materiaux)+'<small>'+esc([x.chantier,x.fournisseur].filter(Boolean).join(' · '))+(tard?' · en retard':'')+'</small></span>'+etq(dateCourte(x.date),tard?LIVR.retard[1]:s[1])+'</li>'; }).join('')
+        : '<li style="display:block;border:0">'+vide('Aucune livraison prévue.')+'</li>';
+
+      $('al-nb').textContent=al.length?'('+al.length+')':'';
+      $('al').innerHTML = nd ? vide(nd) : al.length ? al.slice(0,3).map(function(x){ var n=NIVEAUX[x.niveau]||NIVEAUX.attention;
+        return '<div style="--k:'+n[1]+'"><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg><span><b>'+esc(x.chantier)+'</b><span>'+esc(x.texte)+'</span></span></div>'; }).join('')
+        : vide('Aucune alerte en cours.');
+    }
+
+    /* ---- pages de saisie ---- */
+    function creerPages(){
+      var h='';
+      Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle];
+        h+='<section class="vue page pf-page" id="v-l'+cle+'" data-pour="conducteur"><div class="entete"><h1><svg class="i"><use href="#n-'+d.icone+'"/></svg>'+d.titre+'</h1><span class="h" data-heure></span></div>'
+          +'<div class="corps"><div class="carte"><div id="pl-'+cle+'"></div></div>'
+          +'<form class="carte form" data-liste="'+cle+'"><h2 id="pt-'+cle+'">Ajouter '+d.un+'</h2>'
+          +d.champs.map(function(c){ var id='pc-'+cle+'-'+c[0], ch;
+            if(c[2]==='choix') ch='<select id="'+id+'">'+Object.keys(c[3]).map(function(k){ return '<option value="'+k+'">'+esc(c[3][k])+'</option>'; }).join('')+'</select>';
+            else if(c[2]==='nombre') ch='<input id="'+id+'" type="number" min="0" max="'+(c[0]==='avancement'?100:99)+'" step="1" value="0" inputmode="numeric">';
+            else if(c[2]==='date') ch='<input id="'+id+'" type="date" required>';
+            else ch='<input id="'+id+'" type="text" autocomplete="off" maxlength="'+(c[0]==='texte'?200:60)+'"'+(c[2]==='chantier'?' list="pf-chantiers"':'')+(c[0]==='fournisseur'||c[0]==='lieu'||(cle==='livraisons'&&c[0]==='chantier')?'':' required')+'>';
+            return '<label for="'+id+'">'+c[1]+ch+'</label>'; }).join('')
+          +'<button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" data-annuler="'+cle+'" hidden>Annuler la modification</button>'
+          +'<p class="info" id="pm-'+cle+'">Ces informations sont partagées avec la direction.</p></form></div></section>';
+      });
+      h+='<section class="vue page pf-page" id="v-tachesp" data-pour="conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-taches"/></svg>Mes tâches</h1><span class="h" data-heure></span></div>'
+        +'<div class="corps"><div class="carte"><div id="tp-avis"></div><div id="tp-liste"></div></div>'
+        +'<form class="carte form" id="tp-form"><h2>Ajouter une tâche</h2><label for="tp-texte">Tâche<input id="tp-texte" type="text" autocomplete="off" maxlength="200" required></label>'
+        +'<label for="tp-prio">Priorité<select id="tp-prio"><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgente">Urgente</option></select></label>'
+        +'<label for="tp-limite">Date limite (facultatif)<input id="tp-limite" type="date"></label><button class="bouton ok" type="submit">Ajouter</button>'
+        +'<p class="info" id="tp-msg">Les tâches données par la direction apparaissent ici. Une tâche terminée reste affichée, rayée.</p></form></div></section>';
+      h+='<section class="vue page pf-page" id="v-mails" data-pour="conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-mails"/></svg>Mails professionnels <small id="mp-nb" style="font-size:22px;font-weight:400;color:var(--discret)"></small></h1><span class="h" data-heure></span></div>'
+        +'<div class="corps"><div class="carte"><div id="mp-liste"></div></div><div class="carte form"><h2>Messagerie</h2><p class="info">Votre boîte Gmail, en lecture. Sigma peut résumer vos messages et préparer des brouillons : aucun message n\'est envoyé sans votre validation dans Gmail.</p>'
+        +'<a class="bouton ok" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="display:grid;place-items:center;text-decoration:none">Ouvrir Gmail</a><button class="bouton" type="button" id="mp-maj">Actualiser</button></div></div></section>';
+      h+='<section class="vue page pf-page" id="v-comptes" data-pour="direction"><div class="entete"><h1><svg class="i"><use href="#n-personnel"/></svg>Comptes et profils</h1><span class="h" data-heure></span></div>'
+        +'<div class="corps"><div class="carte"><div id="cp-liste"></div><h2 style="margin:22px 0 8px">Historique</h2><div id="cp-journal"></div></div>'
+        +'<form class="carte form" id="cp-form"><h2 id="cp-titre">Ajouter un compte</h2><label for="cp-email">Adresse Google de la personne<input id="cp-email" type="email" autocomplete="off" spellcheck="false" maxlength="250" required></label>'
+        +'<label for="cp-nom">Prénom<input id="cp-nom" type="text" autocomplete="off" maxlength="60"></label>'
+        +'<label for="cp-profil">Profil<select id="cp-profil"><option value="conducteur">Conducteur de travaux</option><option value="secretaire">Secrétaire de direction</option><option value="direction">Direction (voit tout)</option></select></label>'
+        +'<label style="display:flex;grid-auto-flow:column;align-items:center;gap:12px;color:var(--texte)"><input id="cp-actif" type="checkbox" checked style="width:26px;height:26px;flex:none"> Compte actif</label>'
+        +'<button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" id="cp-annuler" hidden>Annuler la modification</button>'
+        +'<p class="info" id="cp-msg">La personne se connecte avec cette adresse Google. Un compte désactivé est déconnecté aussitôt. Les droits sont appliqués par le serveur.</p></form></div></section>';
+      h+='<datalist id="pf-chantiers"></datalist>';
+      $('vues').insertAdjacentHTML('beforeend',h);
+    }
+    function valeur(c,l){ var v=l[c[0]]; if(c[2]==='choix') return etq(c[3][v]||v, (STATUTS[v]||LIVR[v]||NIVEAUX[v]||['','#00BFFF'])[1]); if(c[2]==='date') return v?esc(v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4)):''; if(c[0]==='avancement') return v+' %'; return esc(v==null?'':v); }
+    function dessinerPages(){
+      $('pf-chantiers').innerHTML=lignes('chantiers').map(function(c){ return '<option value="'+esc(c.nom)+'">'; }).join('');
+      Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle], l=lignes(cle);
+        $('pl-'+cle).innerHTML = etatDonnees ? vide(etatDonnees) : l.length ? '<table class="pf-tab"><thead><tr>'+d.champs.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
+          +l.map(function(x){ return '<tr>'+d.champs.map(function(c){ return '<td>'+valeur(c,x)+'</td>'; }).join('')+'<td class="a"><button class="bouton" type="button" data-modif="'+cle+'" data-id="'+x.id+'">Modifier</button><button class="bouton danger" type="button" data-suppr="'+cle+'" data-id="'+x.id+'">Supprimer</button></td></tr>'; }).join('')+'</tbody></table>'
+          : vide('Rien de saisi pour le moment.');
+      });
+      var a=auj(), tt=T.taches||[];
+      $('tp-avis').innerHTML = (T.avis||[]).length ? '<div class="pf-avis">'+T.avis.map(function(x){ return '<span>'+esc(x.texte)+'</span>'; }).join('')+'<button class="bouton" type="button" id="tp-lu" style="height:38px;font-size:15px;justify-self:start;padding:0 14px;margin-top:4px">Marquer comme lus</button></div>' : '';
+      $('tp-liste').innerHTML = etatDonnees ? vide(etatDonnees) : tt.length ? '<table class="pf-tab"><thead><tr><th>Tâche</th><th>Priorité</th><th>Date limite</th><th>Donnée par</th><th></th></tr></thead><tbody>'
+        +tt.map(function(t){ var pr=PRIOS[t.priorite]||PRIOS.normale, tard=!t.fait&&t.limite&&t.limite<a;
+          return '<tr class="'+(t.fait?'fait':'')+'"><td><label style="display:flex;gap:12px;align-items:center;cursor:pointer"><input type="checkbox" data-tache="'+t.id+'"'+(t.fait?' checked':'')+(t.pour!==T.moi?' disabled':'')+' style="width:24px;height:24px;flex:none;margin:0">'+esc(t.texte)+'</label></td><td>'+etq(pr[0],pr[1])+'</td><td>'+(t.limite?etq(dateCourte(t.limite)+'/'+t.limite.slice(0,4),tard?'#FF5267':'#9FB4CE'):'')+'</td><td>'+(t.auteur===T.moi?(t.pour===T.moi?'Moi':'Moi → '+esc(t.pour_nom)):esc(t.auteur_nom))+'</td><td class="a">'+(t.auteur===T.moi?'<button class="bouton danger" type="button" data-tsuppr="'+t.id+'">Supprimer</button>':'')+'</td></tr>'; }).join('')+'</tbody></table>'
+        : vide('Aucune tâche.');
+    }
+    /* ---- comptes (direction) ---- */
+    var C=null;
+    function chargerComptes(){
+      appelServeur('/comptes',{methode:'GET'}).then(function(j){ C=j; dessinerComptes(); },function(x){ $('cp-liste').innerHTML=vide('Comptes non disponibles ('+esc(x.message||'erreur')+').'); });
+      appelServeur('/journal',{methode:'GET'}).then(function(j){ var l=(j.journal||[]).slice(0,12);
+        $('cp-journal').innerHTML = l.length ? '<table class="pf-tab"><tbody>'+l.map(function(x){ var d=new Date(x.quand); return '<tr><td style="white-space:nowrap;color:var(--discret);font-size:16px">'+p2(d.getDate())+'/'+p2(d.getMonth()+1)+' '+p2(d.getHours())+':'+p2(d.getMinutes())+'</td><td style="font-size:16px"><b>'+esc(x.action)+'</b> · '+esc(x.detail)+'</td></tr>'; }).join('')+'</tbody></table>' : vide('Aucune action enregistrée.'); },function(){ $('cp-journal').innerHTML=''; });
+    }
+    function dessinerComptes(){
+      var l=(C&&C.comptes)||[];
+      $('cp-liste').innerHTML='<table class="pf-tab"><thead><tr><th>Adresse</th><th>Prénom</th><th>Profil</th><th>État</th><th></th></tr></thead><tbody>'+l.map(function(c){
+        return '<tr><td>'+esc(c.email)+'</td><td>'+esc(c.nom||'')+'</td><td>'+esc(NOMS[c.profil]||c.profil)+'</td><td>'+(c.proprietaire?etq('Propriétaire','#00BFFF'):c.actif?etq('Actif','#00E5A0'):etq('Désactivé','#FF5267'))+'</td><td class="a">'+(c.proprietaire?'':'<button class="bouton" type="button" data-compte="'+esc(c.email)+'">Modifier</button>')+'</td></tr>'; }).join('')+'</tbody></table>';
+    }
+    function finCompte(){ $('cp-form').reset(); $('cp-email').readOnly=false; $('cp-titre').textContent='Ajouter un compte'; $('cp-annuler').hidden=true; }
+    var M=null;
+    function chargerMails(){ appelServeur('/mails',{methode:'GET'}).then(function(j){ M=j; dessinerMails(); },function(x){ M={erreur:x.message}; dessinerMails(); }); }
+    function dessinerMails(){
+      if(!$('mp-liste')) return;
+      if(!M){ $('mp-liste').innerHTML=vide('Chargement…'); return; }
+      $('mp-nb').textContent = M.autorise&&M.non_lus!=null ? '('+M.non_lus+' non lu'+(M.non_lus>1?'s':'')+')' : '';
+      if(M.erreur){ $('mp-liste').innerHTML=vide('Messagerie non disponible ('+esc(M.erreur)+').'); return; }
+      if(!M.autorise){ $('mp-liste').innerHTML=vide('Messagerie non reliée.<br>Ouvrez Réglages et touchez « Relier mon agenda Google » pour autoriser Gmail.'); return; }
+      var l=M.messages||[];
+      $('mp-liste').innerHTML = l.length ? '<table class="pf-tab"><tbody>'+l.map(function(m){ return '<tr><td style="width:26%;font-weight:'+(m.non_lu?700:400)+'">'+esc(m.de||'')+'</td><td style="font-weight:'+(m.non_lu?700:400)+'">'+esc(m.objet||'(sans objet)')+'<div style="font-size:15px;font-weight:400;color:var(--discret)">'+esc(m.extrait||'')+'</div></td></tr>'; }).join('')+'</tbody></table>' : vide('Boîte de réception vide.');
+    }
+    function dessiner(){ if(vu()==='direction') return; if(vu()==='conducteur') dessinerConducteur(); dessinerPages(); }
+
+    /* ---- gestes ---- */
+    document.addEventListener('submit',function(e){
+      var f=e.target, cle=f.getAttribute&&f.getAttribute('data-liste');
+      if(cle){ e.preventDefault(); var d=DEFS[cle], x={}; if(enEdition[cle]) x.id=enEdition[cle];
+        d.champs.forEach(function(c){ var el=$('pc-'+cle+'-'+c[0]); x[c[0]] = c[2]==='nombre' ? Number(el.value||0) : el.value.trim(); });
+        var l=lignes(cle).slice(), i=-1; l.forEach(function(y,k){ if(y.id===x.id) i=k; }); if(i>=0) l[i]=x; else l.push(x);
+        $('pm-'+cle).textContent='Enregistrement…';
+        enregistrer(cle,l).then(function(){ finEdition(cle); $('pm-'+cle).textContent='Enregistré.'; },function(z){ $('pm-'+cle).textContent='Non enregistré : '+(z.message||'erreur')+'.'; });
+      }
+      if(f.id==='cp-form'){ e.preventDefault(); $('cp-msg').textContent='Enregistrement…';
+        appelServeur('/comptes',{corps:{email:$('cp-email').value.trim(),nom:$('cp-nom').value.trim(),profil:$('cp-profil').value,actif:$('cp-actif').checked}}).then(function(j){ C=j; dessinerComptes(); finCompte(); $('cp-msg').textContent='Compte enregistré.'; chargerComptes(); },function(z){ $('cp-msg').textContent='Non enregistré : '+(z.message||'erreur')+'.'; }); }
+      if(f.id==='tp-form'){ e.preventDefault(); var t=$('tp-texte').value.trim(); if(!t) return;
+        tache({action:'creer',texte:t,priorite:$('tp-prio').value,limite:$('tp-limite').value}).then(function(){ f.reset(); $('tp-msg').textContent='Tâche ajoutée.'; },function(z){ $('tp-msg').textContent='Non enregistrée : '+(z.message||'erreur')+'.'; }); }
+    });
+    function finEdition(cle){ enEdition[cle]=''; var f=document.querySelector('form[data-liste="'+cle+'"]'); f.reset(); $('pt-'+cle).textContent='Ajouter '+DEFS[cle].un; f.querySelector('[data-annuler]').hidden=true; }
+    document.addEventListener('click',function(e){
+      var b=e.target.closest('[data-modif],[data-suppr],[data-annuler],[data-tsuppr],[data-compte],#cp-annuler,#pf-comptes,#tp-lu,#mp-maj,#pf-revenir'); if(!b) return;
+      if(b.id==='pf-comptes'){ aller('comptes'); return; }
+      if(b.id==='cp-annuler'){ finCompte(); return; }
+      if(b.hasAttribute('data-compte')){ var k=((C&&C.comptes)||[]).filter(function(y){ return y.email===b.getAttribute('data-compte'); })[0]; if(!k) return;
+        $('cp-email').value=k.email; $('cp-email').readOnly=true; $('cp-nom').value=k.nom||''; $('cp-profil').value=k.profil; $('cp-actif').checked=!!k.actif; $('cp-titre').textContent='Modifier le compte'; $('cp-annuler').hidden=false; return; }
+      var cle, id=b.getAttribute('data-id');
+      if((cle=b.getAttribute('data-modif'))){ var x=lignes(cle).filter(function(y){ return y.id===id; })[0]; if(!x) return; enEdition[cle]=id;
+        DEFS[cle].champs.forEach(function(c){ $('pc-'+cle+'-'+c[0]).value=x[c[0]]; }); $('pt-'+cle).textContent='Modifier'; document.querySelector('form[data-liste="'+cle+'"] [data-annuler]').hidden=false; }
+      else if((cle=b.getAttribute('data-suppr'))){ enregistrer(cle,lignes(cle).filter(function(y){ return y.id!==id; })).then(null,function(z){ $('pm-'+cle).textContent='Non supprimé : '+(z.message||'erreur')+'.'; }); if(enEdition[cle]===id) finEdition(cle); }
+      else if((cle=b.getAttribute('data-annuler'))) finEdition(cle);
+      else if(b.hasAttribute('data-tsuppr')) tache({action:'supprimer',id:Number(b.getAttribute('data-tsuppr'))}).then(null,function(){});
+      else if(b.id==='tp-lu') tache({action:'lu'}).then(null,function(){});
+      else if(b.id==='mp-maj'){ M=null; dessinerMails(); chargerMails(); }
+      else if(b.id==='pf-revenir'){ ecrire(CLE_VOIR,''); appliquer(); aller('accueil'); }
+    });
+    document.addEventListener('change',function(e){
+      var c=e.target;
+      if(c.hasAttribute&&c.hasAttribute('data-tache')) tache({action:'cocher',id:Number(c.getAttribute('data-tache')),fait:c.checked}).then(null,function(){ c.checked=!c.checked; });
+      if(c.id==='pf-voir'){ ecrire(CLE_VOIR,c.value==='direction'?'':c.value); appliquer(); aller('accueil'); }
+    });
+
+    creerPages();
+    var allerProfil=aller;
+    aller=function(v){ allerProfil(v); if(vueActive==='comptes') chargerComptes(); if(vu()!=='direction'){ charger(false); if(vueActive==='mails'&&!M) chargerMails(); } };
+    setInterval(function(){ if(!document.hidden) charger(false); },60000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden){ verifier(); charger(false); } });
+    appliquer(); verifier();
+    if($('v-'+(location.hash.slice(1)||'x'))&&location.hash.slice(1)!==vueActive) aller(location.hash.slice(1));
+  })();
+
 })();
 </script>
 <script>
