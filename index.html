@@ -640,6 +640,19 @@ h2 svg{color:var(--neon)}
 .cc-centre .ia canvas.visage{background:#06101f url(sigma-5.jpg) 55% 12%/170% auto no-repeat;height:68%}
 .cc-centre .ia .bandeau{padding-top:40px}
 </style>
+<style>
+/* Menu à gauche (au lieu de la barre du bas), commun aux trois profils */
+#scene{grid-template-rows:1fr;grid-template-columns:100px 1fr}
+#vues{grid-column:2;grid-row:1}
+.bas{grid-column:1;grid-row:1;grid-template-columns:1fr;grid-template-rows:repeat(10,1fr);gap:8px}
+.nav{font-size:14.5px}
+.nav svg{width:30px;height:30px}
+.cc-tete{gap:16px}
+.cc-heure{font-size:48px}
+.cc-kpi{grid-template-columns:56px 1fr}
+.cc-kpi .t{font-size:16px}
+#p2-titre{font-size:19px}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
