@@ -850,7 +850,12 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .cc-bas .cc-ch.pf .p{font-size:16.5px}
 .cc-deux .pf-l,.cc-deux #a-taches{font-size:18px}
 #ps-barre>div{display:flex;align-items:center;gap:12px}
-#ps-res{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#ps-choix{display:grid;gap:6px;padding:4px 4px 6px}
+#ps-choix[hidden]{display:none}
+#ps-liste{display:grid;grid-template-columns:repeat(4,auto);gap:6px 26px;justify-content:start}
+#ps-liste label{display:flex;align-items:center;gap:10px;font-size:17px;cursor:pointer;white-space:nowrap}
+#ps-liste input{width:24px;height:24px;margin:0;flex:none}
+#ps-liste label.fixe{opacity:.55;cursor:default}
 #ps-res button{height:34px;padding:0 14px;font-size:15px;border-radius:99px;cursor:grab;touch-action:none;border:1px dashed color-mix(in srgb,var(--jaune) 75%,transparent)}
 #ps-msg{color:var(--jaune);font-weight:600}
 .ps-min{flex:1;min-height:0;display:grid;place-content:center;justify-items:center;gap:4px}
@@ -1259,7 +1264,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   </div>
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
-  <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre, un bouton du menu ou une fenêtre en réserve sur une fenêtre pour la remplacer · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div><span>En réserve :</span><span id="ps-res"></span><span id="ps-msg"></span></div></div>
+  <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-b-fen" aria-expanded="false">Fenêtres visibles ▾</button><button class="bouton" type="button" id="ps-b-menu" aria-expanded="false">Boutons du menu ▾</button><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div id="ps-choix" hidden><div id="ps-liste"></div><span id="ps-msg"></span></div><span id="ps-res" hidden></span></div>
   <div id="pf-apercu" hidden><span>Aperçu du profil <b id="pf-apercu-nom"></b></span><button class="bouton ok" type="button" id="pf-revenir">Revenir à Direction</button></div>
 
   <div class="voile" id="ge-voile">
@@ -3395,16 +3400,36 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var plan={deux:(d.ordre&&d.ordre.deux)||(DEPART[profil()]||DEPART.direction).deux, bas:(d.ordre&&d.ordre.bas)||(DEPART[profil()]||DEPART.direction).bas};
       blocs().forEach(function(e){ RES.appendChild(e); });
       ['deux','bas'].forEach(function(n){ var c=boite(n==='deux'?'.cc-deux':'.cc-bas'); c.style.gridTemplateColumns=''; plan[n].forEach(function(k){ var e=fen(k); if(e&&permise(e)&&e.parentNode===RES) c.appendChild(e); }); });
-      // une place laissée vide (fenêtre disparue) est complétée par une fenêtre en réserve
-      [['.cc-deux',2],['.cc-bas',4]].forEach(function(x){ var c=boite(x[0]); while(visibles(c).length<x[1]&&enReserve().length) c.appendChild(enReserve()[0]); });
-      dessinerReserve();
-      GRILLES.forEach(function(g){ var c=boite(g[1]), n=visibles(c).length, l=d.cols&&d.cols[g[0]]; if(l&&l.length===n) c.style.gridTemplateColumns=l.map(function(x){ return x+'fr'; }).join(' '); });
+      // la rangée du haut ne reste jamais vide
+      var haut=boite('.cc-deux'), bas=boite('.cc-bas'); if(!visibles(haut).length&&visibles(bas).length) haut.appendChild(visibles(bas)[0]);
+      dessinerChoix();
+      GRILLES.forEach(function(g){ var c=boite(g[1]), n=visibles(c).length, l=d.cols&&d.cols[g[0]], normal={kpis:4,deux:2,bas:4}[g[0]];
+        if(l&&l.length===n) c.style.gridTemplateColumns=l.map(function(x){ return x+'fr'; }).join(' '); else if(n&&n!==normal) c.style.gridTemplateColumns='repeat('+n+',minmax(0,1fr))'; });
       boite('.cc-centre').style.gridTemplateColumns = d.sigma ? d.sigma+'px 1fr' : '';
       V.style.gridTemplateRows = d.bas ? rangees(d) : '';
       menu();
       if(R.classList.contains('perso')) poignees();
     }
-    function dessinerReserve(){ $('ps-res').innerHTML=enReserve().map(function(e){ var k=e.getAttribute('data-fen'); return '<button class="bouton" type="button" data-res="'+k+'">'+(TITRES[k]||k)+'</button>'; }).join('')||'<span style="color:var(--discret)">aucune fenêtre</span>'; }
+    /* ---- listes à cocher : fenêtres visibles sur l'accueil, boutons visibles dans le menu ---- */
+    var choix='';
+    function dessinerChoix(){
+      var h='';
+      if(choix==='fen') h=blocs().filter(permise).map(function(e){ var k=e.getAttribute('data-fen'); return '<label><input type="checkbox" data-voir="'+k+'"'+(e.parentNode!==RES?' checked':'')+'>'+(TITRES[k]||k)+'</label>'; }).join('');
+      if(choix==='menu'){ var cache=D().menuCache||[]; h=[].map.call($('nav').children,function(b){ var k=cleNav(b), fixe=(k==='accueil'||k==='reglages'); return '<label'+(fixe?' class="fixe"':'')+'><input type="checkbox" data-bouton="'+k+'"'+(cache.indexOf(k)<0?' checked':'')+(fixe?' disabled':'')+'>'+b.textContent.trim().replace(/\d+:\d+$/,'')+'</label>'; }).join(''); }
+      $('ps-liste').innerHTML=h; $('ps-choix').hidden=!choix;
+      $('ps-b-fen').setAttribute('aria-expanded',choix==='fen'); $('ps-b-menu').setAttribute('aria-expanded',choix==='menu');
+      $('ps-b-fen').classList.toggle('ok',choix==='fen'); $('ps-b-menu').classList.toggle('ok',choix==='menu');
+    }
+    $('ps-b-fen').addEventListener('click',function(){ choix=choix==='fen'?'':'fen'; dessinerChoix(); });
+    $('ps-b-menu').addEventListener('click',function(){ choix=choix==='menu'?'':'menu'; dessinerChoix(); });
+    $('ps-barre').addEventListener('change',function(e){
+      var c=e.target, k;
+      if((k=c.getAttribute('data-voir'))){ var el=fen(k), haut=boite('.cc-deux'), bas=boite('.cc-bas');
+        if(c.checked){ if(visibles(bas).length<5) bas.appendChild(el); else if(visibles(haut).length<3) haut.appendChild(el); else { c.checked=false; message('L\'accueil est plein : décochez d\'abord une fenêtre.'); return; } }
+        else { if(visibles(haut).length+visibles(bas).length<=1){ c.checked=true; message('Gardez au moins une fenêtre.'); return; } RES.appendChild(el); }
+        var d=D(); delete d.cols; retenirOrdre(); appliquer(); }
+      else if((k=c.getAttribute('data-bouton'))){ var d2=D(), l=(d2.menuCache||[]).filter(function(x){ return x!==k; }); if(!c.checked) l.push(k); d2.menuCache=l; garderD(); menu(); }
+    });
     var tMsg=null; function message(t){ $('ps-msg').textContent=t; clearTimeout(tMsg); tMsg=setTimeout(function(){ $('ps-msg').textContent=''; },3500); }
     /* pose la fenêtre k à la place de la fenêtre visée : échange si elle est déjà affichée, sinon l'autre part en réserve */
     function poser(k,vise){
@@ -3416,15 +3441,9 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var d=D(); delete d.cols; retenirOrdre(); appliquer();
     }
     function cleNav(b){ return b.getAttribute('data-aller')||b.getAttribute('data-special')||b.getAttribute('data-fenmenu')||''; }
-    /* Menu et accueil se complètent : une page que l'on a glissée du menu vers l'accueil quitte le menu tant que sa fenêtre est affichée,
-       et une fenêtre partie en réserve qui n'a pas de bouton reçoit un bouton dans le menu. Rien ne disparaît. */
-    var ICONES={'e2-nb':'echeances','m2-nb':'mails','al-nb':'alertes','pe2-nb':'personnel','mi-nb':'minuteur','c3-nb':'chantiers','p2-titre':'agenda','t2-nb':'taches','tc-nb':'taches','f2-an':'gestion','af-nb':'personnel','lv-nb':'livraisons'};
     function menu(){
-      var n=$('nav'), d=D(), hors=d.horsMenu||[], aBouton={};
-      [].forEach.call(n.querySelectorAll('[data-fenmenu]'),function(b){ b.remove(); });
-      [].forEach.call(n.children,function(b){ var k=cleNav(b), w=DU_MENU[k]; if(w) aBouton[w]=1; var e=w&&fen(w); b.style.display = (hors.indexOf(k)>=0&&e&&e.parentNode!==RES&&permise(e)) ? 'none' : ''; });
-      enReserve().forEach(function(e){ var k=e.getAttribute('data-fen'); if(aBouton[k]) return;
-        n.insertAdjacentHTML('beforeend','<button class="carte nav" type="button" data-fenmenu="'+k+'"><svg class="i"><use href="#n-'+(ICONES[k]||'taches')+'"/></svg>'+(TITRES[k]||k)+'</button>'); });
+      var n=$('nav'), d=D(), cache=d.menuCache||[];
+      [].forEach.call(n.children,function(b){ b.style.display = cache.indexOf(cleNav(b))>=0 ? 'none' : ''; });
       if(d.nav){ var bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); }
     }
     /* un bouton de fenêtre en réserve ouvre ce que la fenêtre ouvrait avec « Voir tout » */
@@ -3482,7 +3501,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       if(cible){
         if(prise.hasAttribute('data-res')) poser(prise.getAttribute('data-res'),cible);
         else if(prise.classList.contains('nav')&&!cible.classList.contains('nav')){ var cn=cleNav(prise), k=DU_MENU[cn]||prise.getAttribute('data-fenmenu');
-          if(k&&fen(k)&&permise(fen(k))){ var dd=D(); if(!dd.horsMenu) dd.horsMenu=[]; if(DU_MENU[cn]&&dd.horsMenu.indexOf(cn)<0) dd.horsMenu.push(cn); poser(k,cible); } else message('Cette page n\'a pas de fenêtre pour l\'accueil.'); }
+          if(k&&fen(k)&&permise(fen(k))) poser(k,cible); else message('Cette page n\'a pas de fenêtre pour l\'accueil.'); }
         else if(prise.classList.contains('nav')){ var n=$('nav'), l=[].slice.call(n.children); n.insertBefore(prise, l.indexOf(prise)<l.indexOf(cible)?cible.nextSibling:cible); D().nav=[].map.call(n.children,cleNav); garderD(); }
         else { var m=document.createComment(''); cible.parentNode.insertBefore(m,cible); prise.parentNode.insertBefore(cible,prise); m.parentNode.insertBefore(prise,m); m.remove(); var d=D(); delete d.cols; retenirOrdre(); appliquer(); }
         cible.classList.remove('ps-cible');
@@ -3493,7 +3512,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     document.addEventListener('click',function(e){ if(R.classList.contains('perso')&&!e.target.closest('#ps-barre')){ e.preventDefault(); e.stopPropagation(); } },true);
 
     function mode(actif){
-      R.classList.toggle('perso',actif); $('ps-barre').hidden=!actif;
+      R.classList.toggle('perso',actif); $('ps-barre').hidden=!actif; if(!actif) choix=''; dessinerChoix();
       if(actif){ aller('accueil'); setTimeout(poignees,60); } else { traits.forEach(function(t){ t.remove(); }); traits=[]; }
     }
     $('ps-ouvrir').addEventListener('click',function(){ mode(true); });
