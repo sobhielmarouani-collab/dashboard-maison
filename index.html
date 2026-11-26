@@ -831,7 +831,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
 .cc-ch.pf .n,.cc-ch.pf .bar{display:block}
 /* ---- disposition personnalisable ---- */
 #v-accueil{position:relative}
-#ps-barre{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;padding:6px 8px 6px 18px;border-radius:99px;font-size:15.5px;white-space:nowrap;
+#ps-barre{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:grid;gap:6px;padding:8px 10px 8px 18px;border-radius:22px;font-size:15.5px;white-space:nowrap;
   background:var(--verre);border:1px solid color-mix(in srgb,var(--jaune) 75%,transparent);box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
 #ps-barre[hidden]{display:none}
 #ps-barre button{height:36px;padding:0 14px;font-size:15px}
@@ -844,6 +844,18 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .ps-trait.v{cursor:col-resize}.ps-trait.v::before{width:4px;height:60%}
 .ps-trait.h{cursor:row-resize}.ps-trait.h::before{height:4px;width:30%}
 .ps-trait:hover::before{opacity:1;background:#fff}
+.cc-bas .cc-ch.pf li{grid-template-columns:1fr 52px 96px;gap:8px}
+.cc-bas .cc-ch.pf li:nth-child(n+5),.cc-bas .cc-ch.pf .ph{display:none}
+.cc-bas .cc-ch.pf .n{font-size:15.5px}
+.cc-bas .cc-ch.pf .p{font-size:16.5px}
+.cc-deux .pf-l,.cc-deux #a-taches{font-size:18px}
+#ps-barre>div{display:flex;align-items:center;gap:12px}
+#ps-res{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#ps-res button{height:34px;padding:0 14px;font-size:15px;border-radius:99px;cursor:grab;touch-action:none;border:1px dashed color-mix(in srgb,var(--jaune) 75%,transparent)}
+#ps-msg{color:var(--jaune);font-weight:600}
+.ps-min{flex:1;min-height:0;display:grid;place-content:center;justify-items:center;gap:4px}
+.ps-min b{font-size:44px;font-variant-numeric:tabular-nums;line-height:1}
+.ps-min span{color:var(--discret);font-size:15.5px}
 </style>
 </head>
 <body>
@@ -951,7 +963,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances <em id="e2-nb"></em></span><button class="cc-lien" type="button" id="e2-gerer">Voir tout →</button></h2>
         <ul class="cc-ech" id="e2"></ul>
       </article>
-      <article class="carte cc-bloc" data-pour="direction">
+      <article class="carte cc-bloc" data-pour="direction conducteur">
         <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></svg>Mails <em id="m2-nb"></em></span><a class="cc-lien" id="m2-ouvrir" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Gmail →</a></h2>
         <ul class="cc-mails" id="m2"></ul>
       </article>
@@ -973,6 +985,18 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       </article>
     </div>
 
+    <!-- fenêtres en réserve : on les pose sur l'accueil depuis le mode Personnaliser -->
+    <div id="ps-reserve" hidden>
+      <article class="carte cc-bloc" data-pour="direction">
+        <h2><span><svg class="i"><use href="#n-personnel"/></svg>Personnel <em id="pe2-nb"></em></span><button class="cc-lien" type="button" data-aller="personnel">Voir tout →</button></h2>
+        <div class="cc-pers" id="pe2"></div>
+      </article>
+      <article class="carte cc-bloc" data-pour="direction conducteur secretaire">
+        <h2><span><svg class="i"><use href="#n-minuteur"/></svg>Minuteur <em id="mi-nb"></em></span><button class="cc-lien" type="button" data-aller="minuteur">Ouvrir →</button></h2>
+        <div class="ps-min"><b id="mi-reste">–</b><span id="mi-etat">Aucun minuteur en cours</span></div>
+      </article>
+    </div>
+
     <section class="carte cc-actus" data-pour="direction" aria-label="Actualités BTP">
       <h2><svg class="i"><use href="#n-actualites"/></svg>Actualités BTP</h2>
       <div class="cc-fil" id="n2"></div>
@@ -981,7 +1005,6 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
     <!-- éléments de l'ancienne mise en page, conservés hors écran car le code existant les alimente -->
     <div hidden>
-      <em id="pe2-nb"></em><div id="pe2"></div>
       <ul id="a-agenda"></ul><div id="a-pieces"></div><ul id="a-chantiers"></ul><div id="a-foyer"></div>
       <button id="t-minuteur" type="button"><small id="t-reste"></small></button><button id="t-infos" type="button"></button><button id="t-ecran" type="button"></button>
     </div>
@@ -1234,7 +1257,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   </div>
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
-  <div id="ps-barre" hidden><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour changer les tailles · glissez les boutons du menu</span><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div>
+  <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre, un bouton du menu ou une fenêtre en réserve sur une fenêtre pour la remplacer · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div><span>En réserve :</span><span id="ps-res"></span><span id="ps-msg"></span></div></div>
   <div id="pf-apercu" hidden><span>Aperçu du profil <b id="pf-apercu-nom"></b></span><button class="bouton ok" type="button" id="pf-revenir">Revenir à Direction</button></div>
 
   <div class="voile" id="ge-voile">
@@ -3335,6 +3358,11 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   (function(){
     var CLE_D='dashboard-disposition-v1', R=document.documentElement, V=$('v-accueil');
     var GRILLES=[['kpis','.cc-kpis'],['deux','.cc-deux'],['bas','.cc-bas']];
+    /* fenêtres affichées au départ pour chaque profil ; les autres fenêtres permises attendent en réserve */
+    var DEPART={direction:{deux:['c3-nb','p2-titre'],bas:['t2-nb','f2-an','e2-nb','m2-nb']},conducteur:{deux:['c3-nb','p2-titre'],bas:['tc-nb','af-nb','lv-nb','al-nb']}};
+    /* bouton du menu → fenêtre correspondante */
+    var DU_MENU={lchantiers:'c3-nb',chantiers:'c3-nb',gestion:'f2-an',personnel:'pe2-nb',agenda:'p2-titre',taches:'t2-nb',tachesp:'tc-nb',laffectations:'af-nb',llivraisons:'lv-nb',mails:'m2-nb',minuteur:'mi-nb'};
+    var TITRES={'c3-nb':'Chantiers','p2-titre':'Agenda / planning','t2-nb':'Tâches','f2-an':'Finances','e2-nb':'Échéances','m2-nb':'Mails','pe2-nb':'Personnel','mi-nb':'Minuteur','tc-nb':'Tâches','af-nb':'Affectations','lv-nb':'Livraisons','al-nb':'Alertes'};
     var tout=(function(){ try{ var o=JSON.parse(lire(CLE_D)||'null'); if(o&&typeof o==='object') return o; }catch(e){} return {}; })();
     function profil(){ return R.getAttribute('data-profil')||'direction'; }
     function D(){ var p=profil(); if(!tout[p]) tout[p]={}; return tout[p]; }
@@ -3345,22 +3373,45 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
     /* chaque fenêtre reçoit un nom stable, tiré de l'identifiant de son contenu */
     var origine={};
-    GRILLES.forEach(function(g){ var c=boite(g[1]);
+    GRILLES.concat([['reserve','#ps-reserve']]).forEach(function(g){ var c=boite(g[1]);
       [].forEach.call(c.children,function(e,i){ var x=e.querySelector('[id]'); e.setAttribute('data-fen',x?x.id:g[0]+i); e.setAttribute('data-groupe',g[0]==='kpis'?'kpis':'blocs'); });
       origine[g[0]]=[].slice.call(c.children);
     });
+    var RES=$('ps-reserve');
+    function fen(k){ return V.querySelector('[data-fen="'+k+'"]'); }
+    function permise(e){ return (e.getAttribute('data-pour')||profil()).split(' ').indexOf(profil())>=0; }
+    function blocs(){ return [].slice.call(V.querySelectorAll('[data-groupe="blocs"]')); }
+    function enReserve(){ return blocs().filter(function(e){ return e.parentNode===RES&&permise(e); }); }
+    setInterval(function(){ var r=$('nav-reste'), t=r?r.textContent.trim():''; $('mi-reste').textContent=t||'–'; $('mi-etat').textContent=t?'Temps restant':'Aucun minuteur en cours'; },1000);
 
     function appliquer(){
       var d=D();
       // retour à l'ordre d'origine, puis ordre choisi pour ce profil (les échanges peuvent passer d'une rangée à l'autre)
-      GRILLES.forEach(function(g){ var c=boite(g[1]); origine[g[0]].forEach(function(e){ c.appendChild(e); }); c.style.gridTemplateColumns=''; });
-      if(d.ordre){ var par={}; [].forEach.call(V.querySelectorAll('[data-fen]'),function(e){ par[e.getAttribute('data-fen')]=e; });
-        GRILLES.forEach(function(g){ var c=boite(g[1]); (d.ordre[g[0]]||[]).forEach(function(k){ if(par[k]) c.appendChild(par[k]); }); }); }
+      var c0=boite('.cc-kpis'); origine.kpis.forEach(function(e){ c0.appendChild(e); }); c0.style.gridTemplateColumns='';
+      if(d.ordre&&d.ordre.kpis) d.ordre.kpis.forEach(function(k){ var e=fen(k); if(e&&e.parentNode===c0) c0.appendChild(e); });
+      // fenêtres : tout part en réserve, puis celles choisies (ou celles de départ du profil) prennent leur place
+      var plan={deux:(d.ordre&&d.ordre.deux)||(DEPART[profil()]||DEPART.direction).deux, bas:(d.ordre&&d.ordre.bas)||(DEPART[profil()]||DEPART.direction).bas};
+      blocs().forEach(function(e){ RES.appendChild(e); });
+      ['deux','bas'].forEach(function(n){ var c=boite(n==='deux'?'.cc-deux':'.cc-bas'); c.style.gridTemplateColumns=''; plan[n].forEach(function(k){ var e=fen(k); if(e&&permise(e)&&e.parentNode===RES) c.appendChild(e); }); });
+      // une place laissée vide (fenêtre disparue) est complétée par une fenêtre en réserve
+      [['.cc-deux',2],['.cc-bas',4]].forEach(function(x){ var c=boite(x[0]); while(visibles(c).length<x[1]&&enReserve().length) c.appendChild(enReserve()[0]); });
+      dessinerReserve();
       GRILLES.forEach(function(g){ var c=boite(g[1]), n=visibles(c).length, l=d.cols&&d.cols[g[0]]; if(l&&l.length===n) c.style.gridTemplateColumns=l.map(function(x){ return x+'fr'; }).join(' '); });
       boite('.cc-centre').style.gridTemplateColumns = d.sigma ? d.sigma+'px 1fr' : '';
       V.style.gridTemplateRows = d.bas ? rangees(d) : '';
       if(d.nav){ var n=$('nav'), bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); }
       if(R.classList.contains('perso')) poignees();
+    }
+    function dessinerReserve(){ $('ps-res').innerHTML=enReserve().map(function(e){ var k=e.getAttribute('data-fen'); return '<button class="bouton" type="button" data-res="'+k+'">'+(TITRES[k]||k)+'</button>'; }).join('')||'<span style="color:var(--discret)">aucune fenêtre</span>'; }
+    var tMsg=null; function message(t){ $('ps-msg').textContent=t; clearTimeout(tMsg); tMsg=setTimeout(function(){ $('ps-msg').textContent=''; },3500); }
+    /* pose la fenêtre k à la place de la fenêtre visée : échange si elle est déjà affichée, sinon l'autre part en réserve */
+    function poser(k,vise){
+      var e=fen(k); if(!e||!permise(e)){ message('Cette page n\'a pas de fenêtre pour l\'accueil.'); return; }
+      if(e===vise) return;
+      var m=document.createComment(''); vise.parentNode.insertBefore(m,vise);
+      if(e.parentNode===RES) RES.appendChild(vise); else e.parentNode.insertBefore(vise,e);
+      m.parentNode.insertBefore(e,m); m.remove();
+      var d=D(); delete d.cols; retenirOrdre(); appliquer();
     }
     function cleNav(b){ return b.getAttribute('data-aller')||b.getAttribute('data-special')||''; }
     function retenirOrdre(){ var d=D(); d.ordre={}; GRILLES.forEach(function(g){ d.ordre[g[0]]=visibles(boite(g[1])).map(function(e){ return e.getAttribute('data-fen'); }); }); garderD(); }
@@ -3399,20 +3450,23 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     var prise=null, cible=null;
     function sous(ev,sel){ var e=document.elementFromPoint(ev.clientX,ev.clientY); return e&&e.closest?e.closest(sel):null; }
     document.addEventListener('pointerdown',function(e){
-      if(!R.classList.contains('perso')||e.target.closest('.ps-trait,#ps-barre')) return;
-      var f=e.target.closest('#v-accueil [data-fen], #nav .nav'); if(!f) return;
+      if(!R.classList.contains('perso')||e.target.closest('.ps-trait')) return;
+      var f=e.target.closest('#v-accueil [data-fen], #nav .nav, #ps-res [data-res]'); if(!f) return;
       e.preventDefault(); prise=f; f.classList.add('ps-prise');
     },true);
     document.addEventListener('pointermove',function(e){
       if(!prise) return;
-      var menu=prise.classList.contains('nav'), c=sous(e, menu?'#nav .nav':'#v-accueil [data-fen][data-groupe="'+prise.getAttribute('data-groupe')+'"]');
+      var menu=prise.classList.contains('nav'), res=prise.hasAttribute('data-res');
+      var c = res ? sous(e,'#v-accueil [data-fen][data-groupe="blocs"]') : menu ? (sous(e,'#nav .nav')||sous(e,'#v-accueil [data-fen][data-groupe="blocs"]')) : sous(e,'#v-accueil [data-fen][data-groupe="'+prise.getAttribute('data-groupe')+'"]');
       if(cible&&cible!==c) cible.classList.remove('ps-cible');
       cible = c&&c!==prise ? c : null; if(cible) cible.classList.add('ps-cible');
     },true);
     document.addEventListener('pointerup',function(){
       if(!prise) return;
       if(cible){
-        if(prise.classList.contains('nav')){ var n=$('nav'), l=[].slice.call(n.children); n.insertBefore(prise, l.indexOf(prise)<l.indexOf(cible)?cible.nextSibling:cible); D().nav=[].map.call(n.children,cleNav); garderD(); }
+        if(prise.hasAttribute('data-res')) poser(prise.getAttribute('data-res'),cible);
+        else if(prise.classList.contains('nav')&&!cible.classList.contains('nav')){ var k=DU_MENU[cleNav(prise)]; if(k) poser(k,cible); else message('Cette page n\'a pas de fenêtre pour l\'accueil.'); }
+        else if(prise.classList.contains('nav')){ var n=$('nav'), l=[].slice.call(n.children); n.insertBefore(prise, l.indexOf(prise)<l.indexOf(cible)?cible.nextSibling:cible); D().nav=[].map.call(n.children,cleNav); garderD(); }
         else { var m=document.createComment(''); cible.parentNode.insertBefore(m,cible); prise.parentNode.insertBefore(cible,prise); m.parentNode.insertBefore(prise,m); m.remove(); var d=D(); delete d.cols; retenirOrdre(); appliquer(); }
         cible.classList.remove('ps-cible');
       }
