@@ -829,6 +829,21 @@ html[data-theme="clair"] .pf-etq{color:color-mix(in srgb,var(--k,var(--neon)) 64
 #pf-apercu button{height:36px;padding:0 14px;font-size:15px}
 html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout select{color-scheme:light}
 .cc-ch.pf .n,.cc-ch.pf .bar{display:block}
+/* ---- disposition personnalisable ---- */
+#v-accueil{position:relative}
+#ps-barre{position:absolute;left:50%;top:8px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;padding:6px 8px 6px 18px;border-radius:99px;font-size:15.5px;white-space:nowrap;
+  background:var(--verre);border:1px solid color-mix(in srgb,var(--jaune) 75%,transparent);box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
+#ps-barre[hidden]{display:none}
+#ps-barre button{height:36px;padding:0 14px;font-size:15px}
+html.perso #v-accueil [data-fen],html.perso #nav .nav{cursor:grab;outline:2px dashed color-mix(in srgb,var(--jaune) 70%,transparent);outline-offset:-3px;animation:none;touch-action:none}
+html.perso #v-accueil [data-fen] *,html.perso #nav .nav *,html.perso #ia{pointer-events:none}
+html.perso .ps-prise{opacity:.55;outline-style:solid!important}
+html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px color-mix(in srgb,var(--vert) 60%,transparent)!important}
+.ps-trait{position:absolute;z-index:5;touch-action:none;display:grid;place-items:center}
+.ps-trait::before{content:"";border-radius:4px;background:var(--jaune);box-shadow:0 0 10px var(--jaune);opacity:.85}
+.ps-trait.v{cursor:col-resize}.ps-trait.v::before{width:4px;height:60%}
+.ps-trait.h{cursor:row-resize}.ps-trait.h::before{height:4px;width:30%}
+.ps-trait:hover::before{opacity:1;background:#fff}
 </style>
 </head>
 <body>
@@ -1205,6 +1220,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Taille de l'affichage</span><button class="rond" type="button" data-act="zoom-" aria-label="Réduire l'affichage">−</button><b id="r-zoom" style="width:80px;text-align:center;font-size:24px">100 %</b><button class="rond" type="button" data-act="zoom+" aria-label="Agrandir l'affichage">+</button></div>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Profil</span><b id="pf-profil-nom" style="font-size:20px">Direction</b></div>
         <div id="pf-voir-bloc" style="display:flex;align-items:center;gap:14px;font-size:20px"><label for="pf-voir" style="flex:1">Voir l'écran comme</label><select id="pf-voir" style="min-width:250px"><option value="direction">Direction</option><option value="conducteur">Conducteur de travaux</option></select></div>
+        <button class="bouton" type="button" id="ps-ouvrir">Personnaliser l'accueil et le menu</button>
         <button class="bouton" type="button" id="pf-comptes">Gérer les comptes et les profils</button>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Thème</span><button class="bouton" type="button" id="r-theme" style="min-width:210px">Sombre</button></div>
         <button class="bouton" type="button" data-act="ecran">Passer en plein écran</button>
@@ -1218,6 +1234,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
   </div>
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
+  <div id="ps-barre" hidden><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour changer les tailles · glissez les boutons du menu</span><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div>
   <div id="pf-apercu" hidden><span>Aperçu du profil <b id="pf-apercu-nom"></b></span><button class="bouton ok" type="button" id="pf-revenir">Revenir à Direction</button></div>
 
   <div class="voile" id="ge-voile">
@@ -3065,7 +3082,9 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
       var p=vu(), l=NAVS[p]||RACCOURCIS.map(function(o){ return o[2]==='chantiers'?[o[0],o[1],'lchantiers']:o; }), reste=$('nav-reste')?$('nav-reste').textContent:'';
       $('nav').innerHTML=l.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste">'+esc(reste)+'</small>':'')+'</button>'; }).join('');
       [].forEach.call($('nav').children,function(b){ b.classList.toggle('actif',b.getAttribute('data-aller')===vueActive); });
+      if(typeof window.dispositionMenu==='function') window.dispositionMenu();
     }
+    window.redessinerMenu=dessinerNav;
     function appliquer(){
       var p=vu();
       document.documentElement.setAttribute('data-profil',p);
@@ -3307,6 +3326,114 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
     document.addEventListener('visibilitychange',function(){ if(!document.hidden){ verifier(); charger(false); } });
     appliquer(); verifier();
     if($('v-'+(location.hash.slice(1)||'x'))&&location.hash.slice(1)!==vueActive) aller(location.hash.slice(1));
+  })();
+
+
+  /* ============ DISPOSITION PERSONNALISABLE ============
+     Mode « Personnaliser » (Réglages) : glisser une fenêtre sur une autre les échange, tirer un trait change les tailles,
+     glisser un bouton du menu change son ordre. La disposition est gardée sur l'appareil, pour chaque profil. */
+  (function(){
+    var CLE_D='dashboard-disposition-v1', R=document.documentElement, V=$('v-accueil');
+    var GRILLES=[['kpis','.cc-kpis'],['deux','.cc-deux'],['bas','.cc-bas']];
+    var tout=(function(){ try{ var o=JSON.parse(lire(CLE_D)||'null'); if(o&&typeof o==='object') return o; }catch(e){} return {}; })();
+    function profil(){ return R.getAttribute('data-profil')||'direction'; }
+    function D(){ var p=profil(); if(!tout[p]) tout[p]={}; return tout[p]; }
+    function garderD(){ ecrire(CLE_D,JSON.stringify(tout)); }
+    function boite(sel){ return V.querySelector(sel); }
+    function visibles(c){ return [].filter.call(c.children,function(e){ return e.hasAttribute('data-fen')&&getComputedStyle(e).display!=='none'; }); }
+    function echelle(){ var s=$('scene'); return s.getBoundingClientRect().width/s.offsetWidth||1; }
+
+    /* chaque fenêtre reçoit un nom stable, tiré de l'identifiant de son contenu */
+    var origine={};
+    GRILLES.forEach(function(g){ var c=boite(g[1]);
+      [].forEach.call(c.children,function(e,i){ var x=e.querySelector('[id]'); e.setAttribute('data-fen',x?x.id:g[0]+i); e.setAttribute('data-groupe',g[0]==='kpis'?'kpis':'blocs'); });
+      origine[g[0]]=[].slice.call(c.children);
+    });
+
+    function appliquer(){
+      var d=D();
+      // retour à l'ordre d'origine, puis ordre choisi pour ce profil (les échanges peuvent passer d'une rangée à l'autre)
+      GRILLES.forEach(function(g){ var c=boite(g[1]); origine[g[0]].forEach(function(e){ c.appendChild(e); }); c.style.gridTemplateColumns=''; });
+      if(d.ordre){ var par={}; [].forEach.call(V.querySelectorAll('[data-fen]'),function(e){ par[e.getAttribute('data-fen')]=e; });
+        GRILLES.forEach(function(g){ var c=boite(g[1]); (d.ordre[g[0]]||[]).forEach(function(k){ if(par[k]) c.appendChild(par[k]); }); }); }
+      GRILLES.forEach(function(g){ var c=boite(g[1]), n=visibles(c).length, l=d.cols&&d.cols[g[0]]; if(l&&l.length===n) c.style.gridTemplateColumns=l.map(function(x){ return x+'fr'; }).join(' '); });
+      boite('.cc-centre').style.gridTemplateColumns = d.sigma ? d.sigma+'px 1fr' : '';
+      V.style.gridTemplateRows = d.bas ? rangees(d) : '';
+      if(d.nav){ var n=$('nav'), bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); }
+      if(R.classList.contains('perso')) poignees();
+    }
+    function cleNav(b){ return b.getAttribute('data-aller')||b.getAttribute('data-special')||''; }
+    function retenirOrdre(){ var d=D(); d.ordre={}; GRILLES.forEach(function(g){ d.ordre[g[0]]=visibles(boite(g[1])).map(function(e){ return e.getAttribute('data-fen'); }); }); garderD(); }
+
+    /* ---- traits de réglage des tailles ---- */
+    var traits=[];
+    function rangees(d){ return profil()==='direction' ? '64px 1fr '+d.bas+'px 78px' : '64px 1fr '+d.bas+'px'; }
+    function poignees(){
+      traits.forEach(function(t){ t.remove(); }); traits=[];
+      var k=echelle(), base=V.getBoundingClientRect();
+      /* debut() est appelé quand on saisit le trait : il renvoie la fonction qui suit le déplacement (en pixels de la scène) */
+      function pose(x,y,w,h,sens,debut){ var t=document.createElement('div'); t.className='ps-trait '+sens; t.style.cssText='left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px'; t.addEventListener('pointerdown',function(e){ tirer(e,sens,debut()); }); V.appendChild(t); traits.push(t); }
+      function r(e){ var b=e.getBoundingClientRect(); return {x:(b.left-base.left)/k,y:(b.top-base.top)/k,w:b.width/k,h:b.height/k}; }
+      GRILLES.forEach(function(g){ var c=boite(g[1]), v=visibles(c), rc=r(c);
+        for(var i=0;i<v.length-1;i++){ (function(i){ var a=r(v[i]), b=r(v[i+1]); if(Math.abs(a.y-b.y)>4) return;
+          pose((a.x+a.w+b.x)/2-7,rc.y,14,rc.h,'v',function(){ var l0=v.map(function(e){ return e.getBoundingClientRect().width/echelle(); }), s=l0[i]+l0[i+1];
+            return function(dx){ var l=l0.slice(), n=Math.max(110,Math.min(s-110,l0[i]+dx)); l[i]=n; l[i+1]=s-n;
+              var d=D(); if(!d.cols) d.cols={}; d.cols[g[0]]=l.map(function(x){ return Math.round(x); }); c.style.gridTemplateColumns=d.cols[g[0]].map(function(x){ return x+'fr'; }).join(' '); }; }); })(i); }
+      });
+      var ia=r($('ia')), dr=r(boite('.cc-droite'));
+      pose((ia.x+ia.w+dr.x)/2-7,ia.y,14,ia.h,'v',function(){ var w0=$('ia').getBoundingClientRect().width/echelle();
+        return function(dx){ var d=D(); d.sigma=Math.round(Math.max(230,Math.min(560,w0+dx))); boite('.cc-centre').style.gridTemplateColumns=d.sigma+'px 1fr'; }; });
+      var ce=r(boite('.cc-centre')), ba=r(boite('.cc-bas'));
+      pose(0,(ce.y+ce.h+ba.y)/2-7,base.width/k,14,'h',function(){ var h0=boite('.cc-bas').getBoundingClientRect().height/echelle();
+        return function(dy){ var d=D(); d.bas=Math.round(Math.max(110,Math.min(460,h0-dy))); V.style.gridTemplateRows=rangees(d); }; });
+    }
+    function tirer(e,sens,suivre){
+      e.preventDefault(); e.stopPropagation();
+      var k=echelle(), x0=e.clientX, y0=e.clientY;
+      function bouge(ev){ suivre(sens==='v'?(ev.clientX-x0)/k:(ev.clientY-y0)/k); }
+      function fin(){ document.removeEventListener('pointermove',bouge); document.removeEventListener('pointerup',fin); garderD(); poignees(); }
+      document.addEventListener('pointermove',bouge); document.addEventListener('pointerup',fin);
+    }
+
+    /* ---- échange de deux fenêtres, ordre du menu ---- */
+    var prise=null, cible=null;
+    function sous(ev,sel){ var e=document.elementFromPoint(ev.clientX,ev.clientY); return e&&e.closest?e.closest(sel):null; }
+    document.addEventListener('pointerdown',function(e){
+      if(!R.classList.contains('perso')||e.target.closest('.ps-trait,#ps-barre')) return;
+      var f=e.target.closest('#v-accueil [data-fen], #nav .nav'); if(!f) return;
+      e.preventDefault(); prise=f; f.classList.add('ps-prise');
+    },true);
+    document.addEventListener('pointermove',function(e){
+      if(!prise) return;
+      var menu=prise.classList.contains('nav'), c=sous(e, menu?'#nav .nav':'#v-accueil [data-fen][data-groupe="'+prise.getAttribute('data-groupe')+'"]');
+      if(cible&&cible!==c) cible.classList.remove('ps-cible');
+      cible = c&&c!==prise ? c : null; if(cible) cible.classList.add('ps-cible');
+    },true);
+    document.addEventListener('pointerup',function(){
+      if(!prise) return;
+      if(cible){
+        if(prise.classList.contains('nav')){ var n=$('nav'), l=[].slice.call(n.children); n.insertBefore(prise, l.indexOf(prise)<l.indexOf(cible)?cible.nextSibling:cible); D().nav=[].map.call(n.children,cleNav); garderD(); }
+        else { var m=document.createComment(''); cible.parentNode.insertBefore(m,cible); prise.parentNode.insertBefore(cible,prise); m.parentNode.insertBefore(prise,m); m.remove(); var d=D(); delete d.cols; retenirOrdre(); appliquer(); }
+        cible.classList.remove('ps-cible');
+      }
+      prise.classList.remove('ps-prise'); prise=cible=null; poignees();
+    },true);
+    // en mode Personnaliser, un clic ne déclenche rien d'autre
+    document.addEventListener('click',function(e){ if(R.classList.contains('perso')&&!e.target.closest('#ps-barre')){ e.preventDefault(); e.stopPropagation(); } },true);
+
+    function mode(actif){
+      R.classList.toggle('perso',actif); $('ps-barre').hidden=!actif;
+      if(actif){ aller('accueil'); setTimeout(poignees,60); } else { traits.forEach(function(t){ t.remove(); }); traits=[]; }
+    }
+    $('ps-ouvrir').addEventListener('click',function(){ mode(true); });
+    $('ps-fin').addEventListener('click',function(){ mode(false); });
+    $('ps-raz').addEventListener('click',function(){ delete tout[profil()]; garderD(); if(typeof window.redessinerMenu==='function') window.redessinerMenu(); appliquer(); });
+    window.addEventListener('resize',function(){ if(R.classList.contains('perso')) setTimeout(poignees,120); });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&R.classList.contains('perso')) mode(false); });
+    // changement de profil ou menu redessiné : la disposition du profil affiché est remise en place
+    window.dispositionMenu=function(){ var d=D(); if(d.nav){ var n=$('nav'), bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); } };
+    new MutationObserver(function(){ appliquer(); }).observe(R,{attributes:true,attributeFilter:['data-profil']});
+    appliquer();
   })();
 
 })();
