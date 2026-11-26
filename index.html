@@ -2,8 +2,19 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>SIGNATURE Command Center</title>
+<!-- application installable (PWA) : manifeste, icônes, couleurs de la fenêtre -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#050D1C">
+<meta name="application-name" content="SIGNATURE">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="SIGNATURE">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="48x48" href="icones/favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icones/icone-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -509,6 +520,10 @@ h2 svg{color:var(--neon)}
 .mu-rapides .bouton{height:44px;font-size:17px;padding:0 14px}
 #cc-musique.joue{border-color:var(--vert);box-shadow:0 0 14px rgba(0,229,160,.5)}
 #cc-musique .nb{background:var(--vert);color:#03101f;box-shadow:0 0 10px rgba(0,229,160,.8)}
+.app-bandeau{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:60;max-width:92vw;background:rgba(255,176,32,.96);color:#1b1200;font:600 15px/1.3 var(--police);padding:9px 18px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.45);display:flex;align-items:center;gap:12px}
+.app-bandeau[hidden]{display:none}
+.app-bandeau.app-maj{top:auto;bottom:112px;background:rgba(16,29,51,.97);color:var(--texte);border:1px solid var(--neon);box-shadow:0 0 18px rgba(0,191,255,.4)}
+.app-bandeau .bouton{height:34px;font-size:14px;padding:0 14px}
 .cc-fin-actus{display:flex;align-items:center;gap:12px}
 .cc-pages{display:flex;align-items:center;gap:2px;font-size:15px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
 .cc-pages[hidden]{display:none}
@@ -850,6 +865,12 @@ h2 svg{color:var(--neon)}
     <div class="entete"><h1><svg class="i"><use href="#n-reglages"/></svg>Réglages</h1><span class="h" data-heure></span></div>
     <div class="corps" style="grid-template-columns:1fr 1fr 1fr;align-items:start">
       <div class="colonne" style="display:grid;gap:14px;align-content:start;min-width:0;max-height:100%;overflow:auto">
+        <div class="carte form" id="app-carte">
+          <h2>Application</h2>
+          <button class="bouton ok" type="button" id="app-installer" hidden>Installer l'application</button>
+          <p class="info" id="app-etat" style="font-size:15px;line-height:1.35;white-space:pre-line"></p>
+          <p class="info" id="app-micro" style="font-size:15px;line-height:1.35"></p>
+        </div>
         <form class="carte form" id="r-form">
           <h2>Prénoms des salariés</h2>
           <div class="noms" id="r-noms"></div>
@@ -963,6 +984,8 @@ h2 svg{color:var(--neon)}
     </div>
   </div>
 
+  <div class="app-bandeau" id="app-horsligne" hidden role="status">Hors connexion : Sigma, les mails, l'agenda, ProGBat et les actualités sont indisponibles. Vos tâches et vos données restent accessibles.</div>
+  <div class="app-bandeau app-maj" id="app-maj" hidden role="status">Une nouvelle version est disponible. <button class="bouton ok" type="button" id="app-recharger">Mettre à jour</button></div>
   <audio id="mu-audio" preload="none"></audio>
   <div class="voile" id="mu-voile">
     <div class="boite" style="width:860px">
@@ -2393,6 +2416,49 @@ h2 svg{color:var(--neon)}
     $('mu-res').addEventListener('click',function(e){ var b=e.target.closest('[data-st]'); if(b){ var i=+b.getAttribute('data-st'); lireStation(muTrouvees.slice(i,i+1)).catch(function(x){ affMu('Cette station ne répond pas.'); }); } });
     affMu('');
 
+    /* ---- application installable : installation, mise à jour, connexion, micro ---- */
+    (function(){
+      var invite=null, installee=(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches))||navigator.standalone===true;
+      var ua=navigator.userAgent||'', ios=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), mac=/Macintosh/.test(ua)&&!ios, safari=/Safari\//.test(ua)&&!/Chrome|Chromium|Edg\//.test(ua), android=/Android/.test(ua);
+      function etatApp(){
+        var t;
+        if(installee) t='Application installée sur cet appareil.';
+        else if(invite) t='Installez le tableau de bord comme une application : fenêtre indépendante, icône sur le bureau ou l\'écran d\'accueil.';
+        else if(ios) t='Sur iPhone ou iPad : ouvrez cette page dans Safari, touchez le bouton Partager (carré avec une flèche), puis « Sur l\'écran d\'accueil ».';
+        else if(mac&&safari) t='Sur Mac avec Safari : menu Fichier, puis « Ajouter au Dock ».';
+        else if(android) t='Sur Android : menu ⋮ de Chrome, puis « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».';
+        else t='Sur PC ou Mac avec Chrome ou Edge : cliquez sur l\'icône d\'installation à droite de la barre d\'adresse, ou menu ⋮ puis « Installer SIGNATURE ».\nUne fois installée : clic droit sur son icône dans la barre des tâches, puis « Épingler ».';
+        $('app-etat').textContent=t; $('app-installer').hidden=!invite||installee;
+      }
+      window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); invite=e; etatApp(); });
+      window.addEventListener('appinstalled',function(){ invite=null; installee=true; etatApp(); });
+      $('app-installer').addEventListener('click',function(){ if(!invite) return; var i=invite; invite=null; try{ i.prompt(); if(i.userChoice&&i.userChoice.then) i.userChoice.then(etatApp,etatApp); }catch(e){} etatApp(); });
+      etatApp();
+      /* le plein écran ne sert à rien dans la fenêtre de l'application installée sur téléphone ; ailleurs il est conservé */
+      /* autorisation du micro, pour savoir d'un coup d'œil pourquoi Sigma n'entendrait pas */
+      function micro(t){ $('app-micro').textContent=t; }
+      var reco=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!reco) micro('Micro : la commande vocale n\'est pas disponible dans ce navigateur. Sigma répond quand même à l\'écrit et à la voix au clic sur son visage.');
+      else if(navigator.permissions&&navigator.permissions.query){ try{ navigator.permissions.query({name:'microphone'}).then(function(p){
+          function dire2(){ micro(p.state==='granted'?'Micro : autorisé.':(p.state==='denied'?'Micro : bloqué. Autorisez-le dans les réglages du site (icône à gauche de l\'adresse, ou réglages de l\'application).':'Micro : l\'autorisation sera demandée au premier clic sur le visage de Sigma.')); }
+          dire2(); p.onchange=dire2; },function(){ micro(''); }); }catch(e){ micro(''); } }
+      /* hors connexion : un message clair, qui disparaît au retour du réseau */
+      function reseau(){ $('app-horsligne').hidden=navigator.onLine!==false; }
+      window.addEventListener('online',reseau); window.addEventListener('offline',reseau); reseau();
+      /* cache de l'interface et mises à jour : la page est toujours prise sur le réseau quand il est là ;
+         si une version plus récente est publiée pendant que l'écran reste ouvert, on le signale */
+      if('serviceWorker' in navigator&&/^https:$|^http:$/.test(location.protocol)){
+        window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+      }
+      var empreinte=null;
+      function verifierVersion(){
+        if(navigator.onLine===false||document.hidden) return;
+        fetch('index.html',{method:'HEAD',cache:'no-store'}).then(function(r){ if(!r.ok) return; var e=r.headers.get('etag')||r.headers.get('last-modified')||r.headers.get('content-length'); if(!e) return; if(empreinte===null) empreinte=e; else if(e!==empreinte) $('app-maj').hidden=false; }).catch(function(){});
+      }
+      setTimeout(verifierVersion,5000); setInterval(verifierVersion,20*60*1000);
+      $('app-recharger').addEventListener('click',function(){ location.reload(); });
+    })();
+
     /* ---- rendu : à chaque changement de données ---- */
     function tout(){ finances(); chantiers(); planning(); echeances(); personnel(); entete(); var r=(etat.taches||[]).filter(function(x){ return !x.f; }).length; $('t2-nb').textContent='('+r+')'; }
     var dessinerAvant=dessiner;
@@ -2530,6 +2596,10 @@ h2 svg{color:var(--neon)}
           var p=lecteur.play(); if(p&&p.catch) p.catch(function(x){ if(moi===tour) repli('lecture refusée par le navigateur ('+((x&&x.name)||'erreur')+')'); });
         },function(x){ if(moi===tour) repli(((x&&x.statut)?'erreur '+x.statut+' — ':'')+((x&&x.message)||'serveur injoignable')); });
       };
+      /* iPhone, iPad, Android : le navigateur ne laisse jouer un son qu'après un premier toucher de l'écran */
+      var debloque=false;
+      function debloquer(){ if(debloque||enCours) return; debloque=true; try{ var m=lecteur.muted; lecteur.muted=true; lecteur.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='; var q=lecteur.play(); if(q&&q.then) q.then(function(){ if(!enCours){ lecteur.pause(); } lecteur.muted=m; },function(){ lecteur.muted=m; debloque=false; }); else lecteur.muted=m; }catch(e){} }
+      document.addEventListener('pointerdown',debloquer,{passive:true}); document.addEventListener('keydown',debloquer);
       window.__voix={etat:function(){ return {serveur:voixServeur,enCours:enCours,piste:piste.length,t:lecteur.currentTime}; }};
     }catch(e){}
 
