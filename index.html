@@ -628,7 +628,7 @@ h2 svg{color:var(--neon)}
 
     <div class="cc-bas">
       <article class="carte cc-bloc">
-        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.500h6v3H9zM9 11h6M9 15h6"/></svg>Briefing du jour</span><button class="cc-lien" type="button" data-aller="taches">Voir tout →</button></h2>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 2.500h6v3H9zM9 11h6M9 15h6"/></svg>Tâches à traiter <em id="t2-nb"></em></span><button class="cc-lien" type="button" data-aller="taches">Voir tout →</button></h2>
         <ul id="a-taches"></ul>
       </article>
       <article class="carte cc-bloc">
@@ -2329,7 +2329,7 @@ h2 svg{color:var(--neon)}
     affMu('');
 
     /* ---- rendu : à chaque changement de données ---- */
-    function tout(){ finances(); chantiers(); planning(); echeances(); personnel(); entete(); }
+    function tout(){ finances(); chantiers(); planning(); echeances(); personnel(); entete(); var r=(etat.taches||[]).filter(function(x){ return !x.f; }).length; $('t2-nb').textContent='('+r+')'; }
     var dessinerAvant=dessiner;
     dessiner=function(){ dessinerAvant(); try{ tout(); }catch(e){} };
     $('ge-form').addEventListener('submit',function(){ setTimeout(tout,50); });
