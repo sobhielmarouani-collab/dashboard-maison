@@ -2165,7 +2165,12 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
     if(mainsLibres&&!conv&&!enParole) $('ia-etat').textContent=NOM+' · dites « Sigma »';
   }
   /* appelée quand Sigma a fini de parler : elle laisse plus de temps si elle vient de poser une question */
-  function apresParole(texte){ if(mainsLibres&&conv) ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); }
+  var suiteTactile=false;
+  function apresParole(texte){
+    if(mainsLibres&&conv){ ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); return; }
+    // conversation commencée en touchant le visage : si Sigma vient de poser une question, le micro se rouvre pour la réponse
+    if(!mainsLibres&&suiteTactile){ if(/\?\s*$/.test(String(texte||'').trim())) setTimeout(function(){ ecouterTactile(true); },350); else suiteTactile=false; }
+  }
   function entendu(t){
     t=String(t||'').trim(); if(!t) return;
     var echo=estEcho(t);
@@ -2212,14 +2217,24 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
   $('ia').addEventListener('click',function(){
     if(!Reco||sansMicro){ dire(NOM+' · résumé du jour',resume(),true); return; }
     if(mainsLibres&&Reco&&!sansMicro){ conv=true; dire(NOM+' · je vous écoute','Parlez maintenant…',false); demarrerVeille(); ouvrirFenetre(15000); return; }
-    if(ecoute){ try{ reco.stop(); }catch(e){} return; }
-    reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
-    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
-    reco.onresult=function(e){ var t=e.results[0][0].transcript; $('ia-entendu').textContent='Entendu par le micro : « '+String(t).slice(0,90)+' »'; repondre(t); };
-    reco.onerror=function(e){ if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; dire(NOM+' · résumé du jour',resume(),true); } else { dire(NOM,'Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
-    reco.onend=function(){ ecoute=false; $('ia').classList.remove('ecoute'); };
-    try{ reco.start(); }catch(e){ dire(NOM+' · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
+    if(ecoute){ suiteTactile=false; try{ reco.stop(); }catch(e){} return; }
+    ecouterTactile(false);
   });
+  /* Écoute lancée en touchant le visage. Quand Sigma termine sa réponse par une question (« Je confirme ? »),
+     le micro se rouvre tout seul pour la réponse (suite=true), sans avoir à toucher de nouveau. */
+  function ecouterTactile(suite){
+    if(ecoute||!Reco||sansMicro) return;
+    var question = suite ? $('ia-texte').textContent : '';
+    reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
+    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); if(suite) $('ia-etat').textContent=NOM+' · j\'écoute votre réponse'; else dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
+    reco.onresult=function(e){ var t=e.results[0][0].transcript; suiteTactile=true; $('ia-entendu').textContent='Entendu par le micro : « '+String(t).slice(0,90)+' »'; repondre(t); };
+    reco.onerror=function(e){ suiteTactile=false;
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; if(!suite) dire(NOM+' · résumé du jour',resume(),true); }
+      else if(suite){ $('ia-etat').textContent=NOM+' · touchez mon visage pour répondre'; if(question) $('ia-texte').textContent=question; }
+      else { dire(NOM,'Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
+    reco.onend=function(){ ecoute=false; $('ia').classList.remove('ecoute'); };
+    try{ reco.start(); }catch(e){ suiteTactile=false; if(!suite) dire(NOM+' · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
+  }
 
   afficherCompte();
   /* ---------- gestion : chiffres recopiés de ProGBat, gardés sur l'appareil ---------- */
