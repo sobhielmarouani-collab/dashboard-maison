@@ -861,6 +861,58 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .ps-min{flex:1;min-height:0;display:grid;place-content:center;justify-items:center;gap:4px}
 .ps-min b{font-size:44px;font-variant-numeric:tabular-nums;line-height:1}
 .ps-min span{color:var(--discret);font-size:15.5px}
+/* ---- agenda : vue semaine ---- */
+.cc-sem{flex:1;min-width:0;min-height:0;display:grid;grid-template-rows:auto auto 1fr;gap:4px;margin-top:2px}
+.cc-sem .sem-tete,.cc-sem .sem-corps{display:grid;grid-template-columns:40px repeat(7,minmax(0,1fr));gap:0}
+.cc-sem .sem-j{display:grid;justify-items:center;gap:1px;line-height:1}
+.cc-sem .sem-j small{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--discret)}
+.cc-sem .sem-j b{font-size:19px;font-weight:600;width:32px;height:32px;border-radius:50%;display:grid;place-items:center}
+.cc-sem .sem-j.auj small{color:var(--neon)}
+.cc-sem .sem-j.auj b{background:linear-gradient(180deg,#3fb6ff,#2f7df0);color:#fff;box-shadow:0 0 12px rgba(0,150,255,.6)}
+.cc-sem .sem-jr{display:grid;gap:2px;padding:0 2px;min-width:0;align-content:start}
+.cc-sem .sem-jr em{font-style:normal;font-size:12.5px;font-weight:600;background:var(--k);color:#fff;border-radius:5px;padding:1px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-sem .sem-corps{position:relative;min-height:0;margin-top:6px}
+.cc-sem .sem-h{position:relative}
+.cc-sem .sem-h span{position:absolute;right:6px;transform:translateY(-50%);font-size:11.5px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cc-sem .sem-col{position:relative;border-left:1px solid var(--trait);min-width:0}
+.cc-sem .sem-col.auj{background:color-mix(in srgb,var(--neon) 7%,transparent)}
+.cc-sem .sem-col i{position:absolute;left:0;right:0;height:0;border-top:1px solid color-mix(in srgb,var(--trait) 55%,transparent)}
+.cc-sem .sem-col u{position:absolute;left:-3px;right:0;height:0;border-top:2px solid var(--rouge);z-index:2}
+.cc-sem .sem-col u::before{content:"";position:absolute;left:-3px;top:-5px;width:8px;height:8px;border-radius:50%;background:var(--rouge)}
+.cc-sem .sem-ev{position:absolute;box-sizing:border-box;border:1px solid rgba(255,255,255,.35);border-left:3px solid color-mix(in srgb,var(--k) 60%,white);background:color-mix(in srgb,var(--k) 88%,#041020);color:#fff;border-radius:6px;padding:2px 6px;overflow:hidden;z-index:1;display:grid;align-content:start;gap:0;box-shadow:0 2px 8px rgba(0,10,30,.35)}
+.cc-sem .sem-ev b{font-size:12.5px;font-weight:600;line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.cc-sem .sem-ev small{font-size:11px;opacity:.9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-sem .sem-ev.court{padding:0 6px;display:flex;gap:6px;align-items:center}
+.cc-sem .sem-ev.court b{-webkit-line-clamp:1;white-space:nowrap;display:block;text-overflow:ellipsis}
+.cc-sem .sem-ev.court small{flex:none}
+#p2-vues{display:inline-flex;align-items:center;gap:2px;margin-right:6px}
+#p2-vues[hidden],#p2-auj[hidden]{display:none}
+#p2-vues button{padding:2px 8px;font-size:14.5px}
+#p2-vues #p2-prec,#p2-vues #p2-suiv{font-size:20px;line-height:1;padding:0 8px}
+#p2-vues [data-vue].actif{background:color-mix(in srgb,var(--neon) 22%,transparent);border-color:color-mix(in srgb,var(--neon) 60%,transparent);color:var(--texte);font-weight:600}
+.cc-mois{flex:1;min-width:0;min-height:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;margin-top:4px}
+.cc-mois>small{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--discret);text-align:center}
+.cc-mois>div{min-width:0;min-height:0;overflow:hidden;background:var(--creux);border:1px solid var(--trait);border-radius:8px;padding:2px 4px;display:grid;align-content:start;gap:2px}
+.cc-mois>div.hors{opacity:.45}
+.cc-mois>div b{font-size:14px;font-weight:600;line-height:1.2;justify-self:start;min-width:22px;height:22px;border-radius:50%;display:grid;place-items:center}
+.cc-mois>div.auj{border-color:color-mix(in srgb,var(--neon) 70%,transparent)}
+.cc-mois>div.auj b{background:linear-gradient(180deg,#3fb6ff,#2f7df0);color:#fff}
+.cc-mois em{font-style:normal;font-size:11.5px;font-weight:600;line-height:1.3;background:var(--k);color:#fff;border-radius:4px;padding:0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-mois em i{font-style:normal;font-weight:400;opacity:.9}
+.cc-mois span{font-size:11px;color:var(--discret)}
+.cc-sem{grid-template-rows:auto auto minmax(0,1fr)}
+#rdv-barre{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:6;display:flex;align-items:center;gap:12px;padding:8px 10px 8px 20px;border-radius:99px;font-size:16.5px;white-space:nowrap;
+  background:var(--verre);border:1px solid color-mix(in srgb,var(--rouge) 65%,transparent);box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
+#rdv-barre[hidden]{display:none}
+#rdv-barre button{height:40px;padding:0 16px;font-size:16px}
+#rdv-msg{color:var(--discret);font-size:15px}
+.cc-sem [data-rdv],.cc-mois [data-rdv]{cursor:pointer}
+.cc-sem .coche,.cc-mois .coche{outline:2.5px solid #fff;outline-offset:1px;box-shadow:0 0 14px rgba(255,255,255,.7);z-index:3}
+.cc-sem .sem-ev.coche::after,.cc-sem .sem-jr em.coche::after,.cc-mois em.coche::after{content:"✓";position:absolute;right:3px;top:1px;font-size:12px;font-weight:700}
+.cc-sem .sem-jr em,.cc-mois em{position:relative}
+.ag-liste li.cochable{grid-template-columns:26px 78px 4px 1fr}
+.ag-avenir li.cochable{grid-template-columns:26px 104px 4px 1fr}
+.ag-liste li.cochable input{width:22px;height:22px;margin:0}
 </style>
 </head>
 <body>
@@ -950,7 +1002,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><span id="p2-vues" hidden><button class="cc-lien" type="button" id="p2-prec" aria-label="Précédent">‹</button><button class="cc-lien" type="button" id="p2-auj">Aujourd'hui</button><button class="cc-lien" type="button" id="p2-suiv" aria-label="Suivant">›</button><button class="cc-lien" type="button" data-vue="semaine">Semaine</button><button class="cc-lien" type="button" data-vue="mois">Mois</button></span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -1265,6 +1317,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
   <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-b-fen" aria-expanded="false">Fenêtres visibles ▾</button><button class="bouton" type="button" id="ps-b-menu" aria-expanded="false">Boutons du menu ▾</button><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div id="ps-choix" hidden><div id="ps-liste"></div><span id="ps-msg"></span></div><span id="ps-res" hidden></span></div>
+  <div id="rdv-barre" hidden><b id="rdv-nb"></b><span id="rdv-msg"></span><button class="bouton danger" type="button" id="rdv-suppr">Supprimer</button><button class="bouton" type="button" id="rdv-annuler">Tout décocher</button></div>
   <div id="pf-apercu" hidden><span>Aperçu du profil <b id="pf-apercu-nom"></b></span><button class="bouton ok" type="button" id="pf-revenir">Revenir à Direction</button></div>
 
   <div class="voile" id="ge-voile">
@@ -2410,28 +2463,96 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
     /* ---- planning 7 jours : interventions saisies, sinon agenda Google ---- */
     function isoDe(d){ return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate()); }
+    /* ---- rendez-vous cochés puis supprimés (fenêtre de l'accueil et page Agenda) ---- */
+    var rdvChoix=window.rdvChoix={}, rdvArme=false, tArme=null;
+    function rdvBarre(){
+      var n=Object.keys(rdvChoix).length; $('rdv-barre').hidden=!n; if(!n) rdvArme=false;
+      $('rdv-nb').textContent=n+' rendez-vous coché'+(n>1?'s':'');
+      $('rdv-suppr').textContent=rdvArme?'Confirmer la suppression':'Supprimer'; $('rdv-msg').textContent=rdvArme?'Suppression définitive dans Google Agenda.':'';
+    }
+    function rdvBasculer(id,etat){ if(!id) return; if(etat===undefined) etat=!rdvChoix[id]; if(etat) rdvChoix[id]=1; else delete rdvChoix[id]; rdvArme=false; rdvBarre(); }
+    function rdvRafraichir(){ planning(); document.dispatchEvent(new Event('rdv-change')); }
+    $('p2').addEventListener('click',function(e){ var b=e.target.closest('[data-rdv]'); if(!b) return; rdvBasculer(b.getAttribute('data-rdv')); rdvRafraichir(); });
+    document.addEventListener('change',function(e){ var c=e.target; if(c.matches&&c.matches('input[data-rdv]')){ rdvBasculer(c.getAttribute('data-rdv'),c.checked); planning(); } });
+    $('rdv-annuler').addEventListener('click',function(){ Object.keys(rdvChoix).forEach(function(k){ delete rdvChoix[k]; }); rdvBarre(); rdvRafraichir(); });
+    $('rdv-suppr').addEventListener('click',function(){
+      if(!rdvArme){ rdvArme=true; rdvBarre(); clearTimeout(tArme); tArme=setTimeout(function(){ rdvArme=false; rdvBarre(); },6000); return; }
+      clearTimeout(tArme); var ids=Object.keys(rdvChoix), rate=0; $('rdv-suppr').disabled=true; $('rdv-msg').textContent='Suppression…';
+      ids.reduce(function(p,id){ return p.then(function(){ return appelServeur('/agenda/supprimer',{corps:{id:id}}).then(function(){ delete rdvChoix[id]; },function(){ rate++; }); }); },Promise.resolve()).then(function(){
+        $('rdv-suppr').disabled=false; rdvArme=false; calCache={}; rdvBarre(); if(rate) { $('rdv-barre').hidden=false; $('rdv-msg').textContent=rate+' rendez-vous non supprimé'+(rate>1?'s':'')+' (agenda en lecture seule ou rendez-vous d\'un autre agenda).'; }
+        agendaGoogle.maj=0; rafraichirAgenda(); document.dispatchEvent(new Event('rdv-supprime')); rdvRafraichir();
+      });
+    });
+
+    /* ---- fenêtre Agenda : calendrier Google à la semaine ou au mois ---- */
+    var calVue=(function(){ try{ return localStorage.getItem('dashboard-agenda-vue')==='mois'?'mois':'semaine'; }catch(e){ return 'semaine'; } })(), calDecal=0, calCache={}, calAttente={};
+    function calLundi(d){ var x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-((x.getDay()+6)%7)); return x; }
+    function calPlage(){
+      var auj=new Date(); auj.setHours(0,0,0,0);
+      if(calVue==='semaine'){ var l=calLundi(auj); l.setDate(l.getDate()+7*calDecal); var f=new Date(l); f.setDate(f.getDate()+6); return {deb:l,fin:f}; }
+      var m=new Date(auj.getFullYear(),auj.getMonth()+calDecal,1), deb=calLundi(m), der=new Date(m.getFullYear(),m.getMonth()+1,0), fin=calLundi(der); fin.setDate(fin.getDate()+6);
+      return {deb:deb,fin:fin,mois:m};
+    }
+    function calEvenements(pl){
+      var cle=isoDe(pl.deb)+'_'+isoDe(pl.fin), c=calCache[cle];
+      if((!c||Date.now()-c.maj>5*60*1000)&&!calAttente[cle]){
+        calAttente[cle]=true;
+        appelServeur('/agenda/evenements?debut='+isoDe(pl.deb)+'&fin='+isoDe(pl.fin),{methode:'GET'}).then(function(j){ calCache[cle]={ev:Array.isArray(j.evenements)?j.evenements:[],maj:Date.now()}; },function(){ calCache[cle]={ev:c?c.ev:null,maj:Date.now()-4*60*1000}; })
+          .then(function(){ delete calAttente[cle]; planning(); });
+      }
+      if(c&&c.ev) return c.ev;
+      // en attendant la réponse : ce que l'on connaît déjà (les 7 prochains jours)
+      var d0=isoDe(pl.deb), d1=isoDe(pl.fin); return agendaGoogle.evenements.filter(function(e){ return e.jour>=d0&&e.jour<=d1; });
+    }
+    function calTeinte(t){ var T=['#2f9bff','#00c389','#7a6cf0','#ff9a1a','#e0548a'], n=0; t=String(t||''); for(var k=0;k<t.length;k++) n=(n*31+t.charCodeAt(k))>>>0; return T[n%T.length]; }
+    function calMn(t){ var m=/^(\d{1,2}):(\d{2})/.exec(t||''); return m?(+m[1])*60+(+m[2]):null; }
+    function calendrier(){
+      var pl=calPlage(), tous=calEvenements(pl), auj0=isoDe(new Date()), mnt=new Date(), h='';
+      var fN=new Intl.DateTimeFormat('fr-FR',{weekday:'short'}), fC=new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'short'}), fM=new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'});
+      [].forEach.call($('p2-vues').querySelectorAll('[data-vue]'),function(b){ b.classList.toggle('actif',b.getAttribute('data-vue')===calVue); });
+      $('p2-auj').hidden=!calDecal;
+      var jours=[], d=new Date(pl.deb); while(d<=pl.fin){ jours.push(new Date(d)); d.setDate(d.getDate()+1); }
+      if(calVue==='semaine'){
+        $('p2-titre').textContent='Semaine du '+(pl.deb.getMonth()===pl.fin.getMonth()?pl.deb.getDate():fC.format(pl.deb).replace('.',''))+' au '+fC.format(pl.fin).replace('.','');
+        var h0=8*60, h1=18*60;
+        tous.forEach(function(e){ if(e.journee) return; var x=calMn(e.debut), y=calMn(e.fin); if(x==null) return; if(y==null||y<=x) y=x+60; h0=Math.min(h0,Math.floor(x/60)*60); h1=Math.max(h1,Math.ceil(y/60)*60); });
+        h0=Math.max(0,h0); h1=Math.min(24*60,h1); var duree=h1-h0, heures='', lignes='', hh;
+        for(hh=h0;hh<=h1;hh+=60){ heures+='<span style="top:'+((hh-h0)/duree*100)+'%">'+(hh/60)+' h</span>'; lignes+='<i style="top:'+((hh-h0)/duree*100)+'%"></i>'; }
+        var entete='<span></span>', journees='<span></span>', colonnes='', aJournee=tous.some(function(e){ return e.journee; });
+        jours.forEach(function(j){
+          var iso=isoDe(j), auj=iso===auj0, duJour=tous.filter(function(e){ return e.jour===iso; });
+          entete+='<span class="sem-j'+(auj?' auj':'')+'"><small>'+esc(fN.format(j).replace('.','').toUpperCase())+'</small><b>'+j.getDate()+'</b></span>';
+          journees+='<span class="sem-jr">'+duJour.filter(function(e){ return e.journee; }).map(function(e){ return '<em'+(e.id?' data-rdv="'+esc(e.id)+'"':'')+(e.id&&rdvChoix[e.id]?' class="coche"':'')+' style="--k:'+calTeinte(e.titre)+'" title="'+esc(e.titre||'')+'">'+esc(e.titre||'(sans titre)')+'</em>'; }).join('')+'</span>';
+          // rendez-vous qui se chevauchent : ils se partagent la largeur de la colonne
+          var blocs=duJour.filter(function(e){ return !e.journee&&calMn(e.debut)!=null; }).map(function(e){ var x=calMn(e.debut), y=calMn(e.fin); if(y==null||y<=x) y=x+60; return {e:e,d:x,f:y,c:0}; }).sort(function(u,v){ return u.d-v.d; });
+          var fins=[]; blocs.forEach(function(q){ var c=0; while(fins[c]!=null&&fins[c]>q.d) c++; fins[c]=q.f; q.c=c; });
+          var nb=Math.max(1,fins.length), m=mnt.getHours()*60+mnt.getMinutes();
+          colonnes+='<div class="sem-col'+(auj?' auj':'')+'">'+lignes+blocs.map(function(q){
+            return '<div class="sem-ev'+((q.f-q.d)<=45?' court':'')+(q.e.id&&rdvChoix[q.e.id]?' coche':'')+'"'+(q.e.id?' data-rdv="'+esc(q.e.id)+'"':'')+' style="--k:'+calTeinte(q.e.titre)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(4,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"><b>'+esc(q.e.titre||'(sans titre)')+'</b><small>'+esc(q.e.debut||'')+(q.e.lieu?' · '+esc(q.e.lieu):'')+'</small></div>'; }).join('')
+            +(auj&&m>=h0&&m<=h1?'<u style="top:'+((m-h0)/duree*100)+'%"></u>':'')+'</div>';
+        });
+        h='<div class="cc-sem"><div class="sem-tete">'+entete+'</div>'+(aJournee?'<div class="sem-tete sem-jrs">'+journees+'</div>':'<div></div>')+'<div class="sem-corps"><div class="sem-h">'+heures+'</div>'+colonnes+'</div></div>';
+      } else {
+        $('p2-titre').textContent=maj(fM.format(pl.mois));
+        var noms=['LUN','MAR','MER','JEU','VEN','SAM','DIM'], mo=pl.mois.getMonth();
+        h='<div class="cc-mois" style="grid-template-rows:auto repeat('+(jours.length/7)+',minmax(0,1fr))">'+noms.map(function(n){ return '<small>'+n+'</small>'; }).join('')+jours.map(function(j){
+          var iso=isoDe(j), duJour=tous.filter(function(e){ return e.jour===iso; }).sort(function(u,v){ return (u.journee?'':u.debut||'')<(v.journee?'':v.debut||'')?-1:1; });
+          return '<div class="'+(iso===auj0?'auj':'')+(j.getMonth()!==mo?' hors':'')+'"><b>'+j.getDate()+'</b>'+duJour.slice(0,2).map(function(e){ return '<em'+(e.id?' data-rdv="'+esc(e.id)+'"':'')+(e.id&&rdvChoix[e.id]?' class="coche"':'')+' style="--k:'+calTeinte(e.titre)+'" title="'+esc((e.journee?'':(e.debut||'')+' ')+(e.titre||''))+'">'+(e.journee?'':'<i>'+esc(e.debut||'')+'</i> ')+esc(e.titre||'(sans titre)')+'</em>'; }).join('')+(duJour.length>2?'<span>+ '+(duJour.length-2)+'</span>':'')+'</div>'; }).join('')+'</div>';
+      }
+      $('p2').style.display='flex'; $('p2').innerHTML=h;
+    }
+    $('p2-vues').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
+      if(b.hasAttribute('data-vue')){ calVue=b.getAttribute('data-vue'); calDecal=0; try{ localStorage.setItem('dashboard-agenda-vue',calVue); }catch(x){} }
+      else if(b.id==='p2-prec') calDecal--; else if(b.id==='p2-suiv') calDecal++; else if(b.id==='p2-auj') calDecal=0;
+      planning(); });
     function planning(){
       var j0=new Date(); j0.setHours(0,0,0,0);
       var jours=[], i; for(i=0;i<7;i++){ var d=new Date(j0); d.setDate(d.getDate()+i); jours.push(d); }
       var fJ=new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'2-digit'}), isoFin=isoDe(jours[6]), iso0=isoDe(j0);
       var items=lireJSON('dashboard-planning-v1',[]).filter(function(x){ return x&&x.d&&x.f&&x.f>=iso0&&x.d<=isoFin; }), source='chantiers';
       $('p2-titre').textContent=items.length?'Planning des 7 prochains jours':'Agenda des 7 prochains jours';
-      if(!items.length && agendaGoogle.relie){
-        /* agenda Google : une liste lisible des prochains rendez-vous, jour par jour (les rendez-vous d'aujourd'hui déjà terminés sont passés) */
-        var mnt=new Date(), hm=p2(mnt.getHours())+':'+p2(mnt.getMinutes()), fJL=new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'2-digit'});
-        var ev=agendaGoogle.evenements.filter(function(e){ return e.jour>=iso0&&e.jour<=isoFin&&!(e.jour===iso0&&!e.journee&&(e.fin||e.debut)&&(e.fin||e.debut)<hm); })
-          .sort(function(a,b){ return a.jour<b.jour?-1:(a.jour>b.jour?1:((a.journee?'':a.debut)<(b.journee?'':b.debut)?-1:1)); });
-        if(ev.length){
-          var MAXI=ev.length<=7?7:6, vus=ev.slice(0,MAXI), dernier='', isoDem=isoDe(jours[1]);
-          $('p2').style.display='block';
-          $('p2').innerHTML='<ul class="cc-ag">'+vus.map(function(e){
-            var nouveau=e.jour!==dernier; dernier=e.jour;
-            var nomJ=e.jour===iso0?'Aujourd\'hui':(e.jour===isoDem?'Demain':maj(fJL.format(new Date(e.jour+'T00:00:00')).replace('.','')));
-            return '<li class="'+(e.jour===iso0?'auj':'')+(nouveau?' prem':'')+'"><b class="j">'+(nouveau?nomJ:'')+'</b><span class="h">'+(e.journee?'Journée':esc(e.debut||''))+'</span><span class="t">'+esc(e.titre||'(sans titre)')+(e.lieu?'<small> · '+esc(e.lieu)+'</small>':'')+'</span></li>';
-          }).join('')+'</ul>'+(ev.length>MAXI?'<p class="cc-ag-plus">+ '+(ev.length-MAXI)+' autre'+(ev.length-MAXI>1?'s':'')+' rendez-vous cette semaine</p>':'');
-          return;
-        }
-      }
+      $('p2-vues').hidden = !!items.length || !agendaGoogle.relie; $('p2-gerer').style.display = $('p2-vues').hidden ? '' : 'none';
+      if(!items.length && agendaGoogle.relie){ calendrier(); return; }
       if(!items.length){ $('p2').style.display='block'; $('p2').innerHTML='<p class="cc-nd" style="margin-top:36px">Aucune intervention planifiée sur les 7 prochains jours.<br>Reliez l\'agenda Google ou saisissez le planning des chantiers.</p>'; return; }
       $('p2').style.display='';
       var lignes=[]; items.forEach(function(x){ var n=x.c||'Divers', l=null; lignes.forEach(function(y){ if(y.n===n) l=y; }); if(!l){ l={n:n,b:[]}; lignes.push(l); } l.b.push(x); });
@@ -2803,7 +2924,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       function ligne(e,avecJour){
         var h=e.journee?'Journée':esc(e.debut||''), sous=[]; if(e.lieu) sous.push(esc(e.lieu)); if(e.local) sous.push('sur cet appareil');
         if(avecJour) h=maj(fCourt.format(dateDe(e.jour)).replace('.',''))+(e.journee?'':' '+esc(e.debut||''));
-        return '<li class="'+(e.journee?'j':'')+(e.local?' local':'')+'"><span class="h">'+h+(!avecJour&&!e.journee&&e.fin?'<small>'+esc(e.fin)+'</small>':'')+'</span><i></i><span class="t"><b>'+esc(e.titre||'(sans titre)')+'</b>'+(sous.length?'<small>'+sous.join(' · ')+'</small>':'')+'</span></li>';
+        return '<li class="'+(e.journee?'j':'')+(e.local?' local':'')+(e.id?' cochable':'')+'">'+(e.id?'<input type="checkbox" data-rdv="'+esc(e.id)+'"'+(window.rdvChoix&&window.rdvChoix[e.id]?' checked':'')+' aria-label="Cocher ce rendez-vous">':'')+'<span class="h">'+h+(!avecJour&&!e.journee&&e.fin?'<small>'+esc(e.fin)+'</small>':'')+'</span><i></i><span class="t"><b>'+esc(e.titre||'(sans titre)')+'</b>'+(sous.length?'<small>'+sous.join(' · ')+'</small>':'')+'</span></li>';
       }
       function dessinerCal(){
         var b=bornes(), isoAuj=jourISO(new Date()), m=cal.mois.getMonth(), h='', d, i, l, k;
@@ -2847,6 +2968,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       });
       var allerAvant=aller;
       aller=function(v){ allerAvant(v); if(vueActive==='agenda'){ preparerForm(); dessinerCal(); charger(false); } };
+      document.addEventListener('rdv-supprime',function(){ charger(true); });
+      document.addEventListener('rdv-change',function(){ if(vueActive==='agenda') dessinerCal(); });
       setInterval(function(){ if(vueActive==='agenda'&&!document.hidden) charger(false); },5*60*1000);
       window.__agendaPage={dessiner:dessinerCal};
     })();
@@ -3533,7 +3656,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       // quelques pixels de dépassement existent déjà dans la mise en page d'origine : on ne réagit qu'au-delà
       if(z.scrollHeight>z.clientHeight+8||z.scrollWidth>z.clientWidth+8) return true;
       var l=z.querySelectorAll('*'), n=Math.min(l.length,400);
-      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span')) continue;
+      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues')) continue;
         if(e.scrollWidth>e.clientWidth+6) return true;
         if((e.tagName==='LI'||e.parentNode===z)&&e.scrollHeight>e.clientHeight+6) return true;
         // texte coupé par « … » : on compare la largeur réelle du texte à celle de sa case

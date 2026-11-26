@@ -254,7 +254,7 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
     orderBy: "startTime",
     timeZone: FUSEAU,
     maxResults: "250",
-    fields: "items(status,summary,location,start,end,transparency,eventType)",
+    fields: "items(id,status,summary,location,start,end,transparency,eventType)",
   }).toString();
   const r = await fetch(url, { headers: { Authorization: `Bearer ${jeton}` } });
   if (r.status === 401) {
@@ -274,6 +274,7 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
       const journee = Boolean(e.start?.date);
       const jour = journee ? e.start.date : jourParis(e.start.dateTime);
       return {
+        id: typeof e.id === "string" ? e.id : "",
         jour: jour < p.debut ? p.debut : jour,
         debut: journee ? null : heureParis(e.start.dateTime),
         fin: journee ? null : heureParis(e.end.dateTime),
@@ -282,6 +283,22 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
         lieu: String(e.location || "").slice(0, 200),
       };
     });
+}
+
+/* ---------- suppression d'un rendez-vous (demandée et confirmée par l'utilisateur dans la page) ---------- */
+
+export async function supprimerEvenement(env, coffre, email, id) {
+  if (typeof id !== "string" || !/^[A-Za-z0-9_@.-]{5,1024}$/.test(id)) throw new Error("Rendez-vous inconnu.");
+  const { ecriture } = await etatAgenda(coffre, email);
+  if (!ecriture) throw new AgendaNonRelie("L'agenda est relié en lecture seule : reliez-le de nouveau dans Réglages pour autoriser la suppression.");
+  const jeton = await jetonAcces(env, coffre, email);
+  const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}`, { method: "DELETE", headers: { Authorization: `Bearer ${jeton}` } });
+  if (r.status === 401) {
+    jetonsAcces.delete(email);
+    throw new Error("Jeton Google refusé, réessayez.");
+  }
+  // 404 ou 410 : déjà supprimé, le résultat voulu est atteint
+  if (!r.ok && r.status !== 404 && r.status !== 410) throw new Error(r.status === 403 ? "Google refuse la suppression de ce rendez-vous (il appartient peut-être à un autre agenda)." : `Suppression impossible (${r.status}).`);
 }
 
 /* ---------- création d'un rendez-vous ---------- */
