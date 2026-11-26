@@ -8,6 +8,7 @@ import { listerMails, lireMail, creerBrouillon } from "./gmail.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
 import { lireRubriques, trouverRubrique, lireRubrique, titresPourModele } from "./actualites.js";
 import { lireEvenements, etatAgenda, aujourdhuiParis, AgendaNonRelie, JOURS_MAX, preparerEvenement, chevauchements } from "./agenda.js";
+import { consignesProfil } from "./comptes.js";
 
 /** @type {import("@anthropic-ai/sdk").Anthropic.Beta.BetaTool} */
 const OUTIL_ACTUALITES = {
@@ -380,7 +381,12 @@ async function executerLireAgenda(env, coffre, email, relie, bloc) {
 export async function demanderAuModele(env, phrase, historique, etatBrut, contexte = {}) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 15_000 });
   const etat = nettoyerEtat(etatBrut);
-  const { coffre, email } = contexte;
+  const { coffre, email, compte } = contexte;
+  // sans compte fourni (anciens appels, essais) : aucun droit sensible
+  const droits = compte?.droits || {};
+  const outils = [OUTIL_DASHBOARD, OUTIL_AGENDA, OUTIL_CREATION, ...(droits.actualites ? [OUTIL_ACTUALITES] : []), ...(droits.finances ? [OUTIL_PROGBAT] : []), OUTIL_MAILS, OUTIL_MAIL, OUTIL_BROUILLON];
+  const profil = consignesProfil(compte);
+  const consignes = profil ? [{ type: "text", text: CONSIGNES }, { type: "text", text: profil }] : CONSIGNES;
   const agenda =
     env.GOOGLE_CLIENT_SECRET && coffre && email
       ? await etatAgenda(coffre, email).catch(() => ({ relie: false, ecriture: false, mail: false, brouillons: false }))
@@ -413,8 +419,8 @@ export async function demanderAuModele(env, phrase, historique, etatBrut, contex
       ...repli,
       // outils et consignes ne changent pas : le début de la requête est mis en cache
       cache_control: { type: "ephemeral" },
-      tools: [OUTIL_DASHBOARD, OUTIL_AGENDA, OUTIL_CREATION, OUTIL_ACTUALITES, OUTIL_PROGBAT, OUTIL_MAILS, OUTIL_MAIL, OUTIL_BROUILLON],
-      system: CONSIGNES,
+      tools: outils,
+      system: consignes,
       messages,
     });
 
@@ -430,6 +436,11 @@ export async function demanderAuModele(env, phrase, historique, etatBrut, contex
     const resultats = [];
     for (const bloc of message.content) {
       if (bloc.type !== "tool_use") continue;
+      // second contrôle : même si le modèle nommait un outil retiré de sa liste, il n'est pas exécuté
+      if (!outils.some((o) => o.name === bloc.name)) {
+        resultats.push({ type: "tool_result", tool_use_id: bloc.id, content: "Non autorisé pour ce profil.", is_error: true });
+        continue;
+      }
       if (bloc.name === OUTIL_ACTUALITES.name) {
         resultats.push(await executerLireActualites(rubriques, bloc));
         continue;

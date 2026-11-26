@@ -4,7 +4,8 @@
  *   - les demandes récentes de chaque adresse, pour la limite par heure ;
  *   - le jeton de rafraîchissement de l'agenda Google de chaque adresse, chiffré, et le périmètre accordé (étape 4) ;
  *   - les propositions de rendez-vous en attente de confirmation (étape 4), à usage unique, 10 minutes ;
- *   - des réglages communs à tous les appareils : rubriques et sources d'actualités (étape 6).
+ *   - des réglages communs à tous les appareils : rubriques et sources d'actualités (étape 6) ;
+ *   - les comptes créés par la direction (profil, droits, actif ou non) et l'historique des actions importantes.
  * Une seule instance (« principal ») suffit pour un usage familial.
  * Le jeton de session lui-même n'est jamais stocké : seulement son empreinte SHA-256.
  */
@@ -42,6 +43,22 @@ export class Coffre extends DurableObject {
         donnees TEXT NOT NULL,
         expire  INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS comptes (
+        email   TEXT PRIMARY KEY,
+        nom     TEXT NOT NULL DEFAULT '',
+        profil  TEXT NOT NULL,
+        actif   INTEGER NOT NULL DEFAULT 1,
+        droits  TEXT NOT NULL DEFAULT '{}',
+        cree    INTEGER NOT NULL,
+        modifie INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS journal (
+        id     INTEGER PRIMARY KEY AUTOINCREMENT,
+        quand  INTEGER NOT NULL,
+        auteur TEXT NOT NULL,
+        action TEXT NOT NULL,
+        detail TEXT NOT NULL DEFAULT ''
+      );
     `);
     // colonne ajoutée après coup : les liaisons faites avant n'ont pas de périmètre (lecture seule)
     const colonnes = this.sql.exec("PRAGMA table_info(agenda_google)").toArray().map((c) => c.name);
@@ -63,6 +80,37 @@ export class Coffre extends DurableObject {
       return null;
     }
     return ligne.email;
+  }
+
+  /* ---------- comptes et profils (les droits sont calculés dans comptes.js) ---------- */
+
+  lireCompte(email) {
+    return this.sql.exec("SELECT email, nom, profil, actif, droits, modifie FROM comptes WHERE email = ?", email).toArray()[0] || null;
+  }
+
+  listerComptes() {
+    return this.sql.exec("SELECT email, nom, profil, actif, droits, modifie FROM comptes ORDER BY profil, email").toArray();
+  }
+
+  /* Crée ou met à jour un compte. Un compte désactivé perd aussitôt ses sessions ouvertes. */
+  ecrireCompte(email, nom, profil, actif, droits) {
+    const maintenant = Date.now();
+    this.sql.exec(
+      "INSERT INTO comptes (email, nom, profil, actif, droits, cree, modifie) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET nom = excluded.nom, profil = excluded.profil, actif = excluded.actif, droits = excluded.droits, modifie = excluded.modifie",
+      email, nom, profil, actif ? 1 : 0, droits, maintenant, maintenant,
+    );
+    if (!actif) this.sql.exec("DELETE FROM sessions WHERE email = ?", email);
+  }
+
+  /* ---------- historique des actions importantes ---------- */
+
+  noter(auteur, action, detail = "") {
+    this.sql.exec("INSERT INTO journal (quand, auteur, action, detail) VALUES (?, ?, ?, ?)", Date.now(), auteur, action, String(detail).slice(0, 500));
+    this.sql.exec("DELETE FROM journal WHERE id <= (SELECT MAX(id) FROM journal) - 2000"); // on garde les 2000 dernières lignes
+  }
+
+  lireJournal(limite = 100) {
+    return this.sql.exec("SELECT quand, auteur, action, detail FROM journal ORDER BY id DESC LIMIT ?", Math.min(500, Math.max(1, limite | 0))).toArray();
   }
 
   /* ---------- réglages communs (étape 6 : rubriques et sources d'actualités) ---------- */

@@ -23,6 +23,12 @@
  *   GET  /progbat            (session) ?annee=AAAA&forcer=1 → chiffres lus dans ProGBat (lecture seule) ou { configure: false }
  *   GET  /actualites/sources (session) → { rubriques, par_defaut }
  *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
+ *   GET  /comptes            (direction) → { comptes, profils, droits }
+ *   POST /comptes            (direction) { email, nom, profil, actif, droits } → crée ou modifie un compte
+ *   GET  /journal            (direction) → historique des actions importantes
+ *
+ * Profils : /connexion et /session renvoient { profil, droits }. Chaque point d'entrée sensible vérifie le droit
+ * (voir DROIT_EXIGE) : progbat et actualités sont refusés (403) aux profils qui n'y ont pas droit.
  *
  * Aucun secret dans ce fichier. Secrets Cloudflare attendus :
  *   ANTHROPIC_API_KEY, GOOGLE_CLIENT_ID, ADRESSES_AUTORISEES (adresses séparées par des virgules),
@@ -32,6 +38,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
+import { compteDe, validerCompte, listerComptes, PROFILS, DROITS } from "./comptes.js";
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
@@ -99,18 +106,27 @@ function coffre(env) {
   return env.COFFRE.get(env.COFFRE.idFromName("principal"));
 }
 
-function adresseAutorisee(env, email) {
-  return liste(env.ADRESSES_AUTORISEES).map((a) => a.toLowerCase()).includes(email);
-}
+/*
+ * Droit exigé par chaque point d'entrée sensible. Vérifié ici, pour chaque appel :
+ * masquer une fenêtre dans la page ne suffit pas, le serveur refuse lui-même.
+ */
+const DROIT_EXIGE = {
+  "/progbat": "finances",
+  "/actualites": "actualites",
+  "/actualites/sources": "actualites",
+  "/comptes": "administration",
+  "/journal": "administration",
+};
 
-/* Renvoie { email, empreinte } si la session est valide et l'adresse toujours autorisée, sinon null. */
+/* Renvoie { email, empreinte, compte } si la session est valide et le compte toujours actif, sinon null. */
 async function sessionValide(requete, env) {
   const m = /^Bearer\s+([A-Za-z0-9_-]{20,100})$/.exec(requete.headers.get("Authorization") || "");
   if (!m) return null;
   const e = await empreinte(m[1]);
   const email = await coffre(env).lireSession(e);
-  if (!email || !adresseAutorisee(env, email)) return null;
-  return { email, empreinte: e };
+  const compte = email ? await compteDe(env, coffre(env), email) : null;
+  if (!compte) return null;
+  return { email, empreinte: e, compte };
 }
 
 /* ---------- points d'entrée ---------- */
@@ -135,14 +151,15 @@ async function connexion(requete, env, origine) {
     console.warn("Jeton Google refusé :", e?.code || e?.message);
     return json({ erreur: "Connexion Google refusée." }, 401, origine);
   }
-  if (!adresseAutorisee(env, email)) {
+  const compte = await compteDe(env, coffre(env), email);
+  if (!compte) {
     console.warn("Adresse non autorisée :", email);
     return json({ erreur: "Cette adresse n'est pas autorisée." }, 403, origine);
   }
   const jeton = nouveauJeton();
   const expire = Date.now() + entier(env.JOURS_SESSION, JOURS_SESSION_PAR_DEFAUT) * 24 * 60 * 60 * 1000;
   await coffre(env).creerSession(await empreinte(jeton), email, expire);
-  return json({ session: jeton, email, expire }, 200, origine);
+  return json({ session: jeton, email, expire, profil: compte.profil, nom: compte.nom, droits: compte.droits }, 200, origine);
 }
 
 async function assistant(requete, env, origine, session) {
@@ -175,6 +192,7 @@ async function assistant(requete, env, origine, session) {
     const { reponse, actions, confirmation } = await demanderAuModele(env, phrase, nettoyerHistorique(corps.historique), corps.etat, {
       coffre: coffre(env),
       email: session.email,
+      compte: session.compte,
     });
     return json({ reponse, actions, confirmation: confirmation || null, restant: quota.restant }, 200, origine);
   } catch (e) {
@@ -314,6 +332,33 @@ async function actualites(chemin, requete, env, origine) {
   return json({ rubriques, tests }, 200, origine);
 }
 
+/* ---------- comptes et droits (direction seulement) ---------- */
+
+async function comptes(chemin, requete, env, origine, session) {
+  const c = coffre(env);
+  if (chemin === "/journal") return json({ journal: await c.lireJournal(200) }, 200, origine);
+  if (requete.method === "GET") {
+    return json({ comptes: await listerComptes(env, c), profils: PROFILS, droits: Object.fromEntries(Object.entries(DROITS).map(([k, d]) => [k, { nom: d.nom, reserve: !!d.reserve, par_defaut: d.par_defaut }])) }, 200, origine);
+  }
+  let corps, v;
+  try {
+    corps = await lireCorps(requete);
+  } catch {
+    return json({ erreur: "Corps JSON invalide." }, 400, origine);
+  }
+  try {
+    v = validerCompte(env, corps);
+  } catch (e) {
+    return json({ erreur: e.message }, 400, origine);
+  }
+  const avant = await c.lireCompte(v.email);
+  await c.ecrireCompte(v.email, v.nom, v.profil, v.actif, JSON.stringify(v.exceptions));
+  const quoi = !avant ? "Compte créé" : avant.actif && !v.actif ? "Compte désactivé" : !avant.actif && v.actif ? "Compte réactivé" : "Compte modifié";
+  const exceptions = Object.entries(v.exceptions).map(([k, b]) => `${b ? "+" : "−"}${k}`).join(" ");
+  await c.noter(session.email, quoi, `${v.email} · ${PROFILS[v.profil]}${exceptions ? ` · ${exceptions}` : ""}`);
+  return json({ ok: true, comptes: await listerComptes(env, c) }, 200, origine);
+}
+
 const ROUTES = {
   "/config": "GET",
   "/connexion": "POST",
@@ -332,6 +377,8 @@ const ROUTES = {
   "/mails": "GET",
   "/voix": "POST",
   "/actualites/sources": ["GET", "POST"],
+  "/comptes": ["GET", "POST"],
+  "/journal": "GET",
 };
 
 export default {
@@ -365,7 +412,11 @@ export default {
     const session = await sessionValide(requete, env);
     if (!session) return json({ erreur: "Connexion requise." }, 401, autorisee);
 
-    if (chemin === "/session") return json({ email: session.email }, 200, autorisee);
+    const { compte } = session;
+    if (chemin === "/session") return json({ email: session.email, profil: compte.profil, nom: compte.nom, droits: compte.droits }, 200, autorisee);
+    const exige = DROIT_EXIGE[chemin];
+    if (exige && !compte.droits[exige]) return json({ erreur: "Accès non autorisé pour ce profil.", refuse: exige }, 403, autorisee);
+    if (chemin === "/comptes" || chemin === "/journal") return comptes(chemin, requete, env, autorisee, session);
     if (chemin === "/deconnexion") {
       await coffre(env).supprimerSession(session.empreinte);
       return json({ ok: true }, 200, autorisee);
