@@ -46,6 +46,8 @@ function resume(m) {
   const t = Number(m.internalDate);
   return {
     id: m.id,
+    fil: ID.test(String(m.threadId || "")) ? m.threadId : m.id,
+    t: Number.isFinite(t) ? t : null,
     de: propre(entete(m, "From"), 120),
     objet: propre(entete(m, "Subject"), 200) || "(sans objet)",
     recu: Number.isFinite(t) ? new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(t)) : "",
@@ -62,6 +64,15 @@ export async function listerMails(env, coffre, email, { recherche, nombre } = {}
   const ids = (liste.messages || []).map((m) => m.id).filter((id) => ID.test(id));
   const messages = await Promise.all(ids.map((id) => appel(env, coffre, email, `/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`)));
   return messages.map(resume);
+}
+
+/* Boîte de réception pour l'écran d'accueil : derniers messages et nombre de non lus. Rien n'est envoyé au modèle. */
+export async function boiteReception(env, coffre, email, nombre) {
+  const [messages, boite] = await Promise.all([
+    listerMails(env, coffre, email, { recherche: "in:inbox", nombre }),
+    appel(env, coffre, email, "/labels/INBOX").catch(() => null),
+  ]);
+  return { messages, non_lus: boite && Number.isFinite(Number(boite.messagesUnread)) ? Number(boite.messagesUnread) : null };
 }
 
 function texteDuCorps(partie) {

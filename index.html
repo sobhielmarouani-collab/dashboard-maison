@@ -344,7 +344,7 @@ h2 svg{color:var(--neon)}
 .cc-droite{display:grid;grid-template-rows:100px 1fr;gap:12px;min-height:0;min-width:0}
 .cc-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .cc-deux{display:grid;grid-template-columns:1fr 1.1fr;gap:12px;min-height:0}
-.cc-bas{display:grid;grid-template-columns:1.05fr 1.02fr 1.18fr 1fr;gap:12px;min-height:0}
+.cc-bas{display:grid;grid-template-columns:1fr .96fr 1.04fr 1.32fr;gap:12px;min-height:0}
 .cc-bloc{padding:10px 16px;min-height:0;display:flex;flex-direction:column;overflow:hidden;animation:cc-entree .5s both}
 .cc-bloc h2{font-size:21px;justify-content:space-between;flex:none}
 .cc-bloc h2>span{display:flex;align-items:center;gap:10px;min-width:0;white-space:nowrap}
@@ -419,6 +419,28 @@ h2 svg{color:var(--neon)}
   background:repeating-linear-gradient(90deg,rgba(120,150,190,.20) 0 1px,transparent 1px calc(100%/7))}
 .cc-pl .ligne-p{position:relative;border-top:1px solid rgba(120,150,190,.14)}
 .cc-pl .barre-p{position:absolute;top:18%;bottom:18%;border-radius:6px;font-size:14.5px;font-weight:600;display:flex;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#03101f;min-width:6px}
+#m2-nb{font-size:16px}
+.cc-bas .cc-bloc h2{font-size:19px;gap:6px}
+.cc-bas .cc-bloc h2>span{flex:1 1 auto;overflow:hidden;gap:8px}
+.cc-bas .cc-bloc h2 em{font-size:16px;overflow:hidden;text-overflow:ellipsis}
+.cc-bas .cc-bloc h2 .cc-lien{flex:none;font-size:14.500px;padding:3px 2px}
+.cc-bas .cc-leg{font-size:16px;gap:8px}
+.cc-bas .cc-leg b{white-space:nowrap}
+.cc-bas .cc-fin{grid-template-columns:112px 1fr;gap:10px}
+.cc-bas .cc-fin .cc-anneau{width:108px;height:108px}
+.cc-bas .cc-fin .cc-anneau .c b{font-size:17px}
+.cc-bas .cc-fin .cc-anneau .c small{font-size:12px}
+.cc-mails{list-style:none;padding:0;margin:3px 0 0;flex:1;min-height:0;display:grid;grid-auto-rows:minmax(0,1fr);overflow:hidden}
+.cc-mails li{min-height:0;display:flex}
+.cc-mails a{display:grid;grid-template-columns:10px 1fr auto;column-gap:9px;align-items:center;width:100%;color:inherit;text-decoration:none;border-radius:6px;padding:0 4px;min-width:0}
+.cc-mails a:hover{background:rgba(0,150,255,.14)}
+.cc-mails i{width:8px;height:8px;border-radius:50%;background:transparent}
+.cc-mails .nl i{background:var(--neon);box-shadow:0 0 6px var(--neon)}
+.cc-mails .c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15.500px;color:#c9d6e6}
+.cc-mails .c b{font-weight:600;color:var(--texte)}
+.cc-mails .nl .c{color:var(--texte)}
+.cc-mails .nl .c b{font-weight:700}
+.cc-mails time{font-size:13.500px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
 .cc-ag{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:0}
 .cc-ag li{display:grid;grid-template-columns:112px 66px 1fr;gap:10px;align-items:center;height:31px;font-size:16.500px;border-top:1px solid transparent}
 .cc-ag li.prem{border-top-color:rgba(120,150,190,.2)}
@@ -646,12 +668,12 @@ h2 svg{color:var(--neon)}
         <div class="cc-fin" id="f2"></div>
       </article>
       <article class="carte cc-bloc">
-        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances &amp; actions <em id="e2-nb"></em></span><button class="cc-lien" type="button" id="e2-gerer">Voir tout →</button></h2>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></svg>Échéances <em id="e2-nb"></em></span><button class="cc-lien" type="button" id="e2-gerer">Voir tout →</button></h2>
         <ul class="cc-ech" id="e2"></ul>
       </article>
       <article class="carte cc-bloc">
-        <h2><span><svg class="i"><use href="#n-personnel"/></svg>Personnel <em id="pe2-nb"></em></span><button class="cc-lien" type="button" data-aller="personnel">Aujourd'hui →</button></h2>
-        <div class="cc-pers" id="pe2"></div>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></svg>Mails <em id="m2-nb"></em></span><a class="cc-lien" id="m2-ouvrir" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Gmail →</a></h2>
+        <ul class="cc-mails" id="m2"></ul>
       </article>
     </div>
 
@@ -663,6 +685,7 @@ h2 svg{color:var(--neon)}
 
     <!-- éléments de l'ancienne mise en page, conservés hors écran car le code existant les alimente -->
     <div hidden>
+      <em id="pe2-nb"></em><div id="pe2"></div>
       <ul id="a-agenda"></ul><div id="a-pieces"></div><ul id="a-chantiers"></ul><div id="a-foyer"></div>
       <button id="t-minuteur" type="button"><small id="t-reste"></small></button><button id="t-infos" type="button"></button><button id="t-ecran" type="button"></button>
     </div>
@@ -1972,7 +1995,7 @@ h2 svg{color:var(--neon)}
     /* ---- indicateurs financiers : uniquement ce qui a été saisi dans Finances ---- */
     function finances(){
       var g=lireJSON('dashboard-gestion-v1',{}), x=lireJSON('dashboard-finances-plus-v1',{});
-      $('k-ca-t').textContent='Chiffre d\'affaires '+ANNEE; $('f2-an').textContent='– Vue '+ANNEE;
+      $('k-ca-t').textContent='Chiffre d\'affaires '+ANNEE; $('f2-an').textContent=ANNEE;
       if(g.ca!=null){ val('k-ca',eur(g.ca)); $('k-ca-s').innerHTML = g.va==null ? '' : '<span class="'+(g.va<0?'b':'h')+'">'+(g.va<0?'▼ ':'▲ ')+(g.va>0?'+':'')+fr(g.va)+' %</span> vs '+(ANNEE-1); }
       else { nd('k-ca'); $('k-ca-s').textContent=''; }
       var m=(g.mois||[]).slice(0,12), mx=Math.max.apply(null,m.concat([0]));
@@ -2098,6 +2121,25 @@ h2 svg{color:var(--neon)}
     $('n2-prec').addEventListener('click',function(){ filTic=0; tournerFil(-1); });
     $('n2-suiv').addEventListener('click',function(){ filTic=0; tournerFil(1); });
     setInterval(function(){ if(filSurvol||vueActive!=='accueil'||document.hidden) return; if(++filTic>=10){ filTic=0; tournerFil(1); } },1000);
+
+    /* ---- mails : les derniers messages de la boîte de réception Gmail, lus par le serveur (rien ne passe par l'assistant) ---- */
+    function mailsVide(t){ $('m2').innerHTML='<li style="display:block"><p class="cc-nd">'+t+'</p></li>'; $('m2-nb').textContent=''; }
+    function mails(){
+      if(!adresseServeur()||!session()){ mailsVide('Mails non disponibles : connectez Sigma dans Réglages.'); return; }
+      appelServeur('/mails',{methode:'GET'}).then(function(j){
+        if(j.autorise===false){ mailsVide('Mails non reliés : dans Réglages, touchez « Relier de nouveau (agenda et mails) ».'); return; }
+        var l=(j.messages||[]).slice(0,5), auj=isoDe(new Date());
+        $('m2-nb').textContent=j.non_lus!=null?'('+j.non_lus+' non lu'+(j.non_lus>1?'s':'')+')':'';
+        if(!l.length){ $('m2').innerHTML='<li style="display:block"><p class="cc-nd">Boîte de réception vide.</p></li>'; return; }
+        $('m2').innerHTML=l.map(function(m){
+          var d=m.t?new Date(m.t):null, quand=d?(isoDe(d)===auj?p2(d.getHours())+':'+p2(d.getMinutes()):p2(d.getDate())+'/'+p2(d.getMonth()+1)):'';
+          var de=String(m.de||'').replace(/<[^>]*>/g,'').replace(/"/g,'').trim()||String(m.de||'').replace(/[<>]/g,'');
+          return '<li class="'+(m.non_lu?'nl':'')+'"><a href="https://mail.google.com/mail/u/0/#inbox/'+encodeURIComponent(m.fil||m.id||'')+'" target="_blank" rel="noopener noreferrer" title="'+esc(m.extrait||'')+'"><i></i><span class="c"><b>'+esc(de)+'</b> · '+esc(m.objet||'')+'</span><time>'+quand+'</time></a></li>';
+        }).join('');
+      },function(x){ mailsVide('Mails indisponibles : '+esc((x.message||'erreur').slice(0,90))+'.'); });
+    }
+    setTimeout(mails,1800); setInterval(function(){ if(!document.hidden) mails(); },5*60*1000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) mails(); });
 
     /* ---- en-tête : profil, notifications, recherche ---- */
     function entete(){

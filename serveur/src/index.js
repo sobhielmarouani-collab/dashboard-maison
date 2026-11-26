@@ -18,6 +18,7 @@
  *   POST /agenda/confirmer   (session) { id } → { cree: true, resume, lien }   crée la proposition confirmée
  *   POST /agenda/annuler     (session) { id } → { annule: true }
  *   GET  /actualites         (session) ?rubrique=<id> → { rubriques, rubrique: { id, nom, articles, sources } }
+ *   GET  /mails              (session) → { autorise, non_lus, messages: [{ id, fil, de, objet, t, non_lu, extrait }] } pour le panneau de l'accueil
  *   POST /voix               (session) { texte, vitesse } → { audio (MP3 en base64), mots: [{ m, t }], minutage } ou { configure: false }
  *   GET  /progbat            (session) ?annee=AAAA&forcer=1 → chiffres lus dans ProGBat (lecture seule) ou { configure: false }
  *   GET  /actualites/sources (session) → { rubriques, par_defaut }
@@ -31,6 +32,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
+import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
 import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
@@ -309,6 +311,7 @@ const ROUTES = {
   "/agenda/annuler": "POST",
   "/actualites": "GET",
   "/progbat": "GET",
+  "/mails": "GET",
   "/voix": "POST",
   "/actualites/sources": ["GET", "POST"],
 };
@@ -351,6 +354,17 @@ export default {
     }
     if (chemin.startsWith("/agenda/")) return agenda(chemin, requete, env, autorisee, session);
     if (chemin.startsWith("/actualites")) return actualites(chemin, requete, env, autorisee);
+    if (chemin === "/mails") {
+      const c = coffre(env);
+      try {
+        const etat = await etatAgenda(c, session.email);
+        if (!etat.mail) return json({ autorise: false }, 200, autorisee);
+        return json({ autorise: true, ...(await boiteReception(env, c, session.email, 6)) }, 200, autorisee);
+      } catch (e) {
+        if (e instanceof AgendaNonRelie) return json({ autorise: false }, 200, autorisee);
+        return json({ erreur: String(e?.message || e).slice(0, 300) }, 502, autorisee);
+      }
+    }
     if (chemin === "/voix") {
       let corps;
       try {
