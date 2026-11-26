@@ -879,6 +879,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   <symbol id="n-livraisons" viewBox="0 0 24 24"><path d="M2.500 6h11v10h-11zM13.500 9.500h4l3 3.500v3h-7"/><circle cx="7" cy="17.500" r="2"/><circle cx="17" cy="17.500" r="2"/></symbol>
   <symbol id="n-mails" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></symbol>
   <symbol id="n-planning" viewBox="0 0 24 24"><path d="M4 6h9M4 12h13M9 18h11"/><path d="M4 3v18"/></symbol>
+  <symbol id="n-echeances" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></symbol>
+  <symbol id="n-alertes" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></symbol>
   <symbol id="n-minuteur" viewBox="0 0 24 24"><circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/></symbol>
   <symbol id="n-sigma" viewBox="0 0 24 24"><path d="M9 4.500a2.700 2.700 0 0 0-2.700 2.700A3 3 0 0 0 4 10a3 3 0 0 0 1 2.300A3 3 0 0 0 6.500 17 2.700 2.700 0 0 0 12 17V7.200A2.700 2.700 0 0 0 9 4.500zM15 4.500a2.700 2.700 0 0 1 2.700 2.700A3 3 0 0 1 20 10a3 3 0 0 1-1 2.300 3 3 0 0 1-1.500 4.700A2.700 2.700 0 0 1 12 17M8.500 10h1.500M14 10h1.500M12 21v-1.500"/></symbol>
   <symbol id="n-reglages" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.500v3M12 18.500v3M2.500 12h3M18.500 12h3M5.300 5.300l2.100 2.100M16.600 16.600l2.100 2.100M5.300 18.700l2.100-2.100M16.600 7.400l2.100-2.100"/></symbol>
@@ -3399,7 +3401,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       GRILLES.forEach(function(g){ var c=boite(g[1]), n=visibles(c).length, l=d.cols&&d.cols[g[0]]; if(l&&l.length===n) c.style.gridTemplateColumns=l.map(function(x){ return x+'fr'; }).join(' '); });
       boite('.cc-centre').style.gridTemplateColumns = d.sigma ? d.sigma+'px 1fr' : '';
       V.style.gridTemplateRows = d.bas ? rangees(d) : '';
-      if(d.nav){ var n=$('nav'), bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); }
+      menu();
       if(R.classList.contains('perso')) poignees();
     }
     function dessinerReserve(){ $('ps-res').innerHTML=enReserve().map(function(e){ var k=e.getAttribute('data-fen'); return '<button class="bouton" type="button" data-res="'+k+'">'+(TITRES[k]||k)+'</button>'; }).join('')||'<span style="color:var(--discret)">aucune fenêtre</span>'; }
@@ -3413,7 +3415,21 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       m.parentNode.insertBefore(e,m); m.remove();
       var d=D(); delete d.cols; retenirOrdre(); appliquer();
     }
-    function cleNav(b){ return b.getAttribute('data-aller')||b.getAttribute('data-special')||''; }
+    function cleNav(b){ return b.getAttribute('data-aller')||b.getAttribute('data-special')||b.getAttribute('data-fenmenu')||''; }
+    /* Menu et accueil se complètent : une page que l'on a glissée du menu vers l'accueil quitte le menu tant que sa fenêtre est affichée,
+       et une fenêtre partie en réserve qui n'a pas de bouton reçoit un bouton dans le menu. Rien ne disparaît. */
+    var ICONES={'e2-nb':'echeances','m2-nb':'mails','al-nb':'alertes','pe2-nb':'personnel','mi-nb':'minuteur','c3-nb':'chantiers','p2-titre':'agenda','t2-nb':'taches','tc-nb':'taches','f2-an':'gestion','af-nb':'personnel','lv-nb':'livraisons'};
+    function menu(){
+      var n=$('nav'), d=D(), hors=d.horsMenu||[], aBouton={};
+      [].forEach.call(n.querySelectorAll('[data-fenmenu]'),function(b){ b.remove(); });
+      [].forEach.call(n.children,function(b){ var k=cleNav(b), w=DU_MENU[k]; if(w) aBouton[w]=1; var e=w&&fen(w); b.style.display = (hors.indexOf(k)>=0&&e&&e.parentNode!==RES&&permise(e)) ? 'none' : ''; });
+      enReserve().forEach(function(e){ var k=e.getAttribute('data-fen'); if(aBouton[k]) return;
+        n.insertAdjacentHTML('beforeend','<button class="carte nav" type="button" data-fenmenu="'+k+'"><svg class="i"><use href="#n-'+(ICONES[k]||'taches')+'"/></svg>'+(TITRES[k]||k)+'</button>'); });
+      if(d.nav){ var bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); }
+    }
+    /* un bouton de fenêtre en réserve ouvre ce que la fenêtre ouvrait avec « Voir tout » */
+    $('nav').addEventListener('click',function(e){ var b=e.target.closest('[data-fenmenu]'); if(!b||R.classList.contains('perso')) return;
+      var w=fen(b.getAttribute('data-fenmenu')), l=w&&w.querySelector('h2 .cc-lien:last-of-type, h2 a.cc-lien'); if(l) l.click(); });
     function retenirOrdre(){ var d=D(); d.ordre={}; GRILLES.forEach(function(g){ d.ordre[g[0]]=visibles(boite(g[1])).map(function(e){ return e.getAttribute('data-fen'); }); }); garderD(); }
 
     /* ---- traits de réglage des tailles ---- */
@@ -3465,7 +3481,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       if(!prise) return;
       if(cible){
         if(prise.hasAttribute('data-res')) poser(prise.getAttribute('data-res'),cible);
-        else if(prise.classList.contains('nav')&&!cible.classList.contains('nav')){ var k=DU_MENU[cleNav(prise)]; if(k) poser(k,cible); else message('Cette page n\'a pas de fenêtre pour l\'accueil.'); }
+        else if(prise.classList.contains('nav')&&!cible.classList.contains('nav')){ var cn=cleNav(prise), k=DU_MENU[cn]||prise.getAttribute('data-fenmenu');
+          if(k&&fen(k)&&permise(fen(k))){ var dd=D(); if(!dd.horsMenu) dd.horsMenu=[]; if(DU_MENU[cn]&&dd.horsMenu.indexOf(cn)<0) dd.horsMenu.push(cn); poser(k,cible); } else message('Cette page n\'a pas de fenêtre pour l\'accueil.'); }
         else if(prise.classList.contains('nav')){ var n=$('nav'), l=[].slice.call(n.children); n.insertBefore(prise, l.indexOf(prise)<l.indexOf(cible)?cible.nextSibling:cible); D().nav=[].map.call(n.children,cleNav); garderD(); }
         else { var m=document.createComment(''); cible.parentNode.insertBefore(m,cible); prise.parentNode.insertBefore(cible,prise); m.parentNode.insertBefore(prise,m); m.remove(); var d=D(); delete d.cols; retenirOrdre(); appliquer(); }
         cible.classList.remove('ps-cible');
@@ -3485,7 +3502,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     window.addEventListener('resize',function(){ if(R.classList.contains('perso')) setTimeout(poignees,120); });
     document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&R.classList.contains('perso')) mode(false); });
     // changement de profil ou menu redessiné : la disposition du profil affiché est remise en place
-    window.dispositionMenu=function(){ var d=D(); if(d.nav){ var n=$('nav'), bs={}; [].forEach.call(n.children,function(b){ bs[cleNav(b)]=b; }); d.nav.forEach(function(k){ if(bs[k]) n.appendChild(bs[k]); }); } };
+    window.dispositionMenu=menu;
     new MutationObserver(function(){ appliquer(); }).observe(R,{attributes:true,attributeFilter:['data-profil']});
     appliquer();
   })();
