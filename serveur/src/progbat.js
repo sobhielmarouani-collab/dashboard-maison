@@ -103,11 +103,15 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
   const debut = `${an}-01-01`, fin = `${an}-12-31`;
   const factures = toutes.filter((f) => String(f.documentDate || "").slice(0, 10) >= debut && String(f.documentDate || "").slice(0, 10) <= fin);
 
-  // reste à encaisser : net à payer TTC de chaque facture validée de l'exercice (du 1er janvier au 31 décembre),
-  // moins les règlements pointés en banque
+  // reste à encaisser, sur les factures validées de l'exercice (du 1er janvier au 31 décembre).
+  // État de règlement tenu par ProGBat (champ status, vérifié sur les données réelles) :
+  //   0 = non réglée, 1 = soldée (par un règlement ou par un avoir), 2 = réglée en partie.
+  // Une facture soldée ne doit plus rien, même sans règlement pointé : c'est le cas des factures annulées par un avoir.
+  // Pour les autres : net à payer du document, moins les règlements pointés en banque.
   const restes = new Map();
   for (const f of factures) {
     if (!f.validated || f.test || f.type === "model") continue;
+    if (f.status === 1) { restes.set(f.id, 0); continue; }
     const signe = /credit/.test(f.type || "") ? -1 : 1;
     const du = signe * Math.abs(nombre(f.toBePaid) || nombre(f.atiTotal));
     const reste = arrondi(du - signe * (regl.parFacture.get(Number(f.id)) || 0));
@@ -115,7 +119,8 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     if (Math.abs(reste) < 0.01) continue;
     enc += reste;
     if (reste > 0) encNb++;
-    if (reste > 0 && f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) { ret += reste; retNb++; }
+    // un avoir non encore imputé vient en déduction des deux totaux
+    if (f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) { ret += reste; if (reste > 0) retNb++; }
   }
 
   for (const f of factures) {
@@ -166,11 +171,10 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     factures_total: toutes.length,
     factures_retenues: retenues,
     ca: arrondi(ca),
-    // sans aucun règlement pointé, on ne peut pas distinguer une facture payée d'une facture due : on ne donne pas de chiffre
-    encours: regl.liens ? arrondi(enc) : null,
-    encours_nombre: regl.liens ? encNb : null,
-    retard: regl.liens ? arrondi(ret) : null,
-    retard_nombre: regl.liens ? retNb : null,
+    encours: arrondi(enc),
+    encours_nombre: encNb,
+    retard: arrondi(Math.max(0, ret)),
+    retard_nombre: retNb,
     devis: devis.lignes ? d : { erreur: d.erreur },
     reglements: { transactions: regl.transactions, pointages: regl.liens, types: regl.types, erreur: regl.erreur || null },
     mois: mois.map(arrondi),
