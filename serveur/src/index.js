@@ -15,6 +15,8 @@
  *   POST /agenda/relier      (session) { code } → { relie: true }    code d'autorisation Google
  *   POST /agenda/delier      (session) → { relie: false }
  *   GET  /agenda/evenements  (session) ?debut=AAAA-MM-JJ&fin=AAAA-MM-JJ → { evenements, ecriture }
+ *   POST /agenda/modifier    (session) { id, titre, debut, fin, lieu, type } → { modifie: true }
+ *   POST /agenda/creer accepte aussi { type: bureau|exterieur, repeter: semaine|2semaines|mois, jusqu: AAAA-MM-JJ }
  *   POST /agenda/supprimer   (session) { id } → { supprime: true }   supprime un rendez-vous de son propre agenda
  *   POST /agenda/confirmer   (session) { id } → { cree: true, resume, lien }   crée la proposition confirmée
  *   POST /agenda/annuler     (session) { id } → { annule: true }
@@ -49,7 +51,7 @@ import { lirePartage, ecrirePartage, PartageRefuse, LISTES } from "./partage.js"
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
-import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, supprimerEvenement, preparerEvenement, chevauchements, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
+import { relierAgenda, delierAgenda, etatAgenda, lireEvenements, creerEvenement, supprimerEvenement, modifierEvenement, preparerEvenement, chevauchements, AgendaNonRelie, PERIMETRE_AGENDA, PERIMETRES_MAIL } from "./agenda.js";
 
 export { Coffre } from "./coffre.js";
 
@@ -271,6 +273,23 @@ async function agenda(chemin, requete, env, origine, session) {
       const cree = await creerEvenement(env, c, session.email, p);
       return json({ cree: true, resume: p.resume, conflits, lien: cree.lien || null }, 200, origine);
     }
+    if (chemin === "/agenda/modifier") {
+      // modification saisie et validée par l'utilisateur dans la fiche du rendez-vous
+      let corps, p;
+      try {
+        corps = await lireCorps(requete);
+      } catch {
+        return json({ erreur: "Corps JSON invalide." }, 400, origine);
+      }
+      try {
+        p = preparerEvenement(corps, { passeAdmis: true });
+        await modifierEvenement(env, c, session.email, corps?.id, p);
+      } catch (e) {
+        if (e instanceof AgendaNonRelie) throw e;
+        return json({ erreur: String(e?.message || e).slice(0, 200) }, 400, origine);
+      }
+      return json({ modifie: true, resume: p.resume }, 200, origine);
+    }
     if (chemin === "/agenda/supprimer") {
       // suppression demandée dans la page : l'utilisateur a coché le rendez-vous puis confirmé
       let corps;
@@ -280,12 +299,12 @@ async function agenda(chemin, requete, env, origine, session) {
         return json({ erreur: "Corps JSON invalide." }, 400, origine);
       }
       try {
-        await supprimerEvenement(env, c, session.email, corps?.id);
+        await supprimerEvenement(env, c, session.email, corps?.id, { serie: corps?.serie === true });
       } catch (e) {
         if (e instanceof AgendaNonRelie) throw e;
         return json({ erreur: String(e?.message || e).slice(0, 200) }, 400, origine);
       }
-      await c.noter(session.email, "Rendez-vous supprimé", "agenda Google");
+      await c.noter(session.email, corps?.serie === true ? "Série de rendez-vous supprimée" : "Rendez-vous supprimé", "agenda Google");
       return json({ supprime: true }, 200, origine);
     }
     if (chemin === "/agenda/relier") {
@@ -395,6 +414,7 @@ const ROUTES = {
   "/agenda/evenements": "GET",
   "/agenda/creer": "POST",
   "/agenda/supprimer": "POST",
+  "/agenda/modifier": "POST",
   "/agenda/confirmer": "POST",
   "/agenda/annuler": "POST",
   "/actualites": "GET",

@@ -243,6 +243,24 @@ function jourParis(iso) {
  * Chaque événement : { jour, debut, fin, journee, titre, lieu }.
  * Les événements sur plusieurs jours apparaissent une fois, à leur premier jour visible.
  */
+/*
+ * Code couleur : rendez-vous au bureau ou à l'extérieur.
+ * Le type est gardé dans l'événement Google (propriété privée) et donne aussi sa couleur dans Google Agenda.
+ * Pour un rendez-vous créé ailleurs, il est déduit du lieu : sans lieu, ou lieu « bureau », c'est le bureau.
+ */
+export const TYPES_RDV = { bureau: "9", exterieur: "6" }; // couleurs Google : 9 myrtille, 6 mandarine
+function typeDuLieu(lieu) {
+  const l = String(lieu || "").trim();
+  return !l || /bureau|agence|si[eè]ge|visio|t[ée]l[ée]phone|teams|meet/i.test(l) ? "bureau" : "exterieur";
+}
+function typeDe(e) {
+  const t = e.extendedProperties?.private?.type;
+  if (TYPES_RDV[t]) return t;
+  if (e.colorId === TYPES_RDV.exterieur) return "exterieur";
+  if (e.colorId === TYPES_RDV.bureau) return "bureau";
+  return typeDuLieu(e.location);
+}
+
 export async function lireEvenements(env, coffre, email, debut, fin) {
   const p = intervalle(debut, fin);
   const jeton = await jetonAcces(env, coffre, email);
@@ -254,7 +272,7 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
     orderBy: "startTime",
     timeZone: FUSEAU,
     maxResults: "250",
-    fields: "items(id,status,summary,location,start,end,transparency,eventType)",
+    fields: "items(id,status,summary,location,start,end,transparency,eventType,colorId,recurringEventId,extendedProperties/private)",
   }).toString();
   const r = await fetch(url, { headers: { Authorization: `Bearer ${jeton}` } });
   if (r.status === 401) {
@@ -275,6 +293,8 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
       const jour = journee ? e.start.date : jourParis(e.start.dateTime);
       return {
         id: typeof e.id === "string" ? e.id : "",
+        type: typeDe(e),
+        serie: Boolean(e.recurringEventId),
         jour: jour < p.debut ? p.debut : jour,
         debut: journee ? null : heureParis(e.start.dateTime),
         fin: journee ? null : heureParis(e.end.dateTime),
@@ -285,13 +305,63 @@ export async function lireEvenements(env, coffre, email, debut, fin) {
     });
 }
 
+function regleDeRepetition(p) {
+  const fin = p.jusqu.replace(/-/g, "");
+  const freq = p.repeter === "mois" ? "FREQ=MONTHLY" : p.repeter === "2semaines" ? "FREQ=WEEKLY;INTERVAL=2" : "FREQ=WEEKLY";
+  // la date de fin s'écrit comme une date pour une journée entière, comme un instant UTC sinon
+  return `RRULE:${freq};UNTIL=${p.journee ? fin : `${fin}T225959Z`}`;
+}
+
+function idValide(id) {
+  if (typeof id !== "string" || !/^[A-Za-z0-9_@.-]{5,1024}$/.test(id)) throw new Error("Rendez-vous inconnu.");
+  return id;
+}
+
+/* ---------- modification d'un rendez-vous (formulaire rempli et validé par l'utilisateur) ---------- */
+
+export async function modifierEvenement(env, coffre, email, id, p) {
+  idValide(id);
+  const { ecriture } = await etatAgenda(coffre, email);
+  if (!ecriture) throw new AgendaNonRelie("L'agenda est relié en lecture seule : reliez-le de nouveau dans Réglages pour autoriser la modification.");
+  const jeton = await jetonAcces(env, coffre, email);
+  const lendemain = (jour) => {
+    const x = new Date(`${jour}T12:00:00Z`);
+    x.setUTCDate(x.getUTCDate() + 1);
+    return x.toISOString().slice(0, 10);
+  };
+  const corps = {
+    summary: p.titre,
+    location: p.lieu || "",
+    start: p.journee ? { date: p.jour, dateTime: null } : { dateTime: `${p.jour}T${p.debut}:00`, timeZone: FUSEAU, date: null },
+    end: p.journee ? { date: lendemain(p.jourFin), dateTime: null } : { dateTime: `${p.jourFin}T${p.fin}:00`, timeZone: FUSEAU, date: null },
+    colorId: TYPES_RDV[p.type] || undefined,
+    extendedProperties: { private: { type: p.type } },
+  };
+  const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}?fields=id`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${jeton}`, "Content-Type": "application/json" },
+    body: JSON.stringify(corps),
+  });
+  if (r.status === 401) {
+    jetonsAcces.delete(email);
+    throw new Error("Jeton Google refusé, réessayez.");
+  }
+  if (!r.ok) throw new Error(r.status === 403 ? "Google refuse la modification de ce rendez-vous (il appartient peut-être à un autre agenda)." : r.status === 404 || r.status === 410 ? "Ce rendez-vous n'existe plus." : `Modification impossible (${r.status}).`);
+}
+
 /* ---------- suppression d'un rendez-vous (demandée et confirmée par l'utilisateur dans la page) ---------- */
 
-export async function supprimerEvenement(env, coffre, email, id) {
-  if (typeof id !== "string" || !/^[A-Za-z0-9_@.-]{5,1024}$/.test(id)) throw new Error("Rendez-vous inconnu.");
+export async function supprimerEvenement(env, coffre, email, id, options = {}) {
+  idValide(id);
   const { ecriture } = await etatAgenda(coffre, email);
   if (!ecriture) throw new AgendaNonRelie("L'agenda est relié en lecture seule : reliez-le de nouveau dans Réglages pour autoriser la suppression.");
   const jeton = await jetonAcces(env, coffre, email);
+  // toute la série : on retrouve le rendez-vous d'origine dont celui-ci est une répétition
+  if (options.serie) {
+    const o = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}?fields=recurringEventId`, { headers: { Authorization: `Bearer ${jeton}` } });
+    const j = o.ok ? await o.json().catch(() => ({})) : {};
+    if (typeof j.recurringEventId === "string" && j.recurringEventId) id = idValide(j.recurringEventId);
+  }
   const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(id)}`, { method: "DELETE", headers: { Authorization: `Bearer ${jeton}` } });
   if (r.status === 401) {
     jetonsAcces.delete(email);
@@ -333,7 +403,7 @@ function jourLisible(jour) {
  * Renvoie { titre, journee, jour, debut, jourFin, fin, lieu, description, resume } ou lève une erreur lisible.
  * Heures à Paris ; fin par défaut : une heure après le début (ou le même jour pour une journée entière).
  */
-export function preparerEvenement(entree) {
+export function preparerEvenement(entree, options = {}) {
   const titre = texteBorne(entree?.titre, 200);
   if (!titre) throw new Error("Titre du rendez-vous manquant.");
   const d = lireDateHeure(entree?.debut, "debut");
@@ -357,7 +427,7 @@ export function preparerEvenement(entree) {
   if (finT - debutT > 14 * 86_400_000) throw new Error("Durée trop longue : 14 jours au plus.");
   const maintenant = Date.now();
   const limitePassee = journee ? Date.parse(aujourdhuiParis()) : maintenant - 5 * 60_000;
-  if (debutT < limitePassee) throw new Error("Cette date est déjà passée. Vérifie le jour avec l'utilisateur.");
+  if (!options.passeAdmis && debutT < limitePassee) throw new Error("Cette date est déjà passée. Vérifie le jour avec l'utilisateur.");
   if (debutT > maintenant + 2 * 365 * 86_400_000) throw new Error("Date trop lointaine : deux ans au plus.");
 
   const lieu = texteBorne(entree?.lieu, 200);
@@ -369,7 +439,21 @@ export function preparerEvenement(entree) {
     : d.jour === f.jour
       ? `${jourLisible(d.jour)}, de ${d.heure} à ${f.heure}`
       : `du ${jourLisible(d.jour)} à ${d.heure} au ${jourLisible(f.jour)} à ${f.heure}`;
-  return { titre, journee, jour: d.jour, debut: d.heure, jourFin: f.jour, fin: f.heure, lieu, description, resume: `« ${titre} », ${quand}${lieu ? `, à ${lieu}` : ""}` };
+  const type = TYPES_RDV[entree?.type] ? entree.type : typeDuLieu(lieu);
+  // répétition : chaque semaine, toutes les deux semaines ou chaque mois, jusqu'à une date de fin (un an au plus)
+  const REPETITIONS = { semaine: "chaque semaine", "2semaines": "toutes les deux semaines", mois: "chaque mois" };
+  let repeter = "", jusqu = "";
+  if (entree?.repeter) {
+    if (!REPETITIONS[entree.repeter]) throw new Error("Répétition inconnue.");
+    jusqu = String(entree.jusqu || "");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(jusqu) || Number.isNaN(Date.parse(jusqu))) throw new Error("Date de fin de la répétition manquante.");
+    if (jusqu <= d.jour) throw new Error("La répétition doit se terminer après le premier rendez-vous.");
+    if (Date.parse(jusqu) - Date.parse(d.jour) > 370 * 86_400_000) throw new Error("Répétition trop longue : un an au plus.");
+    if (d.jour !== f.jour) throw new Error("Un rendez-vous récurrent doit tenir sur une seule journée.");
+    repeter = entree.repeter;
+  }
+  const suite = repeter ? `, ${REPETITIONS[repeter]} jusqu'au ${jourLisible(jusqu)}` : "";
+  return { titre, journee, jour: d.jour, debut: d.heure, jourFin: f.jour, fin: f.heure, lieu, description, type, repeter, jusqu, resume: `« ${titre} », ${quand}${suite}${lieu ? `, à ${lieu}` : ""}` };
 }
 
 /* Événements déjà présents qui chevauchent la proposition (pour prévenir l'utilisateur). */
@@ -398,7 +482,9 @@ export async function creerEvenement(env, coffre, email, p) {
     description: p.description || undefined,
     start: p.journee ? { date: p.jour } : { dateTime: `${p.jour}T${p.debut}:00`, timeZone: FUSEAU },
     end: p.journee ? { date: lendemain(p.jourFin) } : { dateTime: `${p.jourFin}T${p.fin}:00`, timeZone: FUSEAU },
-    extendedProperties: { private: { source: "assistant-dashboard" } },
+    colorId: TYPES_RDV[p.type] || undefined,
+    extendedProperties: { private: { source: "assistant-dashboard", ...(p.type ? { type: p.type } : {}) } },
+    recurrence: p.repeter ? [regleDeRepetition(p)] : undefined,
   };
   const r = await fetch(`${URL_CREATION}?fields=id,htmlLink`, {
     method: "POST",
