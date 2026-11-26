@@ -173,11 +173,37 @@ async function trouverPersonne(env, coffre, compte, designation) {
   throw new TacheRefusee(`Plusieurs personnes correspondent : ${trouves.map((c) => noms[c.email]).join(", ")}. Demande laquelle.`);
 }
 
+const DUREE_ATTENTE = 10 * 60 * 1000;
+const cleAttente = (email) => `tache:${email}`;
+
+/*
+ * Une tâche pour quelqu'un d'autre n'est pas créée tout de suite : elle est mise en attente (10 minutes),
+ * Sigma la répète et demande « je confirme ? ». Elle n'est enregistrée que par confirmerTachePourSigma.
+ * Renvoie { texte, attente } : attente vaut true quand une confirmation est demandée.
+ */
 export async function tachePourSigma(env, coffre, compte, entree) {
   const qui = await trouverPersonne(env, coffre, compte, entree?.destinataire);
+  if (qui.email !== compte.email) {
+    if (compte.profil !== "direction") throw new TacheRefusee("Seule la direction peut donner une tâche à une autre personne.", 403);
+    const donnees = { pour: qui.email, nom: qui.nom, profil: qui.profil, texte: nettoyerTexte(entree?.texte), priorite: nettoyerPriorite(entree?.priorite), limite: nettoyerLimite(entree?.limite) };
+    await coffre.creerProposition(cleAttente(compte.email), compte.email, JSON.stringify(donnees), Date.now() + DUREE_ATTENTE);
+    return {
+      attente: true,
+      texte: `Rien n'est encore enregistré. Tâche prête pour ${qui.nom} (${qui.profil}) : « ${donnees.texte} »${donnees.limite ? `, à faire avant le ${donnees.limite}` : ""}${donnees.priorite ? `, priorité ${PRIORITES[donnees.priorite]}` : ""}. Répète-la en une phrase et demande à l'utilisateur s'il confirme. Seulement quand il aura répondu oui, appelle confirmer_tache.`,
+    };
+  }
   await agirTache(env, coffre, compte, { action: "creer", texte: entree?.texte, pour: qui.email, priorite: entree?.priorite, limite: entree?.limite || "" });
-  const pour = qui.email === compte.email ? "pour vous" : `pour ${qui.nom} (${qui.profil}), qui la voit sur son écran`;
-  return `Tâche enregistrée ${pour} : ${nettoyerTexte(entree?.texte)}${entree?.limite ? `, à faire avant le ${entree.limite}` : ""}.`;
+  return { attente: false, texte: `Tâche enregistrée pour vous : ${nettoyerTexte(entree?.texte)}${entree?.limite ? `, à faire avant le ${entree.limite}` : ""}.` };
+}
+
+/* L'utilisateur a dit oui (ou non) : la tâche en attente est enregistrée (ou abandonnée). Usage unique. */
+export async function confirmerTachePourSigma(env, coffre, compte, entree) {
+  const brut = await coffre.prendreProposition(cleAttente(compte.email), compte.email);
+  if (entree?.annuler === true) return "Tâche abandonnée, rien n'a été enregistré.";
+  if (!brut) throw new TacheRefusee("Aucune tâche en attente de confirmation (ou délai de 10 minutes dépassé) : redemande la tâche.");
+  const d = JSON.parse(brut);
+  await agirTache(env, coffre, compte, { action: "creer", texte: d.texte, pour: d.pour, priorite: d.priorite, limite: d.limite });
+  return `Tâche enregistrée pour ${d.nom} (${d.profil}), qui la voit sur son écran : ${d.texte}.`;
 }
 
 export async function tachesPourSigma(env, coffre, compte) {
