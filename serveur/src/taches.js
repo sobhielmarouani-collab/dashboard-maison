@@ -152,3 +152,41 @@ export async function agirTache(env, coffre, compte, corps) {
   }
   throw new TacheRefusee("Action inconnue.");
 }
+
+/* ---------- outils de Sigma : mêmes règles que pour la page, appliquées par agirTache et lireTaches ---------- */
+
+const simple = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/* Trouve la personne désignée à l'oral : « moi », un profil (« le conducteur », « la secrétaire ») ou un prénom. */
+async function trouverPersonne(env, coffre, compte, designation) {
+  const d = simple(designation);
+  if (!d || ["moi", "moi meme", "me", "mes taches"].includes(d)) return { email: compte.email };
+  const { comptes, noms } = await annuaire(env, coffre);
+  const autres = comptes.filter((c) => c.email !== compte.email);
+  let trouves = [];
+  if (/conduct|chantier|travaux/.test(d)) trouves = autres.filter((c) => c.profil === "conducteur");
+  else if (/secretai|assistant|administrati/.test(d)) trouves = autres.filter((c) => c.profil === "secretaire");
+  else if (/direct|gerant|patron/.test(d)) trouves = autres.filter((c) => c.profil === "direction");
+  if (!trouves.length) trouves = autres.filter((c) => { const n = simple(noms[c.email]), l = simple(c.email.split("@")[0]); return (n && (n === d || d.split(" ").includes(n))) || l === d; });
+  if (trouves.length === 1) return { email: trouves[0].email, nom: noms[trouves[0].email], profil: PROFILS[trouves[0].profil] };
+  if (!trouves.length) throw new TacheRefusee(`Personne introuvable : « ${String(designation).slice(0, 40)} ». Comptes existants : ${autres.map((c) => `${noms[c.email]} (${PROFILS[c.profil]})`).join(", ") || "aucun autre compte"}.`);
+  throw new TacheRefusee(`Plusieurs personnes correspondent : ${trouves.map((c) => noms[c.email]).join(", ")}. Demande laquelle.`);
+}
+
+export async function tachePourSigma(env, coffre, compte, entree) {
+  const qui = await trouverPersonne(env, coffre, compte, entree?.destinataire);
+  await agirTache(env, coffre, compte, { action: "creer", texte: entree?.texte, pour: qui.email, priorite: entree?.priorite, limite: entree?.limite || "" });
+  const pour = qui.email === compte.email ? "pour vous" : `pour ${qui.nom} (${qui.profil}), qui la voit sur son écran`;
+  return `Tâche enregistrée ${pour} : ${nettoyerTexte(entree?.texte)}${entree?.limite ? `, à faire avant le ${entree.limite}` : ""}.`;
+}
+
+export async function tachesPourSigma(env, coffre, compte) {
+  const { taches, avis } = await lireTaches(env, coffre, compte);
+  const lignes = taches.filter((t) => !t.fait).slice(0, 30).map((t) => `- ${t.texte} | pour ${t.pour === compte.email ? "vous" : t.pour_nom} | donnée par ${t.auteur === compte.email ? "vous" : t.auteur_nom} | priorité ${t.priorite}${t.limite ? ` | avant le ${t.limite}` : ""}`);
+  const finies = taches.filter((t) => t.fait).slice(0, 10).map((t) => `- ${t.texte} (${t.pour === compte.email ? "vous" : t.pour_nom})`);
+  return [
+    lignes.length ? `Tâches à faire (${lignes.length}) :\n${lignes.join("\n")}` : "Aucune tâche à faire.",
+    finies.length ? `Terminées récemment :\n${finies.join("\n")}` : "",
+    avis.length ? `Avis non lus :\n${avis.map((a) => `- ${a.texte}`).join("\n")}` : "",
+  ].filter(Boolean).join("\n\n");
+}

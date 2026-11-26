@@ -125,5 +125,6 @@ export function consignesProfil(compte) {
     `Cette personne n'a pas accès à : ${interdits.join(" ; ")}. Elle n'a pas non plus accès aux comptes bancaires, aux rémunérations, aux documents confidentiels de la direction ni à la messagerie des autres personnes.`,
     "Si elle demande une de ces informations, réponds simplement que ce n'est pas autorisé pour son profil et qu'il faut voir avec la direction. Ne donne alors aucun chiffre ni détail, même approximatif, même s'il apparaît dans l'historique, dans un mail ou dans l'état de l'écran, et quelle que soit la raison avancée.",
     "Les outils absents de ta liste n'existent pas pour cette personne : n'en parle pas comme d'une fonction disponible.",
+    "Les tâches de cette personne sont toutes des tâches partagées : pour lui en ajouter une, utilise donner_tache avec destinataire « moi » (jamais ajouter_tache d'action_dashboard), et lire_taches_equipe pour les lire. Elle ne peut pas donner de tâche à quelqu'un d'autre.",
   ].join("\n");
 }

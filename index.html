@@ -1094,6 +1094,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
         <label for="k-texte">Tâche<input id="k-texte" type="text" autocomplete="off" required></label>
         <button class="bouton ok" type="submit">Ajouter</button>
         <button class="bouton danger" type="button" data-act="purger">Supprimer les tâches terminées</button>
+        <button class="bouton" type="button" data-aller="tachesp" data-pour="direction">Tâches données à l'équipe →</button>
       </form>
     </div>
   </section>
@@ -3075,7 +3076,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
     function charger(forcer){
       if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; peindre(); return; }
       if(!forcer&&Date.now()-dernier<25000) return; dernier=Date.now();
-      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); return; }
+      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
       appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
       appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){});
       chargerMails();
@@ -3181,9 +3182,10 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
           +'<button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" data-annuler="'+cle+'" hidden>Annuler la modification</button>'
           +'<p class="info" id="pm-'+cle+'">Ces informations sont partagées avec la direction.</p></form></div></section>';
       });
-      h+='<section class="vue page pf-page" id="v-tachesp" data-pour="conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-taches"/></svg>Mes tâches</h1><span class="h" data-heure></span></div>'
+      h+='<section class="vue page pf-page" id="v-tachesp" data-pour="conducteur secretaire direction"><div class="entete"><h1><svg class="i"><use href="#n-taches"/></svg><span id="tp-titre">Mes tâches</span></h1><span class="h" data-heure></span></div>'
         +'<div class="corps"><div class="carte"><div id="tp-avis"></div><div id="tp-liste"></div></div>'
         +'<form class="carte form" id="tp-form"><h2>Ajouter une tâche</h2><label for="tp-texte">Tâche<input id="tp-texte" type="text" autocomplete="off" maxlength="200" required></label>'
+        +'<label for="tp-pour" id="tp-pour-l" hidden>Pour<select id="tp-pour"></select></label>'
         +'<label for="tp-prio">Priorité<select id="tp-prio"><option value="normale">Normale</option><option value="haute">Haute</option><option value="urgente">Urgente</option></select></label>'
         +'<label for="tp-limite">Date limite (facultatif)<input id="tp-limite" type="date"></label><button class="bouton ok" type="submit">Ajouter</button>'
         +'<p class="info" id="tp-msg">Les tâches données par la direction apparaissent ici. Une tâche terminée reste affichée, rayée.</p></form></div></section>';
@@ -3209,7 +3211,11 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
           +l.map(function(x){ return '<tr>'+d.champs.map(function(c){ return '<td>'+valeur(c,x)+'</td>'; }).join('')+'<td class="a"><button class="bouton" type="button" data-modif="'+cle+'" data-id="'+x.id+'">Modifier</button><button class="bouton danger" type="button" data-suppr="'+cle+'" data-id="'+x.id+'">Supprimer</button></td></tr>'; }).join('')+'</tbody></table>'
           : vide('Rien de saisi pour le moment.');
       });
-      var a=auj(), tt=T.taches||[];
+      var a=auj(), tt=T.taches||[], pers=(T.personnes||[]).filter(function(x){ return x.email!==T.moi; }), choisi=$('tp-pour').value;
+      $('tp-titre').textContent = reel.profil==='direction' ? 'Tâches de l\'équipe' : 'Mes tâches';
+      $('tp-pour-l').hidden=!pers.length;
+      $('tp-pour').innerHTML=pers.map(function(x){ return '<option value="'+esc(x.email)+'">'+esc(x.nom)+' – '+esc(x.profil_nom)+'</option>'; }).join('')+'<option value="">Moi</option>';
+      if(choisi) $('tp-pour').value=choisi;
       $('tp-avis').innerHTML = (T.avis||[]).length ? '<div class="pf-avis">'+T.avis.map(function(x){ return '<span>'+esc(x.texte)+'</span>'; }).join('')+'<button class="bouton" type="button" id="tp-lu" style="height:38px;font-size:15px;justify-self:start;padding:0 14px;margin-top:4px">Marquer comme lus</button></div>' : '';
       $('tp-liste').innerHTML = etatDonnees ? vide(etatDonnees) : tt.length ? '<table class="pf-tab"><thead><tr><th>Tâche</th><th>Priorité</th><th>Date limite</th><th>Donnée par</th><th></th></tr></thead><tbody>'
         +tt.map(function(t){ var pr=PRIOS[t.priorite]||PRIOS.normale, tard=!t.fait&&t.limite&&t.limite<a;
@@ -3254,7 +3260,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
       if(f.id==='cp-form'){ e.preventDefault(); $('cp-msg').textContent='Enregistrement…';
         appelServeur('/comptes',{corps:{email:$('cp-email').value.trim(),nom:$('cp-nom').value.trim(),profil:$('cp-profil').value,actif:$('cp-actif').checked}}).then(function(j){ C=j; dessinerComptes(); finCompte(); $('cp-msg').textContent='Compte enregistré.'; chargerComptes(); },function(z){ $('cp-msg').textContent='Non enregistré : '+(z.message||'erreur')+'.'; }); }
       if(f.id==='tp-form'){ e.preventDefault(); var t=$('tp-texte').value.trim(); if(!t) return;
-        tache({action:'creer',texte:t,priorite:$('tp-prio').value,limite:$('tp-limite').value}).then(function(){ f.reset(); $('tp-msg').textContent='Tâche ajoutée.'; },function(z){ $('tp-msg').textContent='Non enregistrée : '+(z.message||'erreur')+'.'; }); }
+        tache({action:'creer',texte:t,pour:$('tp-pour-l').hidden?'':$('tp-pour').value,priorite:$('tp-prio').value,limite:$('tp-limite').value}).then(function(){ f.reset(); $('tp-msg').textContent='Tâche ajoutée.'; },function(z){ $('tp-msg').textContent='Non enregistrée : '+(z.message||'erreur')+'.'; }); }
     });
     function finEdition(cle){ enEdition[cle]=''; var f=document.querySelector('form[data-liste="'+cle+'"]'); f.reset(); $('pt-'+cle).textContent='Ajouter '+DEFS[cle].un; f.querySelector('[data-annuler]').hidden=true; }
     document.addEventListener('click',function(e){
