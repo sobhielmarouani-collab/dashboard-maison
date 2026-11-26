@@ -907,11 +907,11 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
           <button class="carte cc-kpi cc-bloc coul" data-pour="conducteur" type="button" data-aller="lalertes" style="--c:#FF5267"><span class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></svg></span><span><span class="t">Alertes chantier</span><span class="v" id="kc-al">–</span><span class="s" id="kc-al-s"></span></span></button>
         </div>
         <div class="cc-deux">
-          <article class="carte cc-bloc" data-pour="conducteur">
+          <article class="carte cc-bloc" data-pour="conducteur direction">
             <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c3-nb"></em></span><button class="cc-lien" type="button" data-aller="lchantiers">Voir tout →</button></h2>
             <ul class="cc-ch pf" id="c3-liste"></ul>
           </article>
-          <article class="carte cc-bloc" data-pour="direction">
+          <article class="carte cc-bloc" data-pour="aucun">
             <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c2-nb"></em></span><button class="cc-lien" type="button" data-aller="chantiers">Voir tout →</button></h2>
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
@@ -3046,7 +3046,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
 
     /* ---- menu selon le profil ---- */
     function dessinerNav(){
-      var p=vu(), l=NAVS[p]||RACCOURCIS, reste=$('nav-reste')?$('nav-reste').textContent:'';
+      var p=vu(), l=NAVS[p]||RACCOURCIS.map(function(o){ return o[2]==='chantiers'?[o[0],o[1],'lchantiers']:o; }), reste=$('nav-reste')?$('nav-reste').textContent:'';
       $('nav').innerHTML=l.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste">'+esc(reste)+'</small>':'')+'</button>'; }).join('');
       [].forEach.call($('nav').children,function(b){ b.classList.toggle('actif',b.getAttribute('data-aller')===vueActive); });
     }
@@ -3058,11 +3058,11 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
       var b=$('pf-apercu'); b.hidden = !(reel.profil==='direction'&&p!=='direction'); $('pf-apercu-nom').textContent=NOMS[p];
       $('pf-voir-bloc').style.display = reel.profil==='direction' ? 'flex' : 'none'; $('pf-comptes').hidden = reel.profil!=='direction'; $('pf-voir').value=p;
       $('pf-profil-nom').textContent=NOMS[reel.profil];
-      if(p!=='direction'){ dessiner(); charger(true); }
+      peindre(); charger(true);
       // une page réservée à un autre profil ne reste pas ouverte
       var vue=$('v-'+vueActive); if(vue&&vue.hasAttribute('data-pour')&&vue.getAttribute('data-pour').split(' ').indexOf(p)<0) aller('accueil');
     }
-    function retenir(j){ if(j&&NOMS[j.profil]){ reel={profil:j.profil,nom:j.nom||''}; ecrire(CLE_PROFIL,JSON.stringify(reel)); if(reel.profil!=='direction') ecrire(CLE_VOIR,''); appliquer(); } }
+    function retenir(j){ if(j&&NOMS[j.profil]){ confirme=true; reel={profil:j.profil,nom:j.nom||''}; ecrire(CLE_PROFIL,JSON.stringify(reel)); if(reel.profil!=='direction') ecrire(CLE_VOIR,''); appliquer(); } }
     /* le profil est redemandé au serveur à l'ouverture et après chaque connexion */
     function verifier(){
       var s=session(); if(!s||Date.now()-verifie<30000) return; verifie=Date.now();
@@ -3073,22 +3073,64 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
 
     /* ---- données partagées ---- */
     function charger(forcer){
-      if(vu()==='direction') return;
-      if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; dessiner(); return; }
-      if(!forcer&&Date.now()-dernier<45000) return; dernier=Date.now();
-      appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; dessiner(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; dessiner(); });
-      appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; dessiner(); },function(){});
+      if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; peindre(); return; }
+      if(!forcer&&Date.now()-dernier<25000) return; dernier=Date.now();
+      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); return; }
+      appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
+      appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){});
       chargerMails();
     }
     function enregistrer(cle,l){
-      return appelServeur('/partage',{corps:{cle:cle,lignes:l}}).then(function(j){ if(j.listes&&j.listes[cle]) L[cle]=j.listes[cle]; dessiner(); });
+      return appelServeur('/partage',{corps:{cle:cle,lignes:l}}).then(function(j){ if(j.listes&&j.listes[cle]) L[cle]=j.listes[cle]; if(cle==='chantiers') refleter(); peindre(); });
     }
-    function tache(corps){ return appelServeur('/taches',{corps:corps}).then(function(j){ T=j; dessiner(); }); }
+    function tache(corps){ return appelServeur('/taches',{corps:corps}).then(function(j){ T=j; peindre(); }); }
+
+    /* ---- chantiers en cours : la même liste sur le poste Direction et sur le poste Conducteur ---- */
+    function chantiersVus(){
+      if(L.chantiers) return lignes('chantiers');
+      // sans serveur joignable, la direction garde au moins ses chantiers gardés sur l'appareil
+      return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours'}; }) : [];
+    }
+    function dessinerChantiers(nd){
+      if(!L.chantiers&&reel.profil==='direction') nd='';
+      var ch=chantiersVus().filter(function(c){ return c.statut!=='termine'; });
+      $('c3-nb').textContent=ch.length?'('+ch.length+')':'';
+      $('c3-liste').innerHTML = nd ? '<li style="display:block">'+vide(nd)+'</li>' : ch.length ? ch.slice(0,6).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours;
+        return '<li><span class="ph"><svg class="i"><use href="#n-chantiers"/></svg></span><span><span class="n"><b>'+esc(c.nom)+'</b>'+(c.lieu?' – '+esc(c.lieu):'')+'</span><span class="bar"><i style="width:'+c.avancement+'%"></i></span></span><span class="p">'+c.avancement+' %</span>'+etq(s[0],s[1])+'</li>'; }).join('')
+        : '<li style="display:block">'+vide('Aucun chantier saisi.<br>Ouvrez « Chantiers » pour en ajouter.')+'</li>';
+    }
+    /* la liste partagée est recopiée dans la mémoire de l'appareil : Sigma, la recherche et le planning continuent de la lire là */
+    var miroir=null, pret=false, confirme=false, CLE_REPRIS='dashboard-chantiers-repris';
+    function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut}; }
+    function versPartage(c){ var x={nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours'}; if(c.id) x.id=c.id; return x; }
+    function refleter(){
+      if(!L.chantiers) return;
+      etat.chantiers=lignes('chantiers').map(versLocal); miroir=JSON.stringify(etat.chantiers); pret=true;
+      garderAvant(); dessinerEcran();
+    }
+    function surChantiersRecus(){
+      // première fois sur le poste Direction : ses chantiers gardés sur l'appareil rejoignent la liste partagée, sans doublon
+      if(reel.profil==='direction'&&!lire(CLE_REPRIS)){
+        // tant que le serveur n'a pas confirmé le profil, on ne touche à rien : les chantiers de l'appareil ne doivent pas être écrasés
+        if(!confirme){ if((etat.chantiers||[]).length) return; refleter(); return; }
+        var noms={}; lignes('chantiers').forEach(function(c){ noms[c.nom.toLowerCase()]=1; });
+        var ajout=(etat.chantiers||[]).filter(function(c){ return c.n&&!noms[String(c.n).toLowerCase()]; }).map(versPartage);
+        if(ajout.length){ enregistrer('chantiers',lignes('chantiers').concat(ajout)).then(function(){ ecrire(CLE_REPRIS,'1'); },function(){}); return; }
+        ecrire(CLE_REPRIS,'1');
+      }
+      refleter();
+    }
+    var garderAvant=garder, dessinerEcran=dessiner;
+    garder=function(){
+      garderAvant();
+      // un chantier ajouté, modifié ou supprimé sur l'appareil (par Sigma, par exemple) part aussitôt vers la liste partagée
+      if(pret&&JSON.stringify(etat.chantiers)!==miroir){ miroir=JSON.stringify(etat.chantiers); enregistrer('chantiers',etat.chantiers.map(versPartage)).then(null,function(){}); }
+    };
 
     /* ---- accueil du conducteur ---- */
     function dessinerConducteur(){
       var nd=etatDonnees, a=auj(), dans7=jourISO(plusJours(new Date(),7));
-      var ch=lignes('chantiers').filter(function(c){ return c.statut!=='termine'; });
+      var ch=chantiersVus().filter(function(c){ return c.statut!=='termine'; });
       var af=lignes('affectations'), total=af.reduce(function(s,x){ return s+(x.effectif||0); },0), surCh={}; af.forEach(function(x){ if(x.effectif) surCh[x.chantier.toLowerCase()]=1; });
       var lv=lignes('livraisons').filter(function(x){ return x.statut!=='livree'&&(x.date>=a||x.statut==='retard'); }).sort(function(x,y){ return x.date<y.date?-1:1; });
       var al=lignes('alertes').slice().sort(function(x,y){ return (x.niveau==='bloquant'?0:1)-(y.niveau==='bloquant'?0:1); });
@@ -3101,10 +3143,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
       var bl=al.filter(function(x){ return x.niveau==='bloquant'; }).length;
       kpi('kc-al',al.length,al.length>1?'alertes':'alerte', al.length?(bl?bl+' point'+(bl>1?'s':'')+' bloquant'+(bl>1?'s':''):'Aucun point bloquant'):'Aucune alerte');
 
-      $('c3-nb').textContent=ch.length?'('+ch.length+')':'';
-      $('c3-liste').innerHTML = nd ? '<li style="display:block">'+vide(nd)+'</li>' : ch.length ? ch.slice(0,6).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours;
-        return '<li><span class="ph"><svg class="i"><use href="#n-chantiers"/></svg></span><span><span class="n"><b>'+esc(c.nom)+'</b>'+(c.lieu?' – '+esc(c.lieu):'')+'</span><span class="bar"><i style="width:'+c.avancement+'%"></i></span></span><span class="p">'+c.avancement+' %</span>'+etq(s[0],s[1])+'</li>'; }).join('')
-        : '<li style="display:block">'+vide('Aucun chantier saisi.<br>Ouvrez « Chantiers » pour en ajouter.')+'</li>';
+      dessinerChantiers(nd);
 
       var tt=T.taches||[], aFaire=tt.filter(function(t){ return !t.fait; }), vues=aFaire.concat(tt.filter(function(t){ return t.fait; })).slice(0,5);
       $('tc-nb').textContent=aFaire.length?'('+aFaire.length+')':'';
@@ -3130,7 +3169,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
     function creerPages(){
       var h='';
       Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle];
-        h+='<section class="vue page pf-page" id="v-l'+cle+'" data-pour="conducteur"><div class="entete"><h1><svg class="i"><use href="#n-'+d.icone+'"/></svg>'+d.titre+'</h1><span class="h" data-heure></span></div>'
+        h+='<section class="vue page pf-page" id="v-l'+cle+'" data-pour="'+(cle==='chantiers'?'conducteur direction':'conducteur')+'"><div class="entete"><h1><svg class="i"><use href="#n-'+d.icone+'"/></svg>'+d.titre+'</h1><span class="h" data-heure></span></div>'
           +'<div class="corps"><div class="carte"><div id="pl-'+cle+'"></div></div>'
           +'<form class="carte form" data-liste="'+cle+'"><h2 id="pt-'+cle+'">Ajouter '+d.un+'</h2>'
           +d.champs.map(function(c){ var id='pc-'+cle+'-'+c[0], ch;
@@ -3201,7 +3240,7 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
       var l=M.messages||[];
       $('mp-liste').innerHTML = l.length ? '<table class="pf-tab"><tbody>'+l.map(function(m){ return '<tr><td style="width:26%;font-weight:'+(m.non_lu?700:400)+'">'+esc(m.de||'')+'</td><td style="font-weight:'+(m.non_lu?700:400)+'">'+esc(m.objet||'(sans objet)')+'<div style="font-size:15px;font-weight:400;color:var(--discret)">'+esc(m.extrait||'')+'</div></td></tr>'; }).join('')+'</tbody></table>' : vide('Boîte de réception vide.');
     }
-    function dessiner(){ if(vu()==='direction') return; if(vu()==='conducteur') dessinerConducteur(); dessinerPages(); }
+    function peindre(){ if(vu()==='conducteur') dessinerConducteur(); else dessinerChantiers(etatDonnees); dessinerPages(); }
 
     /* ---- gestes ---- */
     document.addEventListener('submit',function(e){
@@ -3242,8 +3281,8 @@ html[data-theme="clair"] .cc-ajout input,html[data-theme="clair"] .cc-ajout sele
 
     creerPages();
     var allerProfil=aller;
-    aller=function(v){ allerProfil(v); if(vueActive==='comptes') chargerComptes(); if(vu()!=='direction'){ charger(false); if(vueActive==='mails'&&!M) chargerMails(); } };
-    setInterval(function(){ if(!document.hidden) charger(false); },60000);
+    aller=function(v){ if(v==='chantiers') v='lchantiers'; allerProfil(v); if(vueActive==='comptes') chargerComptes(); charger(false); if(vu()!=='direction'){ if(vueActive==='mails'&&!M) chargerMails(); } };
+    setInterval(function(){ if(!document.hidden) charger(false); },30000);
     document.addEventListener('visibilitychange',function(){ if(!document.hidden){ verifier(); charger(false); } });
     appliquer(); verifier();
     if($('v-'+(location.hash.slice(1)||'x'))&&location.hash.slice(1)!==vueActive) aller(location.hash.slice(1));
