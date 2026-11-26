@@ -127,10 +127,12 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
 
     // tableau de contrôle, sans aucun nom : sert à vérifier comment ProGBat code l'état des factures
     const cle = [f.type, f.validated ? 1 : 0, f.status, f.einvoiceStatus ?? ""].join("|");
-    const g = groupes.get(cle) || { type: f.type, validee: !!f.validated, statut: f.status, statut_efacture: f.einvoiceStatus ?? null, nombre: 0, total_ht: 0, reste_a_payer: 0, echues: 0, soldees: 0 };
+    const g = groupes.get(cle) || { type: f.type, validee: !!f.validated, statut: f.status, statut_efacture: f.einvoiceStatus ?? null, nombre: 0, total_ht: 0, reste_a_payer: 0, echues: 0, soldees: 0, regle: 0, reste_calcule: 0, reste_echu: 0 };
     g.nombre++; g.total_ht += ht; g.reste_a_payer += signe * Math.abs(nombre(f.toBePaid));
     if (f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) g.echues++;
     if (restes.has(f.id) && Math.abs(restes.get(f.id)) < 0.01) g.soldees++;
+    g.regle += regl.parFacture.get(Number(f.id)) || 0;
+    if (restes.has(f.id)) { g.reste_calcule += restes.get(f.id); if (f.dueDate && String(f.dueDate).slice(0, 10) < aujourdhui) g.reste_echu += restes.get(f.id); }
     groupes.set(cle, g);
 
     if (!retenue || m < 0 || m > 11) continue;
@@ -176,7 +178,7 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
     clients: [...parClient.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, v]) => ({ n, v: arrondi(v) })),
     chantiers: chantiers.lignes.slice(0, 200).map((y) => ({ nom: String(y.label || "").slice(0, 60), debut: y.startDate || null, fin: y.endDate || null })).filter((y) => y.nom),
     chantiers_erreur: chantiers.erreur || null,
-    controle: [...groupes.values()].map((g) => ({ ...g, total_ht: arrondi(g.total_ht), reste_a_payer: arrondi(g.reste_a_payer) })).sort((a, b) => b.nombre - a.nombre),
+    controle: [...groupes.values()].map((g) => ({ ...g, total_ht: arrondi(g.total_ht), reste_a_payer: arrondi(g.reste_a_payer), regle: arrondi(g.regle), reste_calcule: arrondi(g.reste_calcule), reste_echu: arrondi(g.reste_echu) })).sort((a, b) => b.nombre - a.nombre),
   };
   cache.set(an, { quand: Date.now(), resume });
   return resume;
