@@ -23,6 +23,8 @@
  *   GET  /progbat            (session) ?annee=AAAA&forcer=1 → chiffres lus dans ProGBat (lecture seule) ou { configure: false }
  *   GET  /actualites/sources (session) → { rubriques, par_defaut }
  *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
+ *   GET  /taches             (session) → { taches, avis, personnes, moi }   seulement ce que la personne a le droit de voir
+ *   POST /taches             (session) { action: creer|cocher|modifier|supprimer|importer|lu, … } → liste à jour
  *   GET  /comptes            (direction) → { comptes, profils, droits }
  *   POST /comptes            (direction) { email, nom, profil, actif, droits } → crée ou modifie un compte
  *   GET  /journal            (direction) → historique des actions importantes
@@ -39,6 +41,7 @@ import { verifierJetonGoogle } from "./google.js";
 import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./modele.js";
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { compteDe, validerCompte, listerComptes, PROFILS, DROITS } from "./comptes.js";
+import { lireTaches, agirTache, TacheRefusee } from "./taches.js";
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
@@ -377,6 +380,7 @@ const ROUTES = {
   "/mails": "GET",
   "/voix": "POST",
   "/actualites/sources": ["GET", "POST"],
+  "/taches": ["GET", "POST"],
   "/comptes": ["GET", "POST"],
   "/journal": "GET",
 };
@@ -420,6 +424,26 @@ export default {
     if (chemin === "/deconnexion") {
       await coffre(env).supprimerSession(session.empreinte);
       return json({ ok: true }, 200, autorisee);
+    }
+    if (chemin === "/taches") {
+      const c = coffre(env);
+      try {
+        if (requete.method === "POST") {
+          let corps;
+          try {
+            corps = await lireCorps(requete);
+          } catch {
+            return json({ erreur: "Corps JSON invalide." }, 400, autorisee);
+          }
+          await agirTache(env, c, compte, corps);
+        }
+        // chaque réponse renvoie la liste à jour, telle que cette personne a le droit de la voir
+        return json(await lireTaches(env, c, compte), 200, autorisee);
+      } catch (e) {
+        if (e instanceof TacheRefusee) return json({ erreur: e.message }, e.statut, autorisee);
+        console.error("Tâches :", e);
+        return json({ erreur: "Erreur du serveur." }, 500, autorisee);
+      }
     }
     if (chemin.startsWith("/agenda/")) return agenda(chemin, requete, env, autorisee, session);
     if (chemin.startsWith("/actualites")) return actualites(chemin, requete, env, autorisee);

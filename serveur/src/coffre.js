@@ -52,6 +52,25 @@ export class Coffre extends DurableObject {
         cree    INTEGER NOT NULL,
         modifie INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS taches (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        texte    TEXT NOT NULL,
+        auteur   TEXT NOT NULL,
+        pour     TEXT NOT NULL,
+        priorite INTEGER NOT NULL DEFAULT 0,
+        limite   TEXT NOT NULL DEFAULT '',
+        fait     INTEGER NOT NULL DEFAULT 0,
+        cree     INTEGER NOT NULL,
+        modifie  INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS taches_pour ON taches (pour);
+      CREATE TABLE IF NOT EXISTS avis (
+        id    INTEGER PRIMARY KEY AUTOINCREMENT,
+        pour  TEXT NOT NULL,
+        quand INTEGER NOT NULL,
+        texte TEXT NOT NULL,
+        lu    INTEGER NOT NULL DEFAULT 0
+      );
       CREATE TABLE IF NOT EXISTS journal (
         id     INTEGER PRIMARY KEY AUTOINCREMENT,
         quand  INTEGER NOT NULL,
@@ -100,6 +119,53 @@ export class Coffre extends DurableObject {
       email, nom, profil, actif ? 1 : 0, droits, maintenant, maintenant,
     );
     if (!actif) this.sql.exec("DELETE FROM sessions WHERE email = ?", email);
+  }
+
+  /* ---------- tâches partagées (les règles d'accès sont dans taches.js) ---------- */
+
+  /* email null : toutes les tâches (direction). Sinon celles reçues ou données par cette adresse. */
+  listerTaches(email) {
+    const depuis = Date.now() - 90 * 24 * 60 * 60 * 1000; // les tâches terminées restent visibles 90 jours
+    return email
+      ? this.sql.exec("SELECT * FROM taches WHERE (pour = ? OR auteur = ?) AND (fait = 0 OR fait > ?) ORDER BY fait > 0, priorite DESC, limite = '', limite, id", email, email, depuis).toArray()
+      : this.sql.exec("SELECT * FROM taches WHERE fait = 0 OR fait > ? ORDER BY fait > 0, priorite DESC, limite = '', limite, id", depuis).toArray();
+  }
+
+  lireTache(id) {
+    return this.sql.exec("SELECT * FROM taches WHERE id = ?", id).toArray()[0] || null;
+  }
+
+  creerTache(texte, auteur, pour, priorite, limite, fait = 0) {
+    const m = Date.now();
+    return this.sql.exec("INSERT INTO taches (texte, auteur, pour, priorite, limite, fait, cree, modifie) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id", texte, auteur, pour, priorite, limite, fait, m, m).toArray()[0].id;
+  }
+
+  modifierTache(id, texte, pour, priorite, limite) {
+    this.sql.exec("UPDATE taches SET texte = ?, pour = ?, priorite = ?, limite = ?, modifie = ? WHERE id = ?", texte, pour, priorite, limite, Date.now(), id);
+  }
+
+  cocherTache(id, fait) {
+    const m = Date.now();
+    this.sql.exec("UPDATE taches SET fait = ?, modifie = ? WHERE id = ?", fait ? m : 0, m, id);
+  }
+
+  supprimerTache(id) {
+    this.sql.exec("DELETE FROM taches WHERE id = ?", id);
+  }
+
+  /* ---------- avis internes (une tâche reçue, une tâche terminée…) ---------- */
+
+  creerAvis(pour, texte) {
+    this.sql.exec("INSERT INTO avis (pour, quand, texte) VALUES (?, ?, ?)", pour, Date.now(), String(texte).slice(0, 300));
+    this.sql.exec("DELETE FROM avis WHERE quand < ?", Date.now() - 60 * 24 * 60 * 60 * 1000);
+  }
+
+  lireAvis(pour) {
+    return this.sql.exec("SELECT id, quand, texte FROM avis WHERE pour = ? AND lu = 0 ORDER BY id DESC LIMIT 30", pour).toArray();
+  }
+
+  marquerAvisLus(pour) {
+    this.sql.exec("UPDATE avis SET lu = 1 WHERE pour = ?", pour);
   }
 
   /* ---------- historique des actions importantes ---------- */
