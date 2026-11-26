@@ -419,6 +419,16 @@ h2 svg{color:var(--neon)}
   background:repeating-linear-gradient(90deg,rgba(120,150,190,.20) 0 1px,transparent 1px calc(100%/7))}
 .cc-pl .ligne-p{position:relative;border-top:1px solid rgba(120,150,190,.14)}
 .cc-pl .barre-p{position:absolute;top:18%;bottom:18%;border-radius:6px;font-size:14.5px;font-weight:600;display:flex;align-items:center;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#03101f;min-width:6px}
+.cc-ag{list-style:none;padding:0;margin:4px 0 0;display:grid;gap:0}
+.cc-ag li{display:grid;grid-template-columns:112px 66px 1fr;gap:10px;align-items:center;height:31px;font-size:16.500px;border-top:1px solid transparent}
+.cc-ag li.prem{border-top-color:rgba(120,150,190,.2)}
+.cc-ag li.prem:first-child{border-top-color:transparent}
+.cc-ag .j{font-weight:600;color:#cfdcec;white-space:nowrap}
+.cc-ag li.auj .j{color:var(--neon)}
+.cc-ag .h{font-variant-numeric:tabular-nums;color:var(--texte);font-weight:600;background:rgba(59,130,246,.25);border:1px solid rgba(59,130,246,.55);border-radius:6px;text-align:center;font-size:14.500px;line-height:22px}
+.cc-ag .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-ag .t small{color:var(--discret);font-size:14px}
+.cc-ag-plus{color:var(--discret);font-size:14.500px;margin:3px 0 0;text-align:right}
 .cc-pl .auj-l{position:absolute;top:-4px;bottom:0;width:2px;background:var(--neon);box-shadow:0 0 8px var(--neon);z-index:2}
 
 /* ---- panneaux du bas ---- */
@@ -619,7 +629,7 @@ h2 svg{color:var(--neon)}
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg>Planning des 7 prochains jours</span><span><button class="cc-lien" type="button" id="p2-gerer">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="cc-lien" type="button" id="p2-gerer">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -1998,9 +2008,22 @@ h2 svg{color:var(--neon)}
       var jours=[], i; for(i=0;i<7;i++){ var d=new Date(j0); d.setDate(d.getDate()+i); jours.push(d); }
       var fJ=new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'2-digit'}), isoFin=isoDe(jours[6]), iso0=isoDe(j0);
       var items=lireJSON('dashboard-planning-v1',[]).filter(function(x){ return x&&x.d&&x.f&&x.f>=iso0&&x.d<=isoFin; }), source='chantiers';
+      $('p2-titre').textContent=items.length?'Planning des 7 prochains jours':'Agenda des 7 prochains jours';
       if(!items.length && agendaGoogle.relie){
-        source='agenda';
-        items=agendaGoogle.evenements.filter(function(e){ return e.jour>=iso0&&e.jour<=isoFin; }).slice(0,40).map(function(e){ return {c:'Agenda', t:(e.journee?'':e.debut+' ')+e.titre, d:e.jour, f:e.jourFin&&e.jourFin>=e.jour?e.jourFin:e.jour, k:'#3B82F6', h:e.journee?null:e.debut}; });
+        /* agenda Google : une liste lisible des prochains rendez-vous, jour par jour (les rendez-vous d'aujourd'hui déjà terminés sont passés) */
+        var mnt=new Date(), hm=p2(mnt.getHours())+':'+p2(mnt.getMinutes()), fJL=new Intl.DateTimeFormat('fr-FR',{weekday:'short',day:'2-digit'});
+        var ev=agendaGoogle.evenements.filter(function(e){ return e.jour>=iso0&&e.jour<=isoFin&&!(e.jour===iso0&&!e.journee&&(e.fin||e.debut)&&(e.fin||e.debut)<hm); })
+          .sort(function(a,b){ return a.jour<b.jour?-1:(a.jour>b.jour?1:((a.journee?'':a.debut)<(b.journee?'':b.debut)?-1:1)); });
+        if(ev.length){
+          var MAXI=ev.length<=7?7:6, vus=ev.slice(0,MAXI), dernier='', isoDem=isoDe(jours[1]);
+          $('p2').style.display='block';
+          $('p2').innerHTML='<ul class="cc-ag">'+vus.map(function(e){
+            var nouveau=e.jour!==dernier; dernier=e.jour;
+            var nomJ=e.jour===iso0?'Aujourd\'hui':(e.jour===isoDem?'Demain':maj(fJL.format(new Date(e.jour+'T00:00:00')).replace('.','')));
+            return '<li class="'+(e.jour===iso0?'auj':'')+(nouveau?' prem':'')+'"><b class="j">'+(nouveau?nomJ:'')+'</b><span class="h">'+(e.journee?'Journée':esc(e.debut||''))+'</span><span class="t">'+esc(e.titre||'(sans titre)')+(e.lieu?'<small> · '+esc(e.lieu)+'</small>':'')+'</span></li>';
+          }).join('')+'</ul>'+(ev.length>MAXI?'<p class="cc-ag-plus">+ '+(ev.length-MAXI)+' autre'+(ev.length-MAXI>1?'s':'')+' rendez-vous cette semaine</p>':'');
+          return;
+        }
       }
       if(!items.length){ $('p2').style.display='block'; $('p2').innerHTML='<p class="cc-nd" style="margin-top:36px">Aucune intervention planifiée sur les 7 prochains jours.<br>Reliez l\'agenda Google ou saisissez le planning des chantiers.</p>'; return; }
       $('p2').style.display='';
