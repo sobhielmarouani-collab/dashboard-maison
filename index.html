@@ -913,6 +913,37 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .ag-liste li.cochable{grid-template-columns:26px 78px 4px 1fr}
 .ag-avenir li.cochable{grid-template-columns:26px 104px 4px 1fr}
 .ag-liste li.cochable input{width:22px;height:22px;margin:0}
+/* ---- le calendrier s'adapte à la taille de sa fenêtre : textes proportionnels, et présentation compacte quand elle est basse ---- */
+.cc-sem,.cc-mois{container-type:size}
+.cc-sem .sem-j small{font-size:clamp(9px,1.5cqw,15px)}
+.cc-sem .sem-j b{font-size:clamp(13px,2.7cqw,26px);width:1.75em;height:1.75em}
+.cc-sem .sem-h span{font-size:clamp(9px,1.5cqw,14px)}
+.cc-sem .sem-ev b{font-size:clamp(9.5px,1.75cqw,18px)}
+.cc-sem .sem-ev small{font-size:clamp(8.5px,1.5cqw,15px)}
+.cc-sem .sem-jr em{font-size:clamp(9.5px,1.7cqw,16px)}
+.cc-sem .sem-tete,.cc-sem .sem-corps{grid-template-columns:clamp(26px,5.6cqw,56px) repeat(7,minmax(0,1fr))}
+.cc-mois>small{font-size:clamp(9px,1.5cqw,15px)}
+.cc-mois>div b{font-size:clamp(10px,min(2cqw,4.2cqh),20px);min-width:1.6em;height:1.6em}
+.cc-mois em{font-size:clamp(8.5px,min(1.6cqw,3.6cqh),15px)}
+.cc-mois span{font-size:clamp(8px,1.4cqw,13px)}
+@container (max-height:250px){
+  /* fenêtre basse : plus de grille des heures, chaque jour liste ses rendez-vous dans l'ordre */
+  .cc-sem .sem-tete,.cc-sem .sem-corps{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .cc-sem .sem-tete>span:first-child,.cc-sem .sem-h,.cc-sem .sem-col i,.cc-sem .sem-col u{display:none}
+  .cc-sem .sem-j{grid-auto-flow:column;justify-content:center;align-items:center;gap:6px}
+  .cc-sem .sem-j b{font-size:clamp(12px,2cqw,18px)}
+  .cc-sem .sem-corps{margin-top:2px}
+  .cc-sem .sem-col{display:flex;flex-direction:column;gap:2px;padding:0 2px;overflow:hidden}
+  .cc-sem .sem-ev{position:static!important;width:auto!important;height:auto!important;flex:none;display:flex;gap:5px;align-items:baseline;padding:1px 5px}
+  .cc-sem .sem-ev b{order:2;display:block;white-space:nowrap;text-overflow:ellipsis;min-width:0;flex:1}
+  .cc-sem .sem-ev small{order:1;flex:none;max-width:3.2em;overflow:hidden;text-overflow:clip}
+  .cc-mois>div{padding:0 3px;gap:0;grid-auto-flow:column;grid-template-columns:auto 1fr;align-items:center}
+  .cc-mois>div em:nth-of-type(n+2),.cc-mois>div span{display:none}
+}
+@container (max-width:430px){
+  .cc-sem .sem-ev small{display:none}
+  .cc-sem .sem-ev{padding:1px 3px;border-left-width:2px}
+}
 </style>
 </head>
 <body>
@@ -2528,7 +2559,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
           var fins=[]; blocs.forEach(function(q){ var c=0; while(fins[c]!=null&&fins[c]>q.d) c++; fins[c]=q.f; q.c=c; });
           var nb=Math.max(1,fins.length), m=mnt.getHours()*60+mnt.getMinutes();
           colonnes+='<div class="sem-col'+(auj?' auj':'')+'">'+lignes+blocs.map(function(q){
-            return '<div class="sem-ev'+((q.f-q.d)<=45?' court':'')+(q.e.id&&rdvChoix[q.e.id]?' coche':'')+'"'+(q.e.id?' data-rdv="'+esc(q.e.id)+'"':'')+' style="--k:'+calTeinte(q.e.titre)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(4,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"><b>'+esc(q.e.titre||'(sans titre)')+'</b><small>'+esc(q.e.debut||'')+(q.e.lieu?' · '+esc(q.e.lieu):'')+'</small></div>'; }).join('')
+            return '<div class="sem-ev'+((q.f-q.d)<=60?' court':'')+(q.e.id&&rdvChoix[q.e.id]?' coche':'')+'"'+(q.e.id?' data-rdv="'+esc(q.e.id)+'"':'')+' style="--k:'+calTeinte(q.e.titre)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(4,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"><b>'+esc(q.e.titre||'(sans titre)')+'</b><small>'+esc(q.e.debut||'')+(q.e.lieu?' · '+esc(q.e.lieu):'')+'</small></div>'; }).join('')
             +(auj&&m>=h0&&m<=h1?'<u style="top:'+((m-h0)/duree*100)+'%"></u>':'')+'</div>';
         });
         h='<div class="cc-sem"><div class="sem-tete">'+entete+'</div>'+(aJournee?'<div class="sem-tete sem-jrs">'+journees+'</div>':'<div></div>')+'<div class="sem-corps"><div class="sem-h">'+heures+'</div>'+colonnes+'</div></div>';
