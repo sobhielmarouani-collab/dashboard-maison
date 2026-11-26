@@ -793,7 +793,7 @@ h2 svg{color:var(--neon)}
 
   <!-- ===== GESTION ===== -->
   <section class="vue page" id="v-gestion">
-    <div class="entete"><h1><svg class="i"><use href="#n-gestion"/></svg>Gestion <span class="demo" style="position:static;font-size:15px;font-weight:400" id="ge-date">Chiffres ProGBat, saisis à la main</span></h1><div style="display:flex;gap:12px;align-items:center"><a class="bouton" id="ge-lien" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;text-decoration:none;color:inherit">Ouvrir ProGBat</a><button class="bouton ok" type="button" id="ge-ouvrir">Mettre à jour les chiffres</button><span class="h" data-heure></span></div></div>
+    <div class="entete"><h1><svg class="i"><use href="#n-gestion"/></svg>Gestion <span class="demo" style="position:static;font-size:15px;font-weight:400" id="ge-date">Chiffres ProGBat, saisis à la main</span></h1><div style="display:flex;gap:12px;align-items:center"><a class="bouton" id="ge-lien" href="#" target="_blank" rel="noopener" style="display:none;align-items:center;text-decoration:none;color:inherit">Ouvrir ProGBat</a><small id="pg-etat" style="font-size:15px;color:var(--discret);white-space:nowrap"></small><button class="bouton" type="button" id="pg-actualiser" title="Relire ProGBat maintenant">Actualiser ProGBat</button><button class="bouton ok" type="button" id="ge-ouvrir">Mettre à jour les chiffres</button><span class="h" data-heure></span></div></div>
     <div class="corps gest">
       <article class="carte kpi"><h2>Chiffre d'affaires</h2><div class="v" id="ge-ca">–</div><div class="s" id="ge-ca-s"></div></article>
       <article class="carte kpi"><h2>Encours clients</h2><div class="v" id="ge-enc">–</div><div class="s" id="ge-enc-s"></div></article>
@@ -2188,6 +2188,35 @@ h2 svg{color:var(--neon)}
     });
     /* ---- ProGBat : le serveur lit les factures (lecture seule) et remplit le formulaire ; rien n'est enregistré avant « Enregistrer » ---- */
     var MOIS_C=['Jan','Fév','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+    function remplirProgbat(j){
+      var dv=j.devis||{};
+      $('gf-ca').value=champ(j.ca);
+      $('gf-mois').value=MOIS_C.map(function(n,i){ return n+' | '+champ((j.mois||[])[i]||0)+' | '+champ((j.acomptes||[])[i]||0); }).join('\n');
+      if(j.encours!=null){ $('gf-enc').value=champ(j.encours); $('gf-ret').value=champ(j.retard); $('gx-encnb').value=champ(j.encours_nombre); $('gx-retnb').value=champ(j.retard_nombre); }
+      if(dv.lus!=null){ $('gf-acc').value=champ(dv.acceptes); $('gf-accn').value=champ(dv.acceptes_nombre); $('gf-env').value=champ(dv.en_attente); $('gf-aenv').value=champ(dv.a_envoyer); $('gx-devis').value=champ(dv.etablis_total); $('gx-devisnb').value=champ(dv.etablis); }      if((j.clients||[]).length) $('gf-clients').value=j.clients.map(function(c){ return c.n+' | '+champ(c.v); }).join('\n');
+    }
+    /* mise à jour automatique : à l'ouverture puis toutes les 15 minutes, le tableau de bord relit ProGBat et enregistre les chiffres.
+       Les champs que ProGBat ne donne pas (évolution, prévision, portefeuille, adresse) gardent leur valeur saisie. */
+    var pgAuto={enCours:false,arret:false};
+    function etatProgbat(t,ok){ var e=$('pg-etat'); e.textContent=t; e.style.color=ok===false?'var(--orange)':'var(--discret)'; }
+    function majProgbat(forcer){
+      if(pgAuto.enCours||pgAuto.arret||!adresseServeur()||!session()) return;
+      if(!forcer&&$('ge-voile').classList.contains('ouvert')) return;   /* on ne touche pas au formulaire pendant une saisie */
+      pgAuto.enCours=true; if(forcer) etatProgbat('ProGBat : lecture…');
+      appelServeur('/progbat?annee='+ANNEE+(forcer?'&forcer=1':''),{methode:'GET'}).then(function(j){
+        pgAuto.enCours=false;
+        if(j.configure===false){ pgAuto.arret=true; etatProgbat('ProGBat non relié',false); return; }
+        if($('ge-voile').classList.contains('ouvert')) return;
+        $('ge-ouvrir').click();                       /* remplit le formulaire avec les valeurs en place */
+        remplirProgbat(j);
+        $('ge-form').dispatchEvent(new Event('submit',{cancelable:true}));   /* enregistre et referme, dans la même image : rien ne clignote */
+        var d=new Date(); etatProgbat('ProGBat · à jour à '+p2(d.getHours())+':'+p2(d.getMinutes()));
+      },function(x){ pgAuto.enCours=false; etatProgbat('ProGBat : lecture impossible ('+(x.message||'erreur').slice(0,60)+')',false); });
+    }
+    $('pg-actualiser').addEventListener('click',function(){ pgAuto.arret=false; majProgbat(true); });
+    setTimeout(function(){ majProgbat(false); },4000);
+    setInterval(function(){ if(!document.hidden) majProgbat(false); },15*60*1000);
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden) majProgbat(false); });
     $('pg-importer').addEventListener('click',function(){
       var m=$('pg-msg'), b=this;
       if(!adresseServeur()||!session()){ m.textContent='Connectez d\'abord Sigma avec Google dans Réglages : c\'est le serveur qui lit ProGBat.'; return; }
@@ -2195,11 +2224,8 @@ h2 svg{color:var(--neon)}
       appelServeur('/progbat?forcer=1&annee='+ANNEE,{methode:'GET'}).then(function(j){
         b.disabled=false;
         if(j.configure===false){ m.textContent='ProGBat n\'est pas encore relié : ajoutez le secret PROGBAT_JETON dans Cloudflare, puis réessayez.'; return; }
-        $('gf-ca').value=champ(j.ca);
-        $('gf-mois').value=MOIS_C.map(function(n,i){ return n+' | '+champ((j.mois||[])[i]||0)+' | '+champ((j.acomptes||[])[i]||0); }).join('\n');
-        if(j.encours!=null){ $('gf-enc').value=champ(j.encours); $('gf-ret').value=champ(j.retard); $('gx-encnb').value=champ(j.encours_nombre); $('gx-retnb').value=champ(j.retard_nombre); }
+        remplirProgbat(j);
         var rg=j.reglements||{}, dv=j.devis||{};
-        if(dv.lus!=null){ $('gf-acc').value=champ(dv.acceptes); $('gf-accn').value=champ(dv.acceptes_nombre); $('gf-env').value=champ(dv.en_attente); $('gf-aenv').value=champ(dv.a_envoyer); $('gx-devis').value=champ(dv.etablis_total); $('gx-devisnb').value=champ(dv.etablis); }
         if((j.clients||[]).length) $('gf-clients').value=j.clients.map(function(c){ return c.n+' | '+champ(c.v); }).join('\n');
         var c=(j.controle||[]).map(function(g){ return '• '+g.type+' · '+(g.validee?'validée':'brouillon')+' · statut '+g.statut+(g.statut_efacture?' · e-facture '+g.statut_efacture:'')+' : '+g.nombre+' facture(s), '+eur(g.total_ht)+' HT, reste à payer '+eur(g.reste_a_payer)+', '+g.echues+' échue(s), '+(g.soldees||0)+' soldée(s)'; }).join('\n');
         m.textContent='Lu dans ProGBat pour '+j.annee+' : '+j.factures_lues+' facture(s), dont '+j.factures_retenues+' validée(s) retenue(s). Chiffre d\'affaires HT calculé : '+eur(j.ca)+'. '+(j.chantiers||[]).length+' chantier(s) trouvé(s).'+(j.chantiers_erreur?' Chantiers non lus : '+j.chantiers_erreur:'')+'\n'+(j.encours!=null?'À encaisser : '+eur(j.encours)+' sur '+j.encours_nombre+' facture(s), dont en retard '+eur(j.retard)+' sur '+j.retard_nombre+' (net à payer des factures validées, moins les règlements pointés en banque).':'À encaisser et impayés non calculés : aucun règlement pointé trouvé dans ProGBat'+(rg.erreur?' ('+rg.erreur+')':'')+'.')+'\n'+(dv.lus!=null?'Devis de l\'exercice '+j.annee+' (du 1er janvier au 31 décembre, '+dv.lus+' lus au total) : '+dv.etablis+' établi(s) pour '+eur(dv.etablis_total)+' HT, dont '+dv.acceptes_nombre+' accepté(s) pour '+eur(dv.acceptes)+' HT, '+dv.en_attente+' en attente ('+eur(dv.en_attente_total)+' HT), '+dv.a_envoyer+' à l\'étude ou en brouillon.':'Devis non lus'+(dv.erreur?' : '+dv.erreur:'')+'.')+'\nComparez avec votre tableau de bord ProGBat avant d\'enregistrer.\n\nRèglements : '+(rg.transactions||0)+' transaction(s), '+(rg.pointages||0)+' pointage(s)'+((rg.types||[]).length?' ('+rg.types.map(function(t){ return (t.type||'sans type')+' × '+t.nombre; }).join(', ')+')':'')+'.\nContrôle par type et statut ('+j.annee+') :\n'+c.replace(/échue\(s\)/g,'échue(s)')+'\n(soldées : '+(j.controle||[]).reduce(function(a,g){ return a+(g.soldees||0); },0)+')';
