@@ -653,6 +653,125 @@ h2 svg{color:var(--neon)}
 .cc-kpi .t{font-size:16px}
 #p2-titre{font-size:19px}
 </style>
+<script>
+/* thème appliqué avant l'affichage, pour éviter un éclair de la mauvaise couleur */
+(function(){ try{ if(localStorage.getItem('dashboard-theme')==='clair') document.documentElement.setAttribute('data-theme','clair'); }catch(e){} })();
+</script>
+<style>
+/* ============ STYLE « VERRE LIQUIDE » ============
+   Panneaux translucides, flou d'arrière-plan, reflets sur les bords, grands arrondis.
+   Deux thèmes : sombre (par défaut) et clair, choisis dans Réglages ou par le bouton de l'en-tête.
+   html[data-theme="clair"] porte le thème clair. */
+:root{
+  --verre:linear-gradient(140deg,rgba(255,255,255,.13),rgba(255,255,255,.04) 45%,rgba(255,255,255,.07));
+  --verre-bord:rgba(255,255,255,.22);
+  --verre-reflet:inset 0 1px 0 rgba(255,255,255,.42),inset 1px 0 0 rgba(255,255,255,.10),inset 0 -1px 0 rgba(255,255,255,.06);
+  --verre-ombre:0 14px 34px rgba(0,6,20,.42);
+  --verre-flou:blur(26px) saturate(175%);
+  --champ:rgba(4,12,26,.45);
+  --creux:rgba(255,255,255,.07);
+  --trait:rgba(255,255,255,.20);
+  --fond:#040A18;
+}
+html[data-theme="clair"]{
+  color-scheme:light;
+  --fond:#E4ECF7; --texte:#0B1B33; --discret:#4A5F7D;
+  --bleu:#1B6BF0; --neon:#006FD6; --vert:#008F63; --jaune:#B46A00; --orange:#B46A00; --rouge:#D4264A; --violet:#5646D6;
+  --verre:linear-gradient(140deg,rgba(255,255,255,.72),rgba(255,255,255,.40) 45%,rgba(255,255,255,.56));
+  --verre-bord:rgba(255,255,255,.90);
+  --verre-reflet:inset 0 1px 0 rgba(255,255,255,1),inset 1px 0 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.35);
+  --verre-ombre:0 14px 34px rgba(40,70,130,.18);
+  --verre-flou:blur(26px) saturate(190%);
+  --champ:rgba(255,255,255,.70);
+  --creux:rgba(20,50,100,.07);
+  --trait:rgba(20,50,100,.16);
+}
+body{background:var(--fond)}
+
+/* fond : halos colorés que le verre laisse deviner */
+#scene{background:
+  radial-gradient(620px 420px at 12% 8%,rgba(0,140,255,.55) 0%,transparent 70%),
+  radial-gradient(560px 460px at 92% 12%,rgba(120,90,255,.42) 0%,transparent 70%),
+  radial-gradient(700px 480px at 78% 96%,rgba(0,200,190,.30) 0%,transparent 70%),
+  radial-gradient(620px 460px at 18% 100%,rgba(30,90,255,.38) 0%,transparent 70%),
+  radial-gradient(520px 380px at 52% 46%,rgba(0,110,220,.22) 0%,transparent 72%),
+  var(--fond)}
+html[data-theme="clair"] #scene{background:
+  radial-gradient(620px 420px at 12% 8%,rgba(90,175,255,.75) 0%,transparent 70%),
+  radial-gradient(560px 460px at 92% 12%,rgba(178,150,255,.62) 0%,transparent 70%),
+  radial-gradient(700px 480px at 78% 96%,rgba(110,225,205,.55) 0%,transparent 70%),
+  radial-gradient(620px 460px at 18% 100%,rgba(255,190,150,.50) 0%,transparent 70%),
+  radial-gradient(520px 380px at 52% 46%,rgba(255,255,255,.65) 0%,transparent 72%),
+  var(--fond)}
+
+/* le panneau de verre */
+.carte{background:var(--verre);border:1px solid var(--verre-bord);border-radius:22px;
+  box-shadow:var(--verre-ombre),var(--verre-reflet);-webkit-backdrop-filter:var(--verre-flou);backdrop-filter:var(--verre-flou)}
+button.carte:hover,a.carte:hover{border-color:color-mix(in srgb,var(--neon) 70%,white);box-shadow:var(--verre-ombre),var(--verre-reflet),0 0 22px color-mix(in srgb,var(--neon) 35%,transparent)}
+.cc-lien:hover{border-color:color-mix(in srgb,var(--neon) 60%,transparent);box-shadow:none;background:var(--creux)}
+
+/* cartes chiffres : verre teinté par la couleur du chiffre */
+.cc-kpi{background:linear-gradient(140deg,color-mix(in srgb,var(--c) 30%,transparent),color-mix(in srgb,var(--c) 8%,transparent) 55%,color-mix(in srgb,var(--c) 16%,transparent)),var(--verre);
+  border-color:color-mix(in srgb,var(--c) 55%,var(--verre-bord))}
+
+/* menu */
+.nav{border-radius:20px}
+.nav.actif{border-color:color-mix(in srgb,var(--neon) 75%,white);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--neon) 55%,transparent),color-mix(in srgb,var(--bleu) 22%,transparent)),var(--verre);
+  box-shadow:var(--verre-ombre),var(--verre-reflet),0 0 24px color-mix(in srgb,var(--neon) 45%,transparent)}
+.nav.actif svg{color:color-mix(in srgb,var(--neon) 55%,white)}
+
+/* boutons, champs, petits blocs */
+.bouton,.rond{background:var(--verre);border:1px solid var(--verre-bord);box-shadow:var(--verre-reflet);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--texte)}
+.bouton{border-radius:16px}
+.bouton.ok{background:linear-gradient(180deg,#3fb6ff,#2f7df0);border-color:rgba(255,255,255,.55);color:#03101f;box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 8px 20px rgba(30,120,240,.35)}
+.bouton.danger,.rond.suppr{background:linear-gradient(140deg,color-mix(in srgb,var(--rouge) 30%,transparent),color-mix(in srgb,var(--rouge) 12%,transparent));border-color:color-mix(in srgb,var(--rouge) 55%,transparent);color:var(--rouge)}
+input,select,textarea,.n-boite fieldset textarea,.g-boite textarea{background:var(--champ);border:1px solid var(--trait);border-radius:14px;color:var(--texte)}
+.cc-pilule,.cc-tout,.mu-encours,.cc-liste button,.cc-liste div,.pe-choix button,.cc-rang,.ag-liste li{background:var(--creux);border-color:var(--trait)}
+.ag-c{background:var(--creux);border-radius:14px}
+.ag-c.we{background:transparent}
+.ag-c.choisi{background:linear-gradient(160deg,color-mix(in srgb,var(--neon) 50%,transparent),color-mix(in srgb,var(--bleu) 20%,transparent));border-color:color-mix(in srgb,var(--neon) 75%,white)}
+.cc-rond:hover{background:var(--creux);border-color:var(--verre-bord)}
+.cc-profil{background:var(--verre);box-shadow:var(--verre-reflet),0 0 16px color-mix(in srgb,var(--neon) 45%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.voile{background:rgba(2,8,20,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.boite{background:var(--verre);border:1px solid var(--verre-bord);border-radius:24px;box-shadow:0 30px 70px rgba(0,6,20,.5),var(--verre-reflet);-webkit-backdrop-filter:blur(34px) saturate(180%);backdrop-filter:blur(34px) saturate(180%)}
+.app-bandeau.app-maj{background:var(--verre);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.cc-fil .vg{background:linear-gradient(150deg,color-mix(in srgb,var(--neon) 35%,transparent),var(--creux));border-radius:14px}
+.cc-sep{background:var(--trait)}
+
+/* Sigma : la carte garde son image sombre dans les deux thèmes */
+.cc-centre .ia{--texte:#F3F7FC;--discret:#9FB4CE;--neon:#00BFFF;--vert:#00E5A0;--creux:rgba(255,255,255,.08);--trait:rgba(255,255,255,.22);color:var(--texte);border-color:var(--verre-bord)}
+.cc-centre .ia .cc-pilule{background:rgba(6,20,40,.6);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+
+/* textes : les teintes fixes deviennent celles du thème */
+.cc-date,.cc-kpi .t,.cc-kpi .s,#a-jours,.cc-bloc h2 em,.cc-nom span,.cc-mails .c,.cc-ag .j,.cc-anneau .c small,.cc-pers .l svg,.meteo .txt{color:color-mix(in srgb,var(--texte) 82%,var(--discret))}
+.cc-fil .vg svg{color:color-mix(in srgb,var(--neon) 60%,var(--texte))}
+
+/* ---- thème clair : ajustements ---- */
+html[data-theme="clair"] .cc-tete .logo{filter:brightness(0) opacity(.86)}
+html[data-theme="clair"] .cc-heure{text-shadow:none}
+html[data-theme="clair"] *{text-shadow:none}
+html[data-theme="clair"] .cc-centre .ia *{text-shadow:0 1px 6px rgba(0,0,0,.5)}
+html[data-theme="clair"] .voile{background:rgba(190,205,228,.45)}
+html[data-theme="clair"] .boite{box-shadow:0 30px 70px rgba(40,70,130,.28),var(--verre-reflet)}
+html[data-theme="clair"] .ag-c.choisi b{color:var(--texte)}
+html[data-theme="clair"] .bouton.ok{color:#fff;background:linear-gradient(180deg,#2f9bff,#1b6bf0)}
+html[data-theme="clair"] .cc-rond .nb{color:#fff}
+
+/* bouton clair / sombre de l'en-tête */
+#cc-theme .lune{display:none}
+html[data-theme="clair"] #cc-theme .lune{display:block}
+html[data-theme="clair"] #cc-theme .soleil{display:none}
+.cc-outils{gap:2px}
+/* clair : couleurs vives assombries pour rester lisibles sur fond clair */
+html[data-theme="clair"] .cc-kpi .ic,html[data-theme="clair"] .cc-kpi.coul .v{color:color-mix(in srgb,var(--c) 68%,#0B1B33)}
+html[data-theme="clair"] .cc-ech svg,html[data-theme="clair"] .cc-ech em{color:color-mix(in srgb,var(--k) 66%,#0B1B33);border-color:color-mix(in srgb,var(--k) 66%,#0B1B33)}
+html[data-theme="clair"] .cc-ech em{background:color-mix(in srgb,var(--k) 12%,transparent)}
+html[data-theme="clair"] .nav.actif{background:linear-gradient(160deg,color-mix(in srgb,var(--neon) 30%,transparent),color-mix(in srgb,var(--bleu) 10%,transparent)),var(--verre)}
+html[data-theme="clair"] .nav.actif svg{color:var(--neon)}
+html[data-theme="clair"] input::-webkit-calendar-picker-indicator{filter:none;opacity:.7}
+.demo{background:var(--creux);border-color:var(--trait);color:var(--discret)}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
@@ -696,6 +815,7 @@ h2 svg{color:var(--neon)}
       <div class="cc-actions">
         <button class="cc-rond" type="button" id="cc-musique" aria-label="Musique : radios en ligne" title="Musique"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="6.500" cy="18" r="2.500"/><circle cx="16.500" cy="16" r="2.500"/></svg><span class="nb" id="mu-point" hidden>♪</span></button>
         <button class="cc-rond" type="button" id="cc-chercher" aria-label="Recherche"><svg class="i" viewBox="0 0 24 24"><circle cx="10.500" cy="10.500" r="6.500"/><path d="M15.500 15.500L21 21"/></svg></button>
+        <button class="cc-rond" type="button" id="cc-theme" aria-label="Thème clair ou sombre" title="Thème clair ou sombre"><svg class="i soleil" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.500M12 19v2.500M2.500 12H5M19 12h2.500M5.300 5.300l1.800 1.800M16.900 16.900l1.800 1.800M5.300 18.700l1.800-1.800M16.900 7.100l1.800-1.800"/></svg><svg class="i lune" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></svg></button>
         <button class="cc-rond" type="button" id="cc-plein" aria-label="Plein écran" title="Plein écran (touche F)"><svg class="i" viewBox="0 0 24 24"><path id="cc-plein-i" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
         <button class="cc-rond" type="button" id="cc-cloche" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V10.500a6 6 0 0 1 12 0V16l1.500 2h-15zM10 20.500a2 2 0 0 0 4 0"/></svg><span class="nb" id="cc-nb" hidden>0</span></button>
         <button class="cc-profil" type="button" id="cc-profil" data-aller="reglages" aria-label="Profil et réglages"><span id="cc-initiales">–</span><i></i></button>
@@ -1001,6 +1121,7 @@ h2 svg{color:var(--neon)}
         <p class="info" id="r-msg"></p>
         <h2 style="margin-top:10px">Écran</h2>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Taille de l'affichage</span><button class="rond" type="button" data-act="zoom-" aria-label="Réduire l'affichage">−</button><b id="r-zoom" style="width:80px;text-align:center;font-size:24px">100 %</b><button class="rond" type="button" data-act="zoom+" aria-label="Agrandir l'affichage">+</button></div>
+        <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Thème</span><button class="bouton" type="button" id="r-theme" style="min-width:210px">Sombre</button></div>
         <button class="bouton" type="button" data-act="ecran">Passer en plein écran</button>
       </div>
     </div>
@@ -2801,6 +2922,21 @@ h2 svg{color:var(--neon)}
   })();
 
   trierAgenda(); dessiner(); aller((location.hash||'').slice(1)||'accueil'); tic(); setInterval(tic,1000); meteo(); setInterval(meteo,15*60*1000);
+})();
+</script>
+<script>
+/* ---- thème clair ou sombre (gardé sur l'appareil) ---- */
+(function(){
+  var R=document.documentElement, meta=document.querySelector('meta[name="theme-color"]');
+  function clair(){ return R.getAttribute('data-theme')==='clair'; }
+  function peindre(){
+    var b=document.getElementById('r-theme'); if(b) b.textContent=clair()?'Clair · passer en sombre':'Sombre · passer en clair';
+    if(meta) meta.setAttribute('content',clair()?'#E4ECF7':'#040A18');
+  }
+  function regler(c){ if(c) R.setAttribute('data-theme','clair'); else R.removeAttribute('data-theme'); try{ localStorage.setItem('dashboard-theme',c?'clair':'sombre'); }catch(e){} peindre(); }
+  window.themeSigma=function(nom){ regler(nom==='clair'); };
+  ['cc-theme','r-theme'].forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('click',function(){ regler(!clair()); }); });
+  peindre();
 })();
 </script>
 </body>
