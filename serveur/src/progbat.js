@@ -142,7 +142,8 @@ export async function resumeProgbat(env, { annee, forcer = false } = {}) {
 
     if (!retenue || m < 0 || m > 11) continue;
     retenues++;
-    if (/^advance/.test(f.type || "")) { acomptes[m] += ht; continue; }
+    // les factures d'acompte comptent dans le chiffre d'affaires (choix de l'entreprise) et restent aussi suivies à part
+    if (/^advance/.test(f.type || "")) acomptes[m] += ht;
     mois[m] += ht; ca += ht;
     const client = String(f.clientBusinessName || f.clientName || "").trim().slice(0, 60);
     if (client) parClient.set(client, (parClient.get(client) || 0) + ht);

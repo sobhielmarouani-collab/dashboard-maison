@@ -317,9 +317,9 @@ async function executerLireProgbat(env, bloc) {
     const d = r.devis || {};
     const lignes = [
       `Exercice ${r.annee}, chiffres lus dans ProGBat à l'instant.`,
-      `Chiffre d'affaires hors taxes facturé : ${e(r.ca)} (${r.factures_retenues} factures validées).`,
+      `Chiffre d'affaires hors taxes facturé, factures d'acompte comprises et avoirs déduits : ${e(r.ca)} (${r.factures_retenues} factures validées, brouillons exclus).`,
       `Par mois : ${r.mois.map((v, i) => `${MOIS_FR[i]} ${e(v)}`).join(", ")}.`,
-      `Acomptes facturés hors taxes : ${e(r.acomptes.reduce((a, b) => a + b, 0))}.`,
+      `Dont factures d'acompte hors taxes : ${e(r.acomptes.reduce((a, b) => a + b, 0))}.`,
       r.encours != null
         ? `Reste à encaisser toutes taxes comprises sur les factures de l'exercice : ${e(r.encours)} sur ${r.encours_nombre} factures, dont en retard de paiement : ${e(r.retard)} sur ${r.retard_nombre} factures.`
         : "Reste à encaisser et retards : non calculables, aucun règlement n'est pointé dans ProGBat.",
