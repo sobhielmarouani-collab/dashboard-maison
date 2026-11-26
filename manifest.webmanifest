@@ -1,0 +1,20 @@
+{
+  "name": "SIGNATURE Command Center",
+  "short_name": "SIGNATURE",
+  "description": "Tableau de bord professionnel SIGNATURE avec l'assistant vocal Sigma.",
+  "lang": "fr",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#050D1C",
+  "theme_color": "#050D1C",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icones/icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icones/icone-adaptative-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
