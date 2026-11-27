@@ -781,7 +781,9 @@ html[data-profil="direction"] [data-pour]:not([data-pour~="direction"]),
 html[data-profil="conducteur"] [data-pour]:not([data-pour~="conducteur"]),
 html[data-profil="secretaire"] [data-pour]:not([data-pour~="secretaire"]){display:none!important}
 .bas{grid-template-rows:none;grid-auto-rows:minmax(0,1fr)}
-html:not([data-profil="direction"]) #v-accueil{grid-template-rows:64px 1fr 250px}
+/* le bandeau Actualités BTP ne figure plus sur l'accueil (la page Actualités reste dans le menu) : même grille pour tous les profils */
+#v-accueil{grid-template-rows:64px 1fr 250px}
+.cc-actus{display:none!important}
 html:not([data-profil="direction"]) .cc-bas{grid-template-columns:1.05fr .95fr 1.1fr 1.1fr}
 html:not([data-profil="direction"]) .nav{font-size:14px}
 html:not([data-profil="direction"]) .nav svg{width:28px;height:28px}
@@ -1214,7 +1216,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       </article>
     </div>
 
-    <section class="carte cc-actus" data-pour="direction" aria-label="Actualités BTP">
+    <section class="carte cc-actus" data-pour="aucun" aria-label="Actualités BTP" hidden>
       <h2><svg class="i"><use href="#n-actualites"/></svg>Actualités BTP</h2>
       <div class="cc-fil" id="n2"></div>
       <div class="cc-fin-actus"><span class="cc-pages" id="n2-pages" hidden><button class="cc-rond" type="button" id="n2-prec" aria-label="Actualités précédentes"><svg class="i" viewBox="0 0 24 24"><path d="M14.500 6l-6 6 6 6"/></svg></button><b id="n2-num">1 / 1</b><button class="cc-rond" type="button" id="n2-suiv" aria-label="Actualités suivantes"><svg class="i" viewBox="0 0 24 24"><path d="M9.500 6l6 6-6 6"/></svg></button></span><button class="cc-tout" type="button" data-aller="actualites">Voir toute l'actualité →</button></div>
@@ -4036,7 +4038,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
 
     /* ---- traits de réglage des tailles ---- */
     var traits=[];
-    function rangees(d){ return profil()==='direction' ? '64px 1fr '+d.bas+'px 78px' : '64px 1fr '+d.bas+'px'; }
+    function rangees(d){ return '64px 1fr '+d.bas+'px'; }
     function poignees(){
       traits.forEach(function(t){ t.remove(); }); traits=[];
       var k=echelle(), base=V.getBoundingClientRect();
