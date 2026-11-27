@@ -1002,12 +1002,11 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .do-t small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .do-t:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--k) 70%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--k) 40%,transparent)}
 .do-t.choisi{border-color:#3fb6ff;box-shadow:0 0 0 2px rgba(63,182,255,.5),0 0 30px rgba(0,150,255,.65),inset 0 0 20px rgba(0,150,255,.22)}
-/* page Dossiers : « Mes dossiers » sur une seule ligne horizontale ; au-delà de la largeur, la ligne défile */
-#dp-tuiles{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);grid-template-rows:minmax(0,1fr);min-width:0;gap:10px;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;scrollbar-width:thin}
-#dp-tuiles .do-t b{font-size:19px}
-#dp-tuiles .do-t small{font-size:14px}
-.do-corps{grid-template-rows:262px minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
+/* page Dossiers : uniquement « Mes dossiers », en rangées de quatre ; les chantiers ont leur fenêtre sur l'accueil */
+#dp-ch-bloc{display:none}
+.do-corps{grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 .do-bloc{min-width:0}
+#dp-tuiles{grid-auto-rows:250px;align-content:start;overflow-y:auto;scrollbar-width:thin;padding:2px}
 .do-tuiles.mini{gap:8px;height:100%;min-width:0;grid-template-rows:minmax(0,1fr)}
 .do-rail.acc.mini{grid-template-columns:28px 1fr 28px;gap:4px;container-type:normal}
 .do-rail.acc.mini .rond{width:28px;height:28px;font-size:19px;padding:0 0 3px}
@@ -3796,10 +3795,10 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         +'<button class="bouton ok" type="button" id="av-valider">Valider mon avatar</button><button class="bouton" type="button" id="av-origine">Revenir à l\'avatar d\'origine</button>'
         +'<p class="info" id="av-msg">L\'avatar ne change que l\'image de SIGMA. Il est indépendant de votre profil et ne donne aucun droit.</p></div></div></section>';
       h+='<section class="vue page do-page" id="v-dossiers" data-pour="direction conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-dossiers"/></svg>Dossiers</h1><span class="h" data-heure></span></div>'
-        +'<div class="do-corps"><div class="carte do-bloc"><h2><span><svg class="i"><use href="#n-dossiers"/></svg>Mes dossiers <em id="dp-nb"></em></span><button class="cc-lien" type="button" data-aller="ldossiers" data-pour="direction">Configurer les dossiers →</button></h2><div class="do-tuiles" id="dp-tuiles"></div></div>'
+        +'<div class="do-corps"><div class="carte do-bloc"><h2><span><svg class="i"><use href="#n-dossiers"/></svg>Mes dossiers <em id="dp-nb"></em></span><button class="cc-lien" type="button" data-aller="ldossiers" data-pour="direction">Configurer les dossiers →</button></h2><div class="do-tuiles" id="dp-tuiles"></div><p class="info" id="dp-msg"></p></div>'
         +'<div class="carte do-bloc" id="dp-ch-bloc"><h2><span><svg class="i"><use href="#do-casque"/></svg>Dossiers Chantiers <em id="dp-ch-nb"></em></span><button class="cc-lien" type="button" data-aller="lchantiers" data-pour="direction conducteur">+ Nouveau chantier</button></h2>'
         +'<div class="do-rail"><button class="rond" type="button" id="dp-prec" aria-label="Précédent">‹</button><div class="do-cartes" id="dp-cartes"></div><button class="rond" type="button" id="dp-suiv" aria-label="Suivant">›</button></div>'
-        +'<div class="do-points" id="dp-points"></div><p class="info" id="dp-msg"></p></div></div></section>';
+        +'<div class="do-points" id="dp-points"></div></div></div></section>';
       h+='<datalist id="pf-chantiers"></datalist>';
       $('vues').insertAdjacentHTML('beforeend',h);
     }
