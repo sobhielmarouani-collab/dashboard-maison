@@ -1698,7 +1698,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
 
   /* ---------- navigation ---------- */
   var vueActive = 'accueil';
-  var RACCOURCIS = [['accueil','Accueil','accueil'],['chantiers','Chantiers','chantiers'],['gestion','Finances','gestion'],['personnel','Personnel','personnel'],['agenda','Agenda','agenda'],['taches','Tâches','taches'],['actualites','Actualités','actualites'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']];
+  var RACCOURCIS = [['accueil','Accueil','accueil'],['chantiers','Chantiers','chantiers'],['gestion','Finances','gestion'],['personnel','Personnel','personnel'],['agenda','Agenda','agenda'],['taches','Tâches','taches'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']];
   $('nav').innerHTML = RACCOURCIS.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste"></small>':'')+'</button>'; }).join('');
   function aller(v){
     if(!$('v-'+v)) v='accueil';
@@ -3315,8 +3315,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     $('ge-form').addEventListener('submit',function(){ setTimeout(tout,50); });
     window.addEventListener('storage',tout);
     setInterval(function(){ planning(); entete(); },60000);
-    setInterval(actualites,15*60*1000);
-    setTimeout(actualites,1200); setTimeout(actualites,6000);
+    /* le bandeau d'actualités n'est plus affiché : c'est Sigma qui lit les titres à la demande, rien n'est chargé d'avance */
   })();
 
   /* ================= avatar SIGMA animé =================
