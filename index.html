@@ -2370,8 +2370,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   var suiteTactile=false;
   function apresParole(texte){
     if(mainsLibres&&conv){ ouvrirFenetre(/\?\s*$/.test(String(texte||'').trim())?30000:15000); return; }
-    // conversation commencée en touchant le visage : si Sigma vient de poser une question, le micro se rouvre pour la réponse
-    if(!mainsLibres&&suiteTactile){ if(/\?\s*$/.test(String(texte||'').trim())) setTimeout(function(){ ecouterTactile(true); },350); else suiteTactile=false; }
+    // conversation commencée en touchant le visage : le micro se rouvre après chaque réponse, jusqu'à la fin de la discussion
+    if(!mainsLibres&&suiteTactile) setTimeout(function(){ ecouterTactile(true); },350);
   }
   function entendu(t){
     t=String(t||'').trim(); if(!t) return;
@@ -2422,19 +2422,35 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     if(ecoute){ suiteTactile=false; try{ reco.stop(); }catch(e){} return; }
     ecouterTactile(false);
   });
-  /* Écoute lancée en touchant le visage. Quand Sigma termine sa réponse par une question (« Je confirme ? »),
-     le micro se rouvre tout seul pour la réponse (suite=true), sans avoir à toucher de nouveau. */
+  /* Conversation lancée en touchant le visage : le micro reste ouvert jusqu'à la fin de la discussion.
+     - pendant que l'on parle, une pause ne coupe pas la phrase : elle n'est envoyée qu'après 1,8 seconde de silence ;
+     - après chaque réponse de Sigma, le micro se rouvre tout seul (suite=true) ;
+     - la discussion se termine si l'on ne dit rien pendant 10 secondes, si l'on dit « merci », « terminé », « stop »…,
+       ou si l'on touche de nouveau le visage. */
+  var FIN_DISCUSSION=/^(merci( beaucoup| sigma)?|c'est (tout|bon)|termin[ée]e?|stop|au revoir|[àa] plus tard|fin|rien( d'autre)?|non merci)[ .!]*$/i;
   function ecouterTactile(suite){
     if(ecoute||!Reco||sansMicro) return;
-    var question = suite ? $('ia-texte').textContent : '';
-    reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=false; reco.maxAlternatives=1;
-    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute'); if(suite) $('ia-etat').textContent=NOM+' · j\'écoute votre réponse'; else dire(NOM+' · j\'écoute','Parlez maintenant…',false); };
-    reco.onresult=function(e){ var t=e.results[0][0].transcript; suiteTactile=true; $('ia-entendu').textContent='Entendu par le micro : « '+String(t).slice(0,90)+' »'; repondre(t); };
-    reco.onerror=function(e){ suiteTactile=false;
-      if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){ sansMicro=true; if(!suite) dire(NOM+' · résumé du jour',resume(),true); }
-      else if(suite){ $('ia-etat').textContent=NOM+' · touchez mon visage pour répondre'; if(question) $('ia-texte').textContent=question; }
-      else { dire(NOM,'Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); } };
-    reco.onend=function(){ ecoute=false; $('ia').classList.remove('ecoute'); };
+    var avant = suite ? $('ia-texte').textContent : '', texte='', tFin=null, tVide=null, envoye=false, erreur='';
+    reco=new Reco(); reco.lang='fr-FR'; reco.interimResults=true; reco.continuous=true; reco.maxAlternatives=1;
+    var moi=reco;
+    function arreter(){ clearTimeout(tFin); clearTimeout(tVide); try{ moi.stop(); }catch(e){} }
+    function envoyer(){ if(envoye) return; envoye=true; arreter(); }
+    reco.onstart=function(){ ecoute=true; $('ia').classList.add('ecoute');
+      if(suite) $('ia-etat').textContent=NOM+' · je vous écoute (micro ouvert)'; else dire(NOM+' · j\'écoute','Parlez maintenant…',false);
+      tVide=setTimeout(arreter,suite?10000:9000); };
+    reco.onresult=function(e){ var t='', i; for(i=0;i<e.results.length;i++) t+=e.results[i][0].transcript+' ';
+      texte=t.replace(/\s+/g,' ').trim(); if(!texte) return;
+      clearTimeout(tVide); $('ia-entendu').textContent='Entendu par le micro : « '+texte.slice(0,90)+' »';
+      clearTimeout(tFin); tFin=setTimeout(envoyer,1800); };
+    reco.onerror=function(e){ erreur=e.error||'erreur'; };
+    reco.onend=function(){ clearTimeout(tFin); clearTimeout(tVide); ecoute=false; $('ia').classList.remove('ecoute');
+      if(erreur==='not-allowed'||erreur==='service-not-allowed'||erreur==='audio-capture'){ suiteTactile=false; sansMicro=true; if(!suite) dire(NOM+' · résumé du jour',resume(),true); return; }
+      if(texte&&FIN_DISCUSSION.test(texte)){ suiteTactile=false; dire(NOM,'Entendu. Touchez mon visage quand vous avez besoin de moi.',true); return; }
+      if(texte){ suiteTactile=true; repondre(texte); return; }
+      // rien entendu : la discussion est terminée
+      var encours=suiteTactile; suiteTactile=false;
+      if(suite||encours){ $('ia-etat').textContent=NOM+' · micro fermé, touchez mon visage pour reprendre'; if(avant) $('ia-texte').textContent=avant; }
+      else dire(NOM,'Je n\'ai rien entendu. Touchez mon visage pour réessayer.',false); };
     try{ reco.start(); }catch(e){ suiteTactile=false; if(!suite) dire(NOM+' · micro','Impossible de démarrer l\'écoute. Touchez pour réessayer.',false); }
   }
 
