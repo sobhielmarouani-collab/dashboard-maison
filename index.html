@@ -1022,6 +1022,26 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .do-points i{width:9px;height:9px;border-radius:50%;background:var(--trait)}
 .do-points i.a{background:var(--neon);box-shadow:0 0 8px var(--neon)}
 #dp-msg{margin:6px 0 0;min-height:1.2em;text-align:center}
+/* les mêmes cartes dans la fenêtre « Chantiers en cours » de l'accueil */
+.do-rail.acc{grid-template-columns:40px 1fr 40px;gap:8px;container-type:size;margin-top:4px}
+.do-rail.acc .rond{width:40px;height:40px;font-size:25px}
+.do-rail.acc .do-cartes{gap:10px}
+.do-c .av{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:2px 6px 0}
+.do-c .av .bar{height:6px;border-radius:4px;background:var(--creux);overflow:hidden;display:block}
+.do-c .av .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--bleu),var(--neon))}
+.do-c .av em{font-style:normal;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.do-rail.acc .do-c{padding:6px 6px 8px;border-radius:14px}
+.do-rail.acc .do-c b{font-size:17px}
+.do-rail.acc .do-c small{font-size:13.5px}
+.do-rail.acc .do-c .fav{width:30px;height:30px;font-size:18px;border-radius:8px}
+.cc-bloc>.do-points{margin-top:5px;min-height:9px}
+@container (max-height:170px){
+  /* fenêtre basse : la vignette devient un bandeau, le texte garde sa place */
+  .do-rail.acc .do-c{grid-template-rows:30px auto auto auto}
+  .do-rail.acc .do-c .vg>svg{display:none}
+  .do-rail.acc .do-c .vg .pf-etq{left:4px;bottom:3px;font-size:12px}
+  .do-rail.acc .do-c .fav{width:24px;height:24px;font-size:15px;top:2px;right:2px}
+}
 html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B33}
 </style>
 </head>
@@ -1113,7 +1133,8 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         <div class="cc-deux">
           <article class="carte cc-bloc" data-pour="conducteur direction">
             <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c3-nb"></em></span><button class="cc-lien" type="button" data-aller="lchantiers">Voir tout →</button></h2>
-            <ul class="cc-ch pf" id="c3-liste"></ul>
+            <div class="do-rail acc"><button class="rond" type="button" id="c3-prec" aria-label="Chantiers précédents">‹</button><div class="do-cartes" id="c3-liste"></div><button class="rond" type="button" id="c3-suiv" aria-label="Chantiers suivants">›</button></div>
+            <div class="do-points" id="c3-points"></div>
           </article>
           <article class="carte cc-bloc" data-pour="aucun">
             <h2><span><svg class="i"><use href="#n-chantiers"/></svg>Chantiers en cours <em id="c2-nb"></em></span><button class="cc-lien" type="button" data-aller="chantiers">Voir tout →</button></h2>
@@ -3557,14 +3578,27 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       // sans serveur joignable, la direction garde au moins ses chantiers gardés sur l'appareil
       return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||''}; }) : [];
     }
+    /* une carte de chantier : vignette, statut, favori, nom, commune et, sur l'accueil, l'avancement */
+    function carteChantier(c,fav,avancement){ var st=STATUTS[c.statut]||STATUTS.en_cours, f=fav.indexOf(c.nom)>=0;
+      return '<div class="do-c" data-chantier="'+esc(c.nom)+'" title="'+esc(c.dossier?'Ouvrir le dossier du chantier dans Google Drive':'Aucun dossier Drive relié')+'"><span class="vg"><svg class="i"><use href="#n-chantiers"/></svg>'+etq(st[0],st[1])+'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(c.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span><b>'+esc(c.nom)+'</b>'
+        +(avancement?'<span class="av"><span class="bar"><i style="width:'+c.avancement+'%"></i></span><em>'+c.avancement+' %</em></span>':'')
+        +'<small>'+esc([c.lieu,(c.dossier||avancement)?'':'dossier non relié'].filter(Boolean).join(' · '))+'</small></div>'; }
+    function parFavoris(l){ var fav=favoris(); return l.slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }); }
+    /* fenêtre « Chantiers en cours » de l'accueil : les chantiers défilent en cartes, autant que la largeur le permet */
+    var c3Page=0, c3Par=0;
     function dessinerChantiers(nd){
       if(!L.chantiers&&reel.profil==='direction') nd='';
-      var ch=chantiersVus().filter(function(c){ return c.statut!=='termine'; });
+      var ch=parFavoris(chantiersVus().filter(function(c){ return c.statut!=='termine'; })), boite=$('c3-liste');
+      var par=Math.max(1,Math.min(6,Math.floor((boite.clientWidth||600)/165))), pages=Math.max(1,Math.ceil(ch.length/par)); c3Par=par; if(c3Page>=pages) c3Page=pages-1;
       $('c3-nb').textContent=ch.length?'('+ch.length+')':'';
-      $('c3-liste').innerHTML = nd ? '<li style="display:block">'+vide(nd)+'</li>' : ch.length ? ch.slice(0,6).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours;
-        return '<li><span class="ph"><svg class="i"><use href="#n-chantiers"/></svg></span><span><span class="n"><b>'+esc(c.nom)+'</b>'+(c.lieu?' – '+esc(c.lieu):'')+'</span><span class="bar"><i style="width:'+c.avancement+'%"></i></span></span><span class="p">'+c.avancement+' %</span>'+etq(s[0],s[1])+'</li>'; }).join('')
-        : '<li style="display:block">'+vide('Aucun chantier saisi.<br>Ouvrez « Chantiers » pour en ajouter.')+'</li>';
+      boite.style.gridTemplateColumns='repeat('+Math.min(par,Math.max(1,ch.length))+',minmax(0,1fr))';
+      boite.innerHTML = nd ? vide(nd) : ch.length ? ch.slice(c3Page*par,c3Page*par+par).map(function(c){ return carteChantier(c,favoris(),true); }).join('') : vide('Aucun chantier saisi.<br>Ouvrez « Chantiers » pour en ajouter.');
+      $('c3-prec').disabled=c3Page<=0; $('c3-suiv').disabled=c3Page>=pages-1; $('c3-prec').style.visibility=$('c3-suiv').style.visibility=pages>1?'':'hidden';
+      $('c3-points').innerHTML = pages>1 ? Array.apply(null,Array(pages)).map(function(_,i){ return '<i'+(i===c3Page?' class="a"':'')+'></i>'; }).join('') : '';
     }
+    $('c3-prec').addEventListener('click',function(){ c3Page=Math.max(0,c3Page-1); dessinerChantiers(etatDonnees); });
+    $('c3-suiv').addEventListener('click',function(){ c3Page++; dessinerChantiers(etatDonnees); });
+    if(window.ResizeObserver) new ResizeObserver(function(){ var b=$('c3-liste'), par=Math.max(1,Math.min(6,Math.floor((b.clientWidth||600)/165))); if(b.clientWidth&&par!==c3Par) dessinerChantiers(etatDonnees); }).observe($('c3-liste'));
     /* la liste partagée est recopiée dans la mémoire de l'appareil : Sigma, la recherche et le planning continuent de la lire là */
     var miroir=null, pret=false, confirme=false, CLE_REPRIS='dashboard-chantiers-repris';
     function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut,dz:c.dossier||''}; }
@@ -3713,8 +3747,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       $('do-nb').textContent='('+d.length+')'; $('do-mini').innerHTML=d.slice(0,8).map(function(x,i){ return tuile(x,i,true); }).join('');
       var ch=chantiersVus().slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }), pages=Math.max(1,Math.ceil(ch.length/4)); if(doPage>=pages) doPage=pages-1;
       $('dp-ch-nb').textContent='('+ch.length+' opération'+(ch.length>1?'s':'')+')';
-      $('dp-cartes').innerHTML = ch.length ? ch.slice(doPage*4,doPage*4+4).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours, f=fav.indexOf(c.nom)>=0;
-        return '<div class="do-c" data-chantier="'+esc(c.nom)+'" title="'+esc(c.dossier?'Ouvrir le dossier du chantier dans Google Drive':'Aucun dossier Drive relié')+'"><span class="vg"><svg class="i"><use href="#n-chantiers"/></svg>'+etq(s[0],s[1])+'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(c.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span><b>'+esc(c.nom)+'</b><small>'+esc([c.lieu,c.dossier?'':'dossier non relié'].filter(Boolean).join(' · '))+'</small></div>'; }).join('')
+      $('dp-cartes').innerHTML = ch.length ? ch.slice(doPage*4,doPage*4+4).map(function(c){ return carteChantier(c,fav,false); }).join('')
         : vide(etatDonnees||'Aucun chantier saisi. Ajoutez-en dans « Chantiers ».');
       $('dp-prec').disabled=doPage<=0; $('dp-suiv').disabled=doPage>=pages-1;
       $('dp-points').innerHTML = pages>1 ? Array.apply(null,Array(pages)).map(function(_,i){ return '<i'+(i===doPage?' class="a"':'')+'></i>'; }).join('') : '';
@@ -3722,7 +3755,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     }
     document.addEventListener('click',function(e){
       var f=e.target.closest('[data-fav]'), t, c;
-      if(f){ var l=favoris(), n=f.getAttribute('data-fav'), i=l.indexOf(n); if(i>=0) l.splice(i,1); else l.push(n); ecrire(CLE_FAV,JSON.stringify(l.slice(-50))); doMsg=''; dessinerDossiers(); return; }
+      if(f){ var l=favoris(), n=f.getAttribute('data-fav'), i=l.indexOf(n); if(i>=0) l.splice(i,1); else l.push(n); ecrire(CLE_FAV,JSON.stringify(l.slice(-50))); doMsg=''; c3Page=0; dessinerDossiers(); dessinerChantiers(etatDonnees); return; }
       if(e.target.closest('#dp-prec')){ doPage=Math.max(0,doPage-1); dessinerDossiers(); return; }
       if(e.target.closest('#dp-suiv')){ doPage++; dessinerDossiers(); return; }
       if((t=e.target.closest('[data-dossier]'))){ var d=dossiersVus()[+t.getAttribute('data-dossier')]; if(!d) return;
@@ -3731,7 +3764,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         doMsg = d.icone==='casque' ? '' : (reel.profil==='direction' ? 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré : ouvrez « Configurer les dossiers ».' : 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré par la direction.'); dessinerDossiers(); return; }
       if((c=e.target.closest('[data-chantier]'))){ var x=chantiersVus().filter(function(y){ return y.nom===c.getAttribute('data-chantier'); })[0]; if(!x) return;
         if(x.dossier){ window.open(x.dossier,'_blank','noopener'); return; }
-        doMsg='Aucun dossier Drive relié à « '+x.nom+' » : ouvrez Chantiers, puis Modifier, et collez le lien du dossier.'; dessinerDossiers(); }
+        doMsg='Aucun dossier Drive relié à « '+x.nom+' » : ouvrez Chantiers, puis Modifier, et collez le lien du dossier.'; if(vueActive!=='dossiers') aller('dossiers'); dessinerDossiers(); }
     });
 
     /* ---- choix de l'avatar SIGMA : une préférence d'affichage, gardée pour chaque personne sur le serveur ---- */
@@ -4006,7 +4039,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       // quelques pixels de dépassement existent déjà dans la mise en page d'origine : on ne réagit qu'au-delà
       if(z.scrollHeight>z.clientHeight+8||z.scrollWidth>z.clientWidth+8) return true;
       var l=z.querySelectorAll('*'), n=Math.min(l.length,400);
-      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues,.rdv-bouton,.cal-leg')) continue;
+      for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues,.rdv-bouton,.cal-leg,.do-rail,.do-points')) continue;
         if(e.scrollWidth>e.clientWidth+6) return true;
         if((e.tagName==='LI'||e.parentNode===z)&&e.scrollHeight>e.clientHeight+6) return true;
         // texte coupé par « … » : on compare la largeur réelle du texte à celle de sa case
