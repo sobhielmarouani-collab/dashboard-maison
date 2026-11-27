@@ -986,6 +986,43 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .av-grand{flex:1;min-height:0;border-radius:20px;background:#06101f center 10%/cover no-repeat;border:1px solid var(--verre-bord);box-shadow:0 0 34px rgba(0,150,255,.45)}
 .av-apercu>b{font-size:24px;text-align:center}
 #av-origine[hidden]{display:none}
+/* ---- dossiers ---- */
+.do-corps{display:grid;grid-template-rows:minmax(0,1.08fr) minmax(0,1fr);gap:14px;min-height:0}
+.do-bloc{padding:18px 22px;display:flex;flex-direction:column;min-height:0}
+.do-bloc h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 12px;font-size:26px}
+.do-bloc h2>span{display:flex;align-items:center;gap:12px}
+.do-bloc h2 svg{width:32px;height:32px;color:var(--neon)}
+.do-bloc h2 em{font-style:normal;font-weight:400;font-size:19px;color:var(--discret)}
+.do-tuiles{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:14px}
+.do-t{font:inherit;color:var(--texte);cursor:pointer;display:grid;place-content:center;justify-items:center;gap:4px;padding:8px;min-height:0;min-width:0;text-align:center;border-radius:18px;background:var(--creux);border:1.5px solid var(--trait);transition:transform .16s,box-shadow .16s,border-color .16s}
+.do-t svg{width:54px;height:54px;color:var(--k);fill:color-mix(in srgb,var(--k) 16%,transparent);stroke-width:1.5;filter:drop-shadow(0 0 9px var(--k));margin-bottom:4px}
+.do-t b{font-size:21px;font-weight:600;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.do-t small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.do-t:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--k) 70%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--k) 40%,transparent)}
+.do-t.choisi{border-color:#3fb6ff;box-shadow:0 0 0 2px rgba(63,182,255,.5),0 0 30px rgba(0,150,255,.65),inset 0 0 20px rgba(0,150,255,.22)}
+.do-tuiles.mini{gap:8px;margin-top:4px}
+.do-tuiles.mini .do-t{border-radius:12px;padding:4px;gap:0}
+.do-tuiles.mini .do-t svg{width:28px;height:28px;margin-bottom:2px}
+.do-tuiles.mini .do-t b{font-size:13.5px;font-weight:500}
+.do-rail{flex:1;min-height:0;display:grid;grid-template-columns:52px 1fr 52px;gap:12px;align-items:center}
+.do-rail .rond{width:52px;height:52px;font-size:30px;line-height:1;display:grid;place-items:center;padding:0 0 4px}
+.do-rail .rond:disabled{opacity:.3}
+.do-cartes{height:100%;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.do-cartes>.cc-nd{grid-column:1/-1;align-self:center}
+.do-c{cursor:pointer;display:grid;grid-template-rows:minmax(0,1fr) auto auto;gap:3px;min-height:0;padding:8px 8px 12px;border-radius:18px;background:var(--creux);border:1.5px solid var(--trait);transition:transform .16s,border-color .16s,box-shadow .16s}
+.do-c:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--neon) 65%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--neon) 35%,transparent)}
+.do-c .vg{position:relative;border-radius:12px;min-height:0;display:grid;place-items:center;background:linear-gradient(160deg,color-mix(in srgb,var(--neon) 26%,transparent),color-mix(in srgb,var(--bleu) 8%,transparent));border:1px solid var(--trait)}
+.do-c .vg>svg{width:46%;height:46%;max-height:70px;color:color-mix(in srgb,var(--neon) 70%,var(--texte));opacity:.75}
+.do-c .vg .pf-etq{position:absolute;left:8px;bottom:8px;background:color-mix(in srgb,var(--k) 30%,rgba(4,12,26,.8))}
+.do-c .fav{position:absolute;right:6px;top:6px;width:38px;height:38px;border-radius:10px;border:1px solid var(--trait);background:rgba(4,12,26,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.do-c .fav.oui{color:#FFB020;border-color:#FFB020}
+.do-c b{font-size:20px;font-weight:600;padding:4px 6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.do-c small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.do-points{display:flex;justify-content:center;gap:8px;min-height:12px;margin-top:8px}
+.do-points i{width:9px;height:9px;border-radius:50%;background:var(--trait)}
+.do-points i.a{background:var(--neon);box-shadow:0 0 8px var(--neon)}
+#dp-msg{margin:6px 0 0;min-height:1.2em;text-align:center}
+html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B33}
 </style>
 </head>
 <body>
@@ -1009,6 +1046,14 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   <symbol id="n-livraisons" viewBox="0 0 24 24"><path d="M2.500 6h11v10h-11zM13.500 9.500h4l3 3.500v3h-7"/><circle cx="7" cy="17.500" r="2"/><circle cx="17" cy="17.500" r="2"/></symbol>
   <symbol id="n-mails" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></symbol>
   <symbol id="n-planning" viewBox="0 0 24 24"><path d="M4 6h9M4 12h13M9 18h11"/><path d="M4 3v18"/></symbol>
+  <symbol id="n-dossiers" viewBox="0 0 24 24"><path d="M12 3.500l9 4.500-9 4.500L3 8zM3 12l9 4.500 9-4.500M3 16l9 4.500 9-4.500"/></symbol>
+  <symbol id="do-dossier" viewBox="0 0 24 24"><path d="M3 6.500A1.500 1.500 0 0 1 4.500 5H9l2 2.500h8.500A1.500 1.500 0 0 1 21 9v9a1.500 1.500 0 0 1-1.500 1.500h-15A1.500 1.500 0 0 1 3 18z"/></symbol>
+  <symbol id="do-bouclier" viewBox="0 0 24 24"><path d="M3 6.500A1.500 1.500 0 0 1 4.500 5H9l2 2.500h8.500A1.500 1.500 0 0 1 21 9v2.500M13 19.500H4.500A1.500 1.500 0 0 1 3 18V6.500"/><path d="M18 12.500l3.500 1.300v2.700c0 2-1.500 3.500-3.500 4.500-2-1-3.500-2.500-3.500-4.500v-2.700zM16.500 16.700l1.100 1.100 2-2.200"/></symbol>
+  <symbol id="do-document" viewBox="0 0 24 24"><path d="M3 6.500A1.500 1.500 0 0 1 4.500 5H9l2 2.500h8.500A1.500 1.500 0 0 1 21 9v2M12 19.500H4.500A1.500 1.500 0 0 1 3 18V6.500"/><path d="M15 12.500h6v8.500h-6zM17 15.500h2M17 18h2"/></symbol>
+  <symbol id="do-casque" viewBox="0 0 24 24"><path d="M4 16a8 8 0 0 1 16 0M2.500 16h19v2.500h-19zM10 8.300V13M14 8.300V13"/></symbol>
+  <symbol id="do-personnes" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><circle cx="5" cy="10" r="2.200"/><circle cx="19" cy="10" r="2.200"/><path d="M6.500 20a5.500 5.500 0 0 1 11 0M1.500 18.500a3.500 3.500 0 0 1 4.800-3.200M22.500 18.500a3.500 3.500 0 0 0-4.800-3.200"/></symbol>
+  <symbol id="do-plan" viewBox="0 0 24 24"><path d="M5 4v16M19 4v16M5 6h14M5 18h14M3 4h4M3 20h4M17 4h4M17 20h4"/><rect x="9" y="9" width="6" height="6"/><path d="M12 9v6M9 12h6"/></symbol>
+  <symbol id="do-boite" viewBox="0 0 24 24"><path d="M12 3l8.500 4.500v9L12 21l-8.500-4.500v-9zM3.500 7.500L12 12l8.500-4.500M12 12v9M7.800 5.200l8.500 4.500"/></symbol>
   <symbol id="n-echeances" viewBox="0 0 24 24"><path d="M13 2.500L5 13.500h6l-1 8 8-11h-6z"/></symbol>
   <symbol id="n-alertes" viewBox="0 0 24 24"><path d="M12 4L2.500 20h19zM12 10v4.500M12 17.200v.3"/></symbol>
   <symbol id="n-minuteur" viewBox="0 0 24 24"><circle cx="12" cy="13.500" r="7.500"/><path d="M12 9.500v4l2.500 2M9.500 3h5"/></symbol>
@@ -1122,6 +1167,10 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       <article class="carte cc-bloc" data-pour="direction">
         <h2><span><svg class="i"><use href="#n-personnel"/></svg>Personnel <em id="pe2-nb"></em></span><button class="cc-lien" type="button" data-aller="personnel">Voir tout →</button></h2>
         <div class="cc-pers" id="pe2"></div>
+      </article>
+      <article class="carte cc-bloc" data-pour="direction conducteur secretaire">
+        <h2><span><svg class="i"><use href="#n-dossiers"/></svg>Mes dossiers <em id="do-nb"></em></span><button class="cc-lien" type="button" data-aller="dossiers">Voir tout →</button></h2>
+        <div class="do-tuiles mini" id="do-mini"></div>
       </article>
       <article class="carte cc-bloc" data-pour="direction conducteur secretaire">
         <h2><span><svg class="i"><use href="#n-minuteur"/></svg>Minuteur <em id="mi-nb"></em></span><button class="cc-lien" type="button" data-aller="minuteur">Ouvrir →</button></h2>
@@ -3434,7 +3483,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     var CLE_PROFIL='dashboard-profil', CLE_VOIR='dashboard-voir-comme';
     var NOMS={direction:'Direction',conducteur:'Conducteur de travaux',secretaire:'Secrétaire de direction'};
     var NAVS={
-      conducteur:[['accueil','Accueil','accueil'],['chantiers','Chantiers','lchantiers'],['personnel','Personnel','laffectations'],['planning','Planning','lplanning'],['livraisons','Livraisons','llivraisons'],['agenda','Agenda','agenda'],['taches','Tâches','tachesp'],['mails','Mails','mails'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']]
+      conducteur:[['accueil','Accueil','accueil'],['chantiers','Chantiers','lchantiers'],['personnel','Personnel','laffectations'],['planning','Planning','lplanning'],['livraisons','Livraisons','llivraisons'],['dossiers','Dossiers','dossiers'],['agenda','Agenda','agenda'],['taches','Tâches','tachesp'],['mails','Mails','mails'],['minuteur','Minuteur','minuteur'],['sigma','SIGMA',''],['reglages','Réglages','reglages']]
     };
     var STATUTS={en_cours:['En cours','#00E5A0'],preparation:['Préparation','#FFB020'],finition:['Finition','#00BFFF'],arret:['À l\'arrêt','#FF5267'],termine:['Terminé','#9FB4CE']};
     var LIVR={prevue:['Prévue','#FFB020'],confirmee:['Confirmée','#00E5A0'],retard:['En retard','#FF5267'],livree:['Livrée','#9FB4CE']};
@@ -3443,7 +3492,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function lib(o){ var r={}; Object.keys(o).forEach(function(k){ r[k]=o[k][0]; }); return r; }
     /* listes partagées : [champ, libellé, type, choix] — les mêmes champs que ceux acceptés par le serveur */
     var DEFS={
-      chantiers:{titre:'Chantiers',icone:'chantiers',un:'un chantier',champs:[['nom','Chantier','texte'],['lieu','Commune','texte'],['avancement','Avancement (%)','nombre'],['statut','Statut','choix',lib(STATUTS)]]},
+      chantiers:{titre:'Chantiers',icone:'chantiers',un:'un chantier',champs:[['nom','Chantier','texte'],['lieu','Commune','texte'],['avancement','Avancement (%)','nombre'],['statut','Statut','choix',lib(STATUTS)],['dossier','Lien du dossier Drive (facultatif)','lien']]},
+      dossiers:{titre:'Dossiers de l\'entreprise',icone:'dossiers',un:'un dossier',champs:[['nom','Nom du dossier','texte'],['detail','Sous-titre','texte'],['lien','Lien Google Drive','lien'],['icone','Icône','choix',{dossier:'Dossier',bouclier:'Assurances',document:'Administratif',casque:'Chantiers',personnes:'Personnel',plan:'Plans',boite:'Modèles'}],['acces','Visible par','choix',{tous:'Tout le monde',direction:'Direction seulement'}]]},
       alertes:{titre:'Alertes chantier',icone:'chantiers',un:'une alerte',champs:[['chantier','Chantier','chantier'],['texte','Point à traiter','texte'],['niveau','Niveau','choix',lib(NIVEAUX)]]},
       planning:{titre:'Planning des chantiers',icone:'planning',un:'une intervention',champs:[['chantier','Chantier','chantier'],['lot','Intervention','texte'],['debut','Début','date'],['fin','Fin','date']]},
       affectations:{titre:'Affectation du personnel',icone:'personnel',un:'une équipe',champs:[['equipe','Équipe','texte'],['chantier','Chantier','chantier'],['effectif','Nombre de personnes','nombre']]},
@@ -3460,7 +3510,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
     /* ---- menu selon le profil ---- */
     function dessinerNav(){
-      var p=vu(), l=NAVS[p]||RACCOURCIS.map(function(o){ return o[2]==='chantiers'?[o[0],o[1],'lchantiers']:o; }), reste=$('nav-reste')?$('nav-reste').textContent:'';
+      var p=vu(), l=NAVS[p]; if(!l){ l=RACCOURCIS.map(function(o){ return o[2]==='chantiers'?[o[0],o[1],'lchantiers']:o; }); l.splice(Math.max(1,l.length-3),0,['dossiers','Dossiers','dossiers']); } var reste=$('nav-reste')?$('nav-reste').textContent:'';
       $('nav').innerHTML=l.map(function(o){ return '<button class="carte nav" type="button" '+(o[2]?'data-aller="'+o[2]+'"':'data-special="'+o[0]+'"')+'><svg class="i"><use href="#n-'+o[0]+'"/></svg>'+o[1]+(o[0]==='minuteur'?'<small id="nav-reste">'+esc(reste)+'</small>':'')+'</button>'; }).join('');
       [].forEach.call($('nav').children,function(b){ b.classList.toggle('actif',b.getAttribute('data-aller')===vueActive); });
       if(typeof window.dispositionMenu==='function') window.dispositionMenu();
@@ -3491,7 +3541,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function charger(forcer){
       if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; peindre(); return; }
       if(!forcer&&Date.now()-dernier<25000) return; dernier=Date.now();
-      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
+      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers,dossiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
       appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
       appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){});
       chargerMails();
@@ -3505,7 +3555,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function chantiersVus(){
       if(L.chantiers) return lignes('chantiers');
       // sans serveur joignable, la direction garde au moins ses chantiers gardés sur l'appareil
-      return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours'}; }) : [];
+      return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||''}; }) : [];
     }
     function dessinerChantiers(nd){
       if(!L.chantiers&&reel.profil==='direction') nd='';
@@ -3517,8 +3567,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     }
     /* la liste partagée est recopiée dans la mémoire de l'appareil : Sigma, la recherche et le planning continuent de la lire là */
     var miroir=null, pret=false, confirme=false, CLE_REPRIS='dashboard-chantiers-repris';
-    function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut}; }
-    function versPartage(c){ var x={nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours'}; if(c.id) x.id=c.id; return x; }
+    function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut,dz:c.dossier||''}; }
+    function versPartage(c){ var x={nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||''}; if(c.id) x.id=c.id; return x; }
     function refleter(){
       if(!L.chantiers) return;
       etat.chantiers=lignes('chantiers').map(versLocal); miroir=JSON.stringify(etat.chantiers); pret=true;
@@ -3585,14 +3635,15 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     function creerPages(){
       var h='';
       Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle];
-        h+='<section class="vue page pf-page" id="v-l'+cle+'" data-pour="'+(cle==='chantiers'?'conducteur direction':'conducteur')+'"><div class="entete"><h1><svg class="i"><use href="#n-'+d.icone+'"/></svg>'+d.titre+'</h1><span class="h" data-heure></span></div>'
+        h+='<section class="vue page pf-page" id="v-l'+cle+'" data-pour="'+(cle==='chantiers'?'conducteur direction':cle==='dossiers'?'direction':'conducteur')+'"><div class="entete"><h1><svg class="i"><use href="#n-'+d.icone+'"/></svg>'+d.titre+'</h1><span class="h" data-heure></span></div>'
           +'<div class="corps"><div class="carte"><div id="pl-'+cle+'"></div></div>'
           +'<form class="carte form" data-liste="'+cle+'"><h2 id="pt-'+cle+'">Ajouter '+d.un+'</h2>'
           +d.champs.map(function(c){ var id='pc-'+cle+'-'+c[0], ch;
             if(c[2]==='choix') ch='<select id="'+id+'">'+Object.keys(c[3]).map(function(k){ return '<option value="'+k+'">'+esc(c[3][k])+'</option>'; }).join('')+'</select>';
             else if(c[2]==='nombre') ch='<input id="'+id+'" type="number" min="0" max="'+(c[0]==='avancement'?100:99)+'" step="1" value="0" inputmode="numeric">';
             else if(c[2]==='date') ch='<input id="'+id+'" type="date" required>';
-            else ch='<input id="'+id+'" type="text" autocomplete="off" maxlength="'+(c[0]==='texte'?200:60)+'"'+(c[2]==='chantier'?' list="pf-chantiers"':'')+(c[0]==='fournisseur'||c[0]==='lieu'||(cle==='livraisons'&&c[0]==='chantier')?'':' required')+'>';
+            else if(c[2]==='lien') ch='<input id="'+id+'" type="url" autocomplete="off" spellcheck="false" maxlength="300" placeholder="https://drive.google.com/…">';
+            else ch='<input id="'+id+'" type="text" autocomplete="off" maxlength="'+(c[0]==='texte'?200:60)+'"'+(c[2]==='chantier'?' list="pf-chantiers"':'')+(c[0]==='fournisseur'||c[0]==='lieu'||c[0]==='detail'||(cle==='livraisons'&&c[0]==='chantier')?'':' required')+'>';
             return '<label for="'+id+'">'+c[1]+ch+'</label>'; }).join('')
           +'<button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" data-annuler="'+cle+'" hidden>Annuler la modification</button>'
           +'<p class="info" id="pm-'+cle+'">Ces informations sont partagées avec la direction.</p></form></div></section>';
@@ -3620,10 +3671,15 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         +'<div class="carte form av-apercu"><h2>Aperçu</h2><div class="av-grand" id="av-grand"></div><b id="av-nom"></b>'
         +'<button class="bouton ok" type="button" id="av-valider">Valider mon avatar</button><button class="bouton" type="button" id="av-origine">Revenir à l\'avatar d\'origine</button>'
         +'<p class="info" id="av-msg">L\'avatar ne change que l\'image de SIGMA. Il est indépendant de votre profil et ne donne aucun droit.</p></div></div></section>';
+      h+='<section class="vue page do-page" id="v-dossiers" data-pour="direction conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-dossiers"/></svg>Dossiers</h1><span class="h" data-heure></span></div>'
+        +'<div class="do-corps"><div class="carte do-bloc"><h2><span><svg class="i"><use href="#n-dossiers"/></svg>Mes dossiers <em id="dp-nb"></em></span><button class="cc-lien" type="button" data-aller="ldossiers" data-pour="direction">Configurer les dossiers →</button></h2><div class="do-tuiles" id="dp-tuiles"></div></div>'
+        +'<div class="carte do-bloc" id="dp-ch-bloc"><h2><span><svg class="i"><use href="#do-casque"/></svg>Dossiers Chantiers <em id="dp-ch-nb"></em></span><button class="cc-lien" type="button" data-aller="lchantiers" data-pour="direction conducteur">+ Nouveau chantier</button></h2>'
+        +'<div class="do-rail"><button class="rond" type="button" id="dp-prec" aria-label="Précédent">‹</button><div class="do-cartes" id="dp-cartes"></div><button class="rond" type="button" id="dp-suiv" aria-label="Suivant">›</button></div>'
+        +'<div class="do-points" id="dp-points"></div><p class="info" id="dp-msg"></p></div></div></section>';
       h+='<datalist id="pf-chantiers"></datalist>';
       $('vues').insertAdjacentHTML('beforeend',h);
     }
-    function valeur(c,l){ var v=l[c[0]]; if(c[2]==='choix') return etq(c[3][v]||v, (STATUTS[v]||LIVR[v]||NIVEAUX[v]||['','#00BFFF'])[1]); if(c[2]==='date') return v?esc(v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4)):''; if(c[0]==='avancement') return v+' %'; return esc(v==null?'':v); }
+    function valeur(c,l){ var v=l[c[0]]; if(c[2]==='lien') return v?etq('Lien enregistré','#00E5A0'):'<span style="color:var(--discret)">—</span>'; if(c[2]==='choix') return etq(c[3][v]||v, (STATUTS[v]||LIVR[v]||NIVEAUX[v]||['','#00BFFF'])[1]); if(c[2]==='date') return v?esc(v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4)):''; if(c[0]==='avancement') return v+' %'; return esc(v==null?'':v); }
     function dessinerPages(){
       $('pf-chantiers').innerHTML=lignes('chantiers').map(function(c){ return '<option value="'+esc(c.nom)+'">'; }).join('');
       Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle], l=lignes(cle);
@@ -3642,6 +3698,42 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
           return '<tr class="'+(t.fait?'fait':'')+'"><td><label style="display:flex;gap:12px;align-items:center;cursor:pointer"><input type="checkbox" data-tache="'+t.id+'"'+(t.fait?' checked':'')+(t.pour!==T.moi?' disabled':'')+' style="width:24px;height:24px;flex:none;margin:0">'+esc(t.texte)+'</label></td><td>'+etq(pr[0],pr[1])+'</td><td>'+(t.limite?etq(dateCourte(t.limite)+'/'+t.limite.slice(0,4),tard?'#FF5267':'#9FB4CE'):'')+'</td><td>'+(t.auteur===T.moi?(t.pour===T.moi?'Moi':'Moi → '+esc(t.pour_nom)):esc(t.auteur_nom))+'</td><td class="a">'+(t.auteur===T.moi?'<button class="bouton danger" type="button" data-tsuppr="'+t.id+'">Supprimer</button>':'')+'</td></tr>'; }).join('')+'</tbody></table>'
         : vide('Aucune tâche.');
     }
+    /* ---- dossiers : raccourcis vers Google Drive (liens enregistrés par la direction) et dossiers de chaque chantier ---- */
+    var DOSSIERS_TYPE=[['Marchés','Contrats & avenants','dossier'],['Attestations','QUALIBAT, assurances…','dossier'],['Assurances','RC, décennale, chantiers','bouclier'],['Administratif','Société, légal, courriers','document'],['Chantiers','Dossiers d\'opérations','casque'],['Personnel','RH, contrats, formations','personnes'],['Plans','Plans, EXE, BET','plan'],['Modèles','DPGF, trames, documents type','boite']];
+    var DO_TEINTES=['#FFB020','#2D8CFF','#00E5A0','#8B7CFF','#00BFFF','#FF5267','#00E5A0','#FFB020'], DO_ICONE={bouclier:'#00E5A0',document:'#8B7CFF',casque:'#00BFFF',personnes:'#FF5267',plan:'#00E5A0',boite:'#FFB020'};
+    var doPage=0, doMsg='', CLE_FAV='dashboard-chantiers-favoris';
+    function dossiersVus(){ var l=lignes('dossiers'); return l.length ? l : DOSSIERS_TYPE.map(function(d){ return {nom:d[0],detail:d[1],icone:d[2],lien:'',modele:true}; }); }
+    function favoris(){ try{ var f=JSON.parse(lire(CLE_FAV)||'[]'); return Array.isArray(f)?f:[]; }catch(e){ return []; } }
+    function tuile(d,i,mini){ var k=DO_ICONE[d.icone]||DO_TEINTES[i%DO_TEINTES.length];
+      return '<button type="button" class="do-t'+(d.icone==='casque'&&!mini?' choisi':'')+'" data-dossier="'+i+'" style="--k:'+k+'" title="'+esc(d.lien?'Ouvrir dans Google Drive':'Lien à configurer')+'"><svg class="i"><use href="#do-'+(d.icone||'dossier')+'"/></svg><b>'+esc(d.nom)+'</b>'+(mini?'':'<small>'+esc(d.detail||'')+'</small>')+'</button>'; }
+    function dessinerDossiers(){
+      if(!$('dp-tuiles')) return;
+      var d=dossiersVus(), fav=favoris();
+      $('dp-nb').textContent='('+d.length+' dossier'+(d.length>1?'s':'')+')'; $('dp-tuiles').innerHTML=d.slice(0,12).map(function(x,i){ return tuile(x,i,false); }).join('');
+      $('do-nb').textContent='('+d.length+')'; $('do-mini').innerHTML=d.slice(0,8).map(function(x,i){ return tuile(x,i,true); }).join('');
+      var ch=chantiersVus().slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }), pages=Math.max(1,Math.ceil(ch.length/4)); if(doPage>=pages) doPage=pages-1;
+      $('dp-ch-nb').textContent='('+ch.length+' opération'+(ch.length>1?'s':'')+')';
+      $('dp-cartes').innerHTML = ch.length ? ch.slice(doPage*4,doPage*4+4).map(function(c){ var s=STATUTS[c.statut]||STATUTS.en_cours, f=fav.indexOf(c.nom)>=0;
+        return '<div class="do-c" data-chantier="'+esc(c.nom)+'" title="'+esc(c.dossier?'Ouvrir le dossier du chantier dans Google Drive':'Aucun dossier Drive relié')+'"><span class="vg"><svg class="i"><use href="#n-chantiers"/></svg>'+etq(s[0],s[1])+'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(c.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span><b>'+esc(c.nom)+'</b><small>'+esc([c.lieu,c.dossier?'':'dossier non relié'].filter(Boolean).join(' · '))+'</small></div>'; }).join('')
+        : vide(etatDonnees||'Aucun chantier saisi. Ajoutez-en dans « Chantiers ».');
+      $('dp-prec').disabled=doPage<=0; $('dp-suiv').disabled=doPage>=pages-1;
+      $('dp-points').innerHTML = pages>1 ? Array.apply(null,Array(pages)).map(function(_,i){ return '<i'+(i===doPage?' class="a"':'')+'></i>'; }).join('') : '';
+      $('dp-msg').textContent=doMsg;
+    }
+    document.addEventListener('click',function(e){
+      var f=e.target.closest('[data-fav]'), t, c;
+      if(f){ var l=favoris(), n=f.getAttribute('data-fav'), i=l.indexOf(n); if(i>=0) l.splice(i,1); else l.push(n); ecrire(CLE_FAV,JSON.stringify(l.slice(-50))); doMsg=''; dessinerDossiers(); return; }
+      if(e.target.closest('#dp-prec')){ doPage=Math.max(0,doPage-1); dessinerDossiers(); return; }
+      if(e.target.closest('#dp-suiv')){ doPage++; dessinerDossiers(); return; }
+      if((t=e.target.closest('[data-dossier]'))){ var d=dossiersVus()[+t.getAttribute('data-dossier')]; if(!d) return;
+        if(d.lien){ window.open(d.lien,'_blank','noopener'); return; }
+        if(vueActive!=='dossiers'){ aller('dossiers'); return; }
+        doMsg = d.icone==='casque' ? '' : (reel.profil==='direction' ? 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré : ouvrez « Configurer les dossiers ».' : 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré par la direction.'); dessinerDossiers(); return; }
+      if((c=e.target.closest('[data-chantier]'))){ var x=chantiersVus().filter(function(y){ return y.nom===c.getAttribute('data-chantier'); })[0]; if(!x) return;
+        if(x.dossier){ window.open(x.dossier,'_blank','noopener'); return; }
+        doMsg='Aucun dossier Drive relié à « '+x.nom+' » : ouvrez Chantiers, puis Modifier, et collez le lien du dossier.'; dessinerDossiers(); }
+    });
+
     /* ---- choix de l'avatar SIGMA : une préférence d'affichage, gardée pour chaque personne sur le serveur ---- */
     var avChoix='';
     function avListe(){ return window.avatarSigma ? window.avatarSigma.liste() : []; }
@@ -3687,7 +3779,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var l=M.messages||[];
       $('mp-liste').innerHTML = l.length ? '<table class="pf-tab"><tbody>'+l.map(function(m){ return '<tr><td style="width:26%;font-weight:'+(m.non_lu?700:400)+'">'+esc(m.de||'')+'</td><td style="font-weight:'+(m.non_lu?700:400)+'">'+esc(m.objet||'(sans objet)')+'<div style="font-size:15px;font-weight:400;color:var(--discret)">'+esc(m.extrait||'')+'</div></td></tr>'; }).join('')+'</tbody></table>' : vide('Boîte de réception vide.');
     }
-    function peindre(){ if(vu()==='conducteur') dessinerConducteur(); else dessinerChantiers(etatDonnees); dessinerPages(); }
+    function peindre(){ if(vu()==='conducteur') dessinerConducteur(); else dessinerChantiers(etatDonnees); dessinerPages(); dessinerDossiers(); }
 
     /* ---- gestes ---- */
     document.addEventListener('submit',function(e){
@@ -3716,7 +3808,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         $('cp-email').value=k.email; $('cp-email').readOnly=true; $('cp-nom').value=k.nom||''; $('cp-profil').value=k.profil; $('cp-actif').checked=!!k.actif; $('cp-titre').textContent='Modifier le compte'; $('cp-annuler').hidden=false; return; }
       var cle, id=b.getAttribute('data-id');
       if((cle=b.getAttribute('data-modif'))){ var x=lignes(cle).filter(function(y){ return y.id===id; })[0]; if(!x) return; enEdition[cle]=id;
-        DEFS[cle].champs.forEach(function(c){ $('pc-'+cle+'-'+c[0]).value=x[c[0]]; }); $('pt-'+cle).textContent='Modifier'; document.querySelector('form[data-liste="'+cle+'"] [data-annuler]').hidden=false; }
+        DEFS[cle].champs.forEach(function(c){ $('pc-'+cle+'-'+c[0]).value=x[c[0]]==null?'':x[c[0]]; }); $('pt-'+cle).textContent='Modifier'; document.querySelector('form[data-liste="'+cle+'"] [data-annuler]').hidden=false; }
       else if((cle=b.getAttribute('data-suppr'))){ enregistrer(cle,lignes(cle).filter(function(y){ return y.id!==id; })).then(null,function(z){ $('pm-'+cle).textContent='Non supprimé : '+(z.message||'erreur')+'.'; }); if(enEdition[cle]===id) finEdition(cle); }
       else if((cle=b.getAttribute('data-annuler'))) finEdition(cle);
       else if(b.hasAttribute('data-tsuppr')) tache({action:'supprimer',id:Number(b.getAttribute('data-tsuppr'))}).then(null,function(){});
@@ -3749,8 +3841,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     /* fenêtres affichées au départ pour chaque profil ; les autres fenêtres permises attendent en réserve */
     var DEPART={direction:{deux:['c3-nb','p2-titre'],bas:['t2-nb','f2-an','e2-nb','m2-nb']},conducteur:{deux:['c3-nb','p2-titre'],bas:['tc-nb','af-nb','lv-nb','al-nb']}};
     /* bouton du menu → fenêtre correspondante */
-    var DU_MENU={lchantiers:'c3-nb',chantiers:'c3-nb',gestion:'f2-an',personnel:'pe2-nb',agenda:'p2-titre',taches:'t2-nb',tachesp:'tc-nb',laffectations:'af-nb',llivraisons:'lv-nb',mails:'m2-nb',minuteur:'mi-nb'};
-    var TITRES={'c3-nb':'Chantiers','p2-titre':'Agenda / planning','t2-nb':'Tâches','f2-an':'Finances','e2-nb':'Échéances','m2-nb':'Mails','pe2-nb':'Personnel','mi-nb':'Minuteur','tc-nb':'Tâches','af-nb':'Affectations','lv-nb':'Livraisons','al-nb':'Alertes'};
+    var DU_MENU={dossiers:'do-nb',lchantiers:'c3-nb',chantiers:'c3-nb',gestion:'f2-an',personnel:'pe2-nb',agenda:'p2-titre',taches:'t2-nb',tachesp:'tc-nb',laffectations:'af-nb',llivraisons:'lv-nb',mails:'m2-nb',minuteur:'mi-nb'};
+    var TITRES={'c3-nb':'Chantiers','p2-titre':'Agenda / planning','t2-nb':'Tâches','f2-an':'Finances','e2-nb':'Échéances','m2-nb':'Mails','pe2-nb':'Personnel','mi-nb':'Minuteur','do-nb':'Mes dossiers','tc-nb':'Tâches','af-nb':'Affectations','lv-nb':'Livraisons','al-nb':'Alertes'};
     var tout=(function(){ try{ var o=JSON.parse(lire(CLE_D)||'null'); if(o&&typeof o==='object') return o; }catch(e){} return {}; })();
     function profil(){ return R.getAttribute('data-profil')||'direction'; }
     function D(){ var p=profil(); if(!tout[p]) tout[p]={}; return tout[p]; }
