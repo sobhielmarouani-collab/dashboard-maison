@@ -1056,7 +1056,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
             <ul class="cc-ch" id="c2-liste"></ul>
           </article>
           <article class="carte cc-bloc">
-            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="rdv-bouton" type="button" data-rdv-suppr hidden></button><span id="p2-vues" hidden><button class="cc-lien" type="button" id="p2-prec" aria-label="Précédent">‹</button><button class="cc-lien" type="button" id="p2-auj">Aujourd'hui</button><button class="cc-lien" type="button" id="p2-suiv" aria-label="Suivant">›</button><button class="cc-lien" type="button" data-vue="semaine">Semaine</button><button class="cc-lien" type="button" data-vue="mois">Mois</button></span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" data-aller="agenda">Voir planning →</button></span></h2>
+            <h2><span><svg class="i"><use href="#n-agenda"/></svg><span id="p2-titre">Planning des 7 prochains jours</span></span><span><button class="rdv-bouton" type="button" data-rdv-suppr hidden></button><span id="p2-vues" hidden><button class="cc-lien" type="button" id="p2-prec" aria-label="Précédent">‹</button><button class="cc-lien" type="button" id="p2-auj">Aujourd'hui</button><button class="cc-lien" type="button" id="p2-suiv" aria-label="Suivant">›</button><button class="cc-lien" type="button" data-vue="semaine">Semaine</button><button class="cc-lien" type="button" data-vue="mois">Mois</button></span><button class="cc-lien" type="button" id="p2-gerer" data-pour="direction">Saisir</button><button class="cc-lien" type="button" id="p2-voir">Voir planning →</button></span></h2>
             <div class="cc-pl" id="p2"></div>
           </article>
         </div>
@@ -2690,6 +2690,11 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       $('p2').style.display='flex'; $('p2').style.flexDirection='column';
       $('p2').innerHTML=h+'<div class="cal-leg"><span><i style="background:'+TYPES_RDV.bureau[1]+'"></i>Bureau</span><span><i style="background:'+TYPES_RDV.exterieur[1]+'"></i>Extérieur</span><small>Pastille : voir le rendez-vous · case vide : en créer un</small></div>';
     }
+    /* « Voir planning » : ouvre Google Agenda (semaine ou mois, comme la vue choisie) quand l'agenda Google est relié, sinon la page Agenda du dashboard */
+    $('p2-voir').addEventListener('click',function(){
+      if(!$('p2-vues').hidden) window.open('https://calendar.google.com/calendar/r/'+(calVue==='mois'?'month':'week'),'_blank','noopener');
+      else aller('agenda');
+    });
     $('p2-vues').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return;
       if(b.hasAttribute('data-vue')){ calVue=b.getAttribute('data-vue'); calDecal=0; try{ localStorage.setItem('dashboard-agenda-vue',calVue); }catch(x){} }
       else if(b.id==='p2-prec') calDecal--; else if(b.id==='p2-suiv') calDecal++; else if(b.id==='p2-auj') calDecal=0;
