@@ -973,6 +973,19 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .cc-sem .sem-col,.cc-mois>div[data-jour]{cursor:cell}
 #ag-rep-bloc select,#ag-rep-bloc input{font-size:16.5px;padding:6px 8px}
 .ag-coche input:checked+span{text-decoration:none;color:inherit}
+/* ---- choix de l'avatar SIGMA ---- */
+.av-page .corps{grid-template-columns:1fr 430px}
+.av-cartes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;height:100%}
+.av-carte{position:relative;display:grid;grid-template-rows:1fr auto;gap:10px;padding:10px 10px 14px;min-height:0;font:inherit;color:var(--texte);cursor:pointer;border-radius:22px;background:var(--creux);border:1.5px solid var(--trait);transition:transform .18s,box-shadow .18s,border-color .18s}
+.av-carte .ph{border-radius:16px;background:#06101f center 12%/cover no-repeat;min-height:0}
+.av-carte b{font-size:20px;font-weight:600;text-align:center;line-height:1.15}
+.av-carte em{position:absolute;top:18px;left:18px;font-style:normal;font-size:13.5px;font-weight:600;background:rgba(4,12,26,.75);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:2px 12px}
+.av-carte:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--neon) 60%,transparent)}
+.av-carte.choisi{border-color:#3fb6ff;box-shadow:0 0 0 2px rgba(63,182,255,.55),0 0 38px rgba(0,150,255,.75),inset 0 0 22px rgba(0,150,255,.25);transform:translateY(-4px)}
+.av-apercu{display:flex;flex-direction:column;gap:12px}
+.av-grand{flex:1;min-height:0;border-radius:20px;background:#06101f center 10%/cover no-repeat;border:1px solid var(--verre-bord);box-shadow:0 0 34px rgba(0,150,255,.45)}
+.av-apercu>b{font-size:24px;text-align:center}
+#av-origine[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -1366,6 +1379,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Taille de l'affichage</span><button class="rond" type="button" data-act="zoom-" aria-label="Réduire l'affichage">−</button><b id="r-zoom" style="width:80px;text-align:center;font-size:24px">100 %</b><button class="rond" type="button" data-act="zoom+" aria-label="Agrandir l'affichage">+</button></div>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Profil</span><b id="pf-profil-nom" style="font-size:20px">Direction</b></div>
         <div id="pf-voir-bloc" style="display:flex;align-items:center;gap:14px;font-size:20px"><label for="pf-voir" style="flex:1">Voir l'écran comme</label><select id="pf-voir" style="min-width:250px"><option value="direction">Direction</option><option value="conducteur">Conducteur de travaux</option></select></div>
+        <button class="bouton" type="button" id="pf-avatar">Choisir mon avatar SIGMA</button>
         <button class="bouton" type="button" id="ps-ouvrir">Personnaliser l'accueil et le menu</button>
         <button class="bouton" type="button" id="pf-comptes">Gérer les comptes et les profils</button>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Thème</span><button class="bouton" type="button" id="r-theme" style="min-width:210px">Sombre</button></div>
@@ -3202,54 +3216,86 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     var cv=$('ia-visage'), gl=null; try{ gl=cv.getContext('webgl',{antialias:false,premultipliedAlpha:false})||cv.getContext('experimental-webgl'); }catch(e){}
     if(!gl) return; /* sans WebGL : l'image fixe posée en fond reste visible */
     var VS='attribute vec2 a;varying vec2 v;void main(){v=vec2(a.x*.5+.5,.5-a.y*.5);gl_Position=vec4(a,0.,1.);}';
+    /* Le programme graphique est le même pour tous les avatars : les positions du visage (yeux, bouche, tête)
+       lui sont données par des réglages propres à chaque portrait (voir AVATARS plus bas). */
     var FS=[
     'precision mediump float;',
-    'uniform sampler2D T;uniform vec2 R,S;uniform vec4 C;uniform vec3 H;',
-    'uniform float t,ouv,rond,cligne,lueur,gx,gy,zoom;varying vec2 v;',
+    'uniform sampler2D T;uniform vec2 R,S,PIV,G1,G2;uniform vec4 C,E1,E2,P1,P2,M,MB;uniform vec3 H,TC;',
+    'uniform float t,ouv,rond,cligne,lueur,gx,gy,zoom,K;varying vec2 v;',
     'vec3 lire(vec2 p){return texture2D(T,clamp(p/S,0.,1.)).rgb;}',
     'void main(){',
     /* cadrage : la zone C de l image remplit le cadre (comme object-fit:cover) */
     ' float ca=R.x/R.y,cr=C.z/C.w;vec2 sz=ca>cr?vec2(C.z,C.z/ca):vec2(C.w*ca,C.w);sz/=zoom;',
     ' vec2 p=C.xy+(C.zw-sz)*vec2(.5,.38)+v*sz;',
     /* tête : petit déplacement et rotation, forts sur le visage, nuls sur le décor */
-    ' vec2 tc=vec2(650.,330.);float w=exp(-dot(p-tc,p-tc)/(380.*380.));',
-    ' vec2 piv=vec2(600.,650.),q=p-piv;float a=H.z*w;q=vec2(q.x*cos(a)-q.y*sin(a),q.x*sin(a)+q.y*cos(a));p=piv+q-H.xy*w;',
+    ' vec2 tc=TC.xy;float w=exp(-dot(p-tc,p-tc)/(TC.z*TC.z));',
+    ' vec2 piv=PIV,q=p-piv;float a=H.z*w;q=vec2(q.x*cos(a)-q.y*sin(a),q.x*sin(a)+q.y*cos(a));p=piv+q-H.xy*w;',
     /* regard : l iris glisse un peu dans chaque oeil */
-    ' vec2 e1=vec2(630.,312.),e2=vec2(766.,348.);',
-    ' vec2 d1=(p-e1)/vec2(24.,10.),d2=(p-e2)/vec2(13.,8.);',
+    ' vec2 e1=E1.xy,e2=E2.xy;',
+    ' vec2 d1=(p-e1)/G1,d2=(p-e2)/G2;',
     ' float m1=exp(-dot(d1,d1)*1.6),m2=exp(-dot(d2,d2)*1.6);',
     ' p-=vec2(gx,gy)*(m1+m2*.7);',
     /* bouche : la ligne des lèvres s ouvre, la mâchoire descend */
-    ' float mx=727.,mw=46.*(1.-.38*rond);float ly=469.-(p.x-675.)*.04;',
-    ' float fx=exp(-pow((p.x-mx)/mw,2.))*smoothstep(678.,696.,p.x)*smoothstep(775.,760.,p.x);float gap=ouv*19.*fx,up=gap*.2;float dy=p.y-ly;float dedans=0.;',
-    ' p.x+=(p.x-mx)*rond*.22*exp(-pow(dy/22.,2.))*exp(-pow((p.x-mx)/70.,2.));',
-    ' if(gap>.25&&dy>-up&&dy<gap){dedans=smoothstep(0.,1.2,dy+up)*smoothstep(0.,1.4,gap-dy);p.y=ly+(dy>gap*.5?1.2:-1.2);}',
-    ' else if(dy>=gap){float jw=ouv*19.*exp(-pow((p.x-mx)/100.,2.));float D=mix(gap,jw,smoothstep(0.,45.,dy-gap))*exp(-pow((dy-gap)/95.,2.));p.y-=D;}',
-    ' else if(dy<=-up){p.y+=up*exp(-pow((dy+up)/13.,2.));}',
+    ' float mx=M.x,mw=46.*K*(1.-.38*rond);float ly=M.y-(p.x-M.w)*M.z;',
+    ' float fx=exp(-pow((p.x-mx)/mw,2.))*smoothstep(MB.x,MB.y,p.x)*smoothstep(MB.w,MB.z,p.x);float gap=ouv*19.*K*fx,up=gap*.2;float dy=p.y-ly;float dedans=0.;',
+    ' p.x+=(p.x-mx)*rond*.22*exp(-pow(dy/(22.*K),2.))*exp(-pow((p.x-mx)/(70.*K),2.));',
+    ' if(gap>.25*K&&dy>-up&&dy<gap){dedans=smoothstep(0.,1.2*K,dy+up)*smoothstep(0.,1.4*K,gap-dy);p.y=ly+(dy>gap*.5?1.2*K:-1.2*K);}',
+    ' else if(dy>=gap){float jw=ouv*19.*K*exp(-pow((p.x-mx)/(100.*K),2.));float D=mix(gap,jw,smoothstep(0.,45.*K,dy-gap))*exp(-pow((dy-gap)/(95.*K),2.));p.y-=D;}',
+    ' else if(dy<=-up){p.y+=up*exp(-pow((dy+up)/(13.*K),2.));}',
     ' vec3 col=lire(p);',
     ' if(dedans>0.){float pr=(dy+up)/max(gap+up,.01);vec3 fond=mix(vec3(.16,.06,.08),vec3(.05,.015,.03),smoothstep(.1,.7,pr));',
     '  fond=mix(fond,vec3(.62,.62,.66),smoothstep(.34,.06,pr)*smoothstep(.45,1.,ouv)*.55*fx);col=mix(col,fond,dedans);}',
-    /* paupières : la peau du dessus descend sur l oeil */
-    ' for(int i=0;i<2;i++){vec2 c=i==0?e1:e2;vec2 hw=i==0?vec2(31.,12.5):vec2(12.,9.);float ex=(p.x-c.x)/hw.x,ey=(p.y-c.y)/(hw.y*1.3);',
-    '  float top=c.y-hw.y-(i==0?ex*2.:ex*1.);float bord=top+2.*hw.y*cligne*(1.-.3*ex*ex);float mk=smoothstep(1.2,.85,sqrt(ex*ex+ey*ey));',
-    '  if(p.y>top-1.&&p.y<bord&&mk>0.){vec3 peau=i==0?lire(vec2(p.x-2.,top-13.-(bord-p.y)*.1)):lire(vec2(p.x-4.,c.y+hw.y+6.+(bord-p.y)*.1))*.62;peau*=1.-.45*smoothstep(3.5,0.,bord-p.y);',
+    /* paupières : la peau voisine descend sur l oeil (P : décalage x, décalage y — négatif au-dessus de l oeil, positif en dessous —, luminosité, pente) */
+    ' for(int i=0;i<2;i++){vec4 E=i==0?E1:E2;vec4 P=i==0?P1:P2;vec2 c=E.xy;vec2 hw=E.zw;float ex=(p.x-c.x)/hw.x,ey=(p.y-c.y)/(hw.y*1.3);',
+    '  float top=c.y-hw.y-ex*P.w;float bord=top+2.*hw.y*cligne*(1.-.3*ex*ex);float mk=smoothstep(1.2,.85,sqrt(ex*ex+ey*ey));',
+    '  if(p.y>top-1.&&p.y<bord&&mk>0.){vec2 ou=P.y<0.?vec2(p.x+P.x,top+P.y-(bord-p.y)*.1):vec2(p.x+P.x,c.y+hw.y+P.y+(bord-p.y)*.1);vec3 peau=lire(ou)*P.z;peau*=1.-.45*smoothstep(3.5*K,0.,bord-p.y);',
     '   col=mix(col,peau,mk*smoothstep(top-1.,top+2.,p.y)*smoothstep(0.,1.5,bord-p.y));}}',
     /* circuits : les traits bleus s illuminent, avec une onde qui monte */
     ' float tr=clamp((col.b-max(col.r,col.g*.82))*2.6,0.,1.)*smoothstep(.3,.72,col.b);',
-    ' col+=vec3(.12,.5,1.)*tr*lueur*(.65+.35*sin(t*4.-p.y*.022));',
+    ' col+=vec3(.12,.5,1.)*tr*lueur*(.65+.35*sin(t*4.-p.y*.022/K));',
     ' gl_FragColor=vec4(col,1.);}'].join('\n');
     function compiler(type,src){ var o=gl.createShader(type); gl.shaderSource(o,src); gl.compileShader(o); if(!gl.getShaderParameter(o,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; }
     var prog; try{ prog=gl.createProgram(); gl.attachShader(prog,compiler(gl.VERTEX_SHADER,VS)); gl.attachShader(prog,compiler(gl.FRAGMENT_SHADER,FS)); gl.linkProgram(prog); if(!gl.getProgramParameter(prog,gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog)); }catch(e){ console.warn('Avatar animé indisponible :',e.message); return; }
     gl.useProgram(prog);
     var buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
     var la=gl.getAttribLocation(prog,'a'); gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la,2,gl.FLOAT,false,0,0);
-    var U={}; ['T','R','S','C','H','t','ouv','rond','cligne','lueur','gx','gy','zoom'].forEach(function(n){ U[n]=gl.getUniformLocation(prog,n); });
-    var img=new Image(), pret=false;
-    img.onload=function(){ var tx=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,tx); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
-      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-      gl.uniform2f(U.S,img.naturalWidth,img.naturalHeight); gl.uniform4f(U.C,300,10,690,640); pret=true; };
-    img.src='sigma-5.jpg';
+    var U={}; ['T','R','S','C','H','t','ouv','rond','cligne','lueur','gx','gy','zoom','K','PIV','G1','G2','E1','E2','P1','P2','M','MB','TC'].forEach(function(n){ U[n]=gl.getUniformLocation(prog,n); });
+    /* ---- les avatars ----
+       Pour chaque portrait : le fichier, le cadrage (C), et les repères du visage mesurés sur l'image
+       (yeux E1/E2 : centre et demi-tailles ; bouche M : centre, hauteur de la ligne des lèvres, pente ; MB : bords).
+       e : échelle entre l'image mesurée et le fichier publié ; k : taille du visage par rapport à l'avatar d'origine.
+       cligne / bouche : mettre false pour un portrait où l'animation ne rend pas bien (il reste alors fixe sur ce point). */
+    var AVATARS={
+      origine:{nom:'SIGMA d\'origine',src:'sigma-5.jpg',e:1,k:1,C:[300,10,690,640],TC:[650,330,380],PIV:[600,650],E1:[630,312,31,12.5],E2:[766,348,12,9],G1:[24,10],G2:[13,8],P1:[-2,-13,1,2],P2:[-4,6,.62,1],M:[727,469,.04,675],MB:[678,696,760,775],cligne:true,bouche:true,fond:'55% 12%/170% auto'},
+      directeur:{nom:'Directeur',src:'sigma-directeur.png',e:.7551,k:1.11,C:[130,30,880,820],TC:[590,360,430],PIV:[520,740],E1:[514,306,40,13],E2:[670,323,25,11.5],G1:[26,10],G2:[16,9],P1:[0,-7,1,1.5],P2:[0,-8,1,1],M:[632,457,0,632],MB:[556,574,676,694],cligne:true,bouche:true,fond:'50% 8%/150% auto'},
+      conducteur:{nom:'Conducteur de travaux',src:'sigma-conducteur.png',e:1,k:.46,C:[40,0,300,330],TC:[215,140,170],PIV:[190,290],E1:[179,121,14,5],E2:[244,127,9.5,4.5],G1:[9,4],G2:[6,3.5],P1:[0,-4,1,.6],P2:[0,-3.5,1,.4],M:[228,184,0,228],MB:[194,201,244,250],cligne:true,bouche:true,fond:'55% 10%/125% auto'},
+      chef:{nom:'Chef de chantier',src:'sigma-chef-chantier.png',e:.7551,k:1.24,C:[150,0,880,840],TC:[630,380,450],PIV:[560,780],E1:[546,326,42,13],E2:[720,337,27,12],G1:[27,10],G2:[17,9],P1:[0,-8,1,1.5],P2:[0,-8,1,1],M:[668,481,0,668],MB:[592,612,706,726],cligne:true,bouche:true,fond:'52% 6%/145% auto'},
+      administratif:{nom:'Administratif',src:'sigma-administratif.png',e:.7572,k:1.1,C:[180,90,860,820],TC:[610,440,430],PIV:[560,820],E1:[558,370,40,13],E2:[712,394,26,12],G1:[26,10],G2:[16,9],P1:[0,-9,1,1.5],P2:[0,-8,1,1],M:[645,535,-.096,645],MB:[572,590,690,706],cligne:true,bouche:true,fond:'55% 14%/150% auto'}
+    };
+    var CLE_AVATAR='dashboard-avatar', avatar=null, K=1, img=null, pret=false, texture=null;
+    function fois(l,e,n){ return l.map(function(x,i){ return i<n?x*e:x; }); }
+    function choisirAvatar(id){
+      var a=AVATARS[id]||AVATARS.origine; if(!AVATARS[id]) id='origine';
+      cv.style.background='#06101f url('+a.src+') '+a.fond+' no-repeat';
+      var im=new Image();
+      im.onload=function(){ if(img!==im) return; var e=a.e;
+        if(!texture) texture=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,texture); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,im); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+        K=a.k*e; avatar=a;
+        gl.uniform2f(U.S,im.naturalWidth,im.naturalHeight); gl.uniform1f(U.K,K);
+        gl.uniform4fv(U.C,fois(a.C,e,4)); gl.uniform3fv(U.TC,fois(a.TC,e,3)); gl.uniform2fv(U.PIV,fois(a.PIV,e,2));
+        gl.uniform4fv(U.E1,fois(a.E1,e,4)); gl.uniform4fv(U.E2,fois(a.E2,e,4)); gl.uniform2fv(U.G1,fois(a.G1,e,2)); gl.uniform2fv(U.G2,fois(a.G2,e,2));
+        gl.uniform4fv(U.P1,[a.P1[0]*e,a.P1[1]*e,a.P1[2],a.P1[3]*e]); gl.uniform4fv(U.P2,[a.P2[0]*e,a.P2[1]*e,a.P2[2],a.P2[3]*e]);
+        gl.uniform4fv(U.M,[a.M[0]*e,a.M[1]*e,a.M[2],a.M[3]*e]); gl.uniform4fv(U.MB,fois(a.MB,e,4)); pret=true; };
+      img=im; im.src=a.src;
+      return id;
+    }
+    /* accès pour la page de choix : liste des avatars, avatar courant, changement immédiat */
+    var avatarId=(function(){ try{ var v=localStorage.getItem(CLE_AVATAR); return AVATARS[v]?v:'origine'; }catch(e){ return 'origine'; } })();
+    window.avatarSigma={ liste:function(){ return Object.keys(AVATARS).map(function(k){ return {id:k,nom:AVATARS[k].nom,src:AVATARS[k].src,pos:k==='conducteur'?'64% 0%':'center 10%'}; }); }, courant:function(){ return avatarId; },
+      choisir:function(id){ avatarId=choisirAvatar(id); try{ localStorage.setItem(CLE_AVATAR,avatarId); }catch(e){} return avatarId; } };
+    choisirAvatar(avatarId);
 
     /* ---- la bouche : une suite de positions à jouer, tirée du texte prononcé ---- */
     var file=[], parleDepuis=0, reperes=false, texteEnCours='', cadence=1;
@@ -3354,7 +3400,8 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       var cl=pense?.95+.25*Math.sin(s*9):(ecoute?.6+.2*Math.sin(s*5):(parle?.3:.12+.07*Math.sin(s*1.3)));
       lueur+=(cl-lueur)*Math.min(1,dt*5);
       taille();
-      gl.uniform1f(U.t,s); gl.uniform1f(U.ouv,ouv); gl.uniform1f(U.rond,rond); gl.uniform1f(U.cligne,cligne); gl.uniform1f(U.lueur,lueur); gl.uniform1f(U.gx,gx); gl.uniform1f(U.gy,gy); gl.uniform1f(U.zoom,zoom); gl.uniform3f(U.H,hx,hy,ha);
+      var av=avatar||AVATARS.origine, forcer=window.__avatarForcer||null; if(forcer){ if(forcer.ouv!=null) ouv=forcer.ouv; if(forcer.cligne!=null) cligne=forcer.cligne; if(forcer.rond!=null) rond=forcer.rond; }
+      gl.uniform1f(U.t,s); gl.uniform1f(U.ouv,av.bouche?ouv:0); gl.uniform1f(U.rond,av.bouche?rond:0); gl.uniform1f(U.cligne,av.cligne?cligne:0); gl.uniform1f(U.lueur,lueur); gl.uniform1f(U.gx,gx*K); gl.uniform1f(U.gy,gy*K); gl.uniform1f(U.zoom,zoom); gl.uniform3f(U.H,hx*K,hy*K,ha);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
     }
     window.__avatar={forcer:function(o){ fige=o.fige!==false; if(o.ouv!=null){ cibleO=o.ouv; ouv=o.ouv; } if(o.rond!=null){ cibleR=o.rond; rond=o.rond; } if(o.cligne!=null){ clinDebut=0; cligne=o.cligne; prochainClin=performance.now()+1e9; } }};
@@ -3415,7 +3462,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
       // une page réservée à un autre profil ne reste pas ouverte
       var vue=$('v-'+vueActive); if(vue&&vue.hasAttribute('data-pour')&&vue.getAttribute('data-pour').split(' ').indexOf(p)<0) aller('accueil');
     }
-    function retenir(j){ if(j&&NOMS[j.profil]){ confirme=true; reel={profil:j.profil,nom:j.nom||''}; ecrire(CLE_PROFIL,JSON.stringify(reel)); if(reel.profil!=='direction') ecrire(CLE_VOIR,''); appliquer(); } }
+    function retenir(j){ restaurerAvatar(j); if(j&&NOMS[j.profil]){ confirme=true; reel={profil:j.profil,nom:j.nom||''}; ecrire(CLE_PROFIL,JSON.stringify(reel)); if(reel.profil!=='direction') ecrire(CLE_VOIR,''); appliquer(); } }
     /* le profil est redemandé au serveur à l'ouverture et après chaque connexion */
     function verifier(){
       var s=session(); if(!s||Date.now()-verifie<30000) return; verifie=Date.now();
@@ -3552,6 +3599,11 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         +'<label style="display:flex;grid-auto-flow:column;align-items:center;gap:12px;color:var(--texte)"><input id="cp-actif" type="checkbox" checked style="width:26px;height:26px;flex:none"> Compte actif</label>'
         +'<button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" id="cp-annuler" hidden>Annuler la modification</button>'
         +'<p class="info" id="cp-msg">La personne se connecte avec cette adresse Google. Un compte désactivé est déconnecté aussitôt. Les droits sont appliqués par le serveur.</p></form></div></section>';
+      h+='<section class="vue page pf-page av-page" id="v-avatar" data-pour="direction conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-sigma"/></svg>Choisissez votre avatar SIGMA</h1><span class="h" data-heure></span></div>'
+        +'<div class="corps"><div class="carte"><div class="av-cartes" id="av-cartes"></div></div>'
+        +'<div class="carte form av-apercu"><h2>Aperçu</h2><div class="av-grand" id="av-grand"></div><b id="av-nom"></b>'
+        +'<button class="bouton ok" type="button" id="av-valider">Valider mon avatar</button><button class="bouton" type="button" id="av-origine">Revenir à l\'avatar d\'origine</button>'
+        +'<p class="info" id="av-msg">L\'avatar ne change que l\'image de SIGMA. Il est indépendant de votre profil et ne donne aucun droit.</p></div></div></section>';
       h+='<datalist id="pf-chantiers"></datalist>';
       $('vues').insertAdjacentHTML('beforeend',h);
     }
@@ -3574,6 +3626,27 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
           return '<tr class="'+(t.fait?'fait':'')+'"><td><label style="display:flex;gap:12px;align-items:center;cursor:pointer"><input type="checkbox" data-tache="'+t.id+'"'+(t.fait?' checked':'')+(t.pour!==T.moi?' disabled':'')+' style="width:24px;height:24px;flex:none;margin:0">'+esc(t.texte)+'</label></td><td>'+etq(pr[0],pr[1])+'</td><td>'+(t.limite?etq(dateCourte(t.limite)+'/'+t.limite.slice(0,4),tard?'#FF5267':'#9FB4CE'):'')+'</td><td>'+(t.auteur===T.moi?(t.pour===T.moi?'Moi':'Moi → '+esc(t.pour_nom)):esc(t.auteur_nom))+'</td><td class="a">'+(t.auteur===T.moi?'<button class="bouton danger" type="button" data-tsuppr="'+t.id+'">Supprimer</button>':'')+'</td></tr>'; }).join('')+'</tbody></table>'
         : vide('Aucune tâche.');
     }
+    /* ---- choix de l'avatar SIGMA : une préférence d'affichage, gardée pour chaque personne sur le serveur ---- */
+    var avChoix='';
+    function avListe(){ return window.avatarSigma ? window.avatarSigma.liste() : []; }
+    function avCourant(){ return window.avatarSigma ? window.avatarSigma.courant() : 'origine'; }
+    function dessinerAvatars(){
+      var l=avListe(), cour=avCourant(); if(!avChoix) avChoix=cour;
+      $('av-cartes').innerHTML=l.filter(function(a){ return a.id!=='origine'; }).map(function(a){
+        return '<button type="button" class="av-carte'+(a.id===avChoix?' choisi':'')+'" data-avatar="'+a.id+'" aria-pressed="'+(a.id===avChoix)+'"><span class="ph" style="background-image:url('+a.src+');background-position:'+a.pos+'"></span><b>'+esc(a.nom)+'</b>'+(a.id===cour?'<em>Avatar actuel</em>':'')+'</button>'; }).join('');
+      var c=l.filter(function(a){ return a.id===avChoix; })[0]||l[0]; if(!c) return;
+      $('av-grand').style.backgroundImage='url('+c.src+')'; $('av-grand').style.backgroundPosition=c.pos; $('av-nom').textContent=c.nom+(c.id===cour?' · avatar actuel':'');
+      $('av-valider').disabled=(c.id===cour); $('av-origine').hidden=(cour==='origine'&&avChoix==='origine');
+    }
+    function validerAvatar(id){
+      if(!window.avatarSigma){ $('av-msg').textContent='Avatar indisponible sur cet appareil.'; return; }
+      avChoix=window.avatarSigma.choisir(id); dessinerAvatars(); $('av-msg').textContent='Enregistrement…';
+      appelServeur('/preferences',{corps:{avatar:avChoix}}).then(function(){ $('av-msg').textContent='Avatar enregistré : vous le retrouverez sur tous vos postes.'; },
+        function(){ $('av-msg').textContent='Avatar enregistré sur cet appareil seulement (serveur non joignable pour le moment).'; });
+    }
+    /* à la connexion : l'avatar choisi par la personne est remis en place */
+    function restaurerAvatar(j){ var a=j&&j.preferences&&j.preferences.avatar; if(a&&window.avatarSigma&&a!==window.avatarSigma.courant()){ window.avatarSigma.choisir(a); avChoix=''; if($('av-cartes')) dessinerAvatars(); } }
+
     /* ---- comptes (direction) ---- */
     var C=null;
     function chargerComptes(){
@@ -3616,7 +3689,11 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
     });
     function finEdition(cle){ enEdition[cle]=''; var f=document.querySelector('form[data-liste="'+cle+'"]'); f.reset(); $('pt-'+cle).textContent='Ajouter '+DEFS[cle].un; f.querySelector('[data-annuler]').hidden=true; }
     document.addEventListener('click',function(e){
-      var b=e.target.closest('[data-modif],[data-suppr],[data-annuler],[data-tsuppr],[data-compte],#cp-annuler,#pf-comptes,#tp-lu,#mp-maj,#pf-revenir'); if(!b) return;
+      var b=e.target.closest('[data-modif],[data-suppr],[data-annuler],[data-tsuppr],[data-compte],[data-avatar],#av-valider,#av-origine,#pf-avatar,#cp-annuler,#pf-comptes,#tp-lu,#mp-maj,#pf-revenir'); if(!b) return;
+      if(b.id==='pf-avatar'){ avChoix=''; aller('avatar'); return; }
+      if(b.hasAttribute('data-avatar')){ avChoix=b.getAttribute('data-avatar'); $('av-msg').textContent='Aperçu : cliquez sur « Valider mon avatar » pour l\'adopter.'; dessinerAvatars(); return; }
+      if(b.id==='av-valider'){ validerAvatar(avChoix); return; }
+      if(b.id==='av-origine'){ validerAvatar('origine'); return; }
       if(b.id==='pf-comptes'){ aller('comptes'); return; }
       if(b.id==='cp-annuler'){ finCompte(); return; }
       if(b.hasAttribute('data-compte')){ var k=((C&&C.comptes)||[]).filter(function(y){ return y.email===b.getAttribute('data-compte'); })[0]; if(!k) return;
@@ -3639,7 +3716,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 
     creerPages();
     var allerProfil=aller;
-    aller=function(v){ if(v==='chantiers') v='lchantiers'; allerProfil(v); if(vueActive==='comptes') chargerComptes(); charger(false); if(vu()!=='direction'){ if(vueActive==='mails'&&!M) chargerMails(); } };
+    aller=function(v){ if(v==='chantiers') v='lchantiers'; allerProfil(v); if(vueActive==='comptes') chargerComptes(); if(vueActive==='avatar') dessinerAvatars(); charger(false); if(vu()!=='direction'){ if(vueActive==='mails'&&!M) chargerMails(); } };
     setInterval(function(){ if(!document.hidden) charger(false); },30000);
     document.addEventListener('visibilitychange',function(){ if(!document.hidden){ verifier(); charger(false); } });
     appliquer(); verifier();

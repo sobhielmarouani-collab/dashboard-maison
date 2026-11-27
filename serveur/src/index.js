@@ -26,6 +26,8 @@
  *   GET  /progbat            (session) ?annee=AAAA&forcer=1 → chiffres lus dans ProGBat (lecture seule) ou { configure: false }
  *   GET  /actualites/sources (session) → { rubriques, par_defaut }
  *   POST /actualites/sources (session) { rubriques } ou { reinitialiser: true } → { rubriques, tests }   teste chaque source puis enregistre
+ *   GET  /preferences        (session) → { preferences }   préférences d'affichage de la personne (avatar)
+ *   POST /preferences        (session) { avatar } → { preferences }   sans effet sur le profil ni sur les droits
  *   GET  /taches             (session) → { taches, avis, personnes, moi }   seulement ce que la personne a le droit de voir
  *   POST /taches             (session) { action: creer|cocher|modifier|supprimer|importer|lu, … } → liste à jour
  *   GET  /partage            (session) ?cles=chantiers,alertes… → { listes, refuses }   listes partagées, selon les droits
@@ -119,6 +121,9 @@ function coffre(env) {
  * Droit exigé par chaque point d'entrée sensible. Vérifié ici, pour chaque appel :
  * masquer une fenêtre dans la page ne suffit pas, le serveur refuse lui-même.
  */
+/* Préférences d'affichage acceptées. L'avatar n'est qu'une image : le choisir ne change ni le profil ni les droits. */
+const PREFERENCES = { avatar: ["origine", "directeur", "conducteur", "chef", "administratif"] };
+
 const DROIT_EXIGE = {
   "/progbat": "finances",
   "/actualites": "actualites",
@@ -422,6 +427,7 @@ const ROUTES = {
   "/mails": "GET",
   "/voix": "POST",
   "/actualites/sources": ["GET", "POST"],
+  "/preferences": ["GET", "POST"],
   "/taches": ["GET", "POST"],
   "/partage": ["GET", "POST"],
   "/comptes": ["GET", "POST"],
@@ -460,7 +466,24 @@ export default {
     if (!session) return json({ erreur: "Connexion requise." }, 401, autorisee);
 
     const { compte } = session;
-    if (chemin === "/session") return json({ email: session.email, profil: compte.profil, nom: compte.nom, droits: compte.droits }, 200, autorisee);
+    if (chemin === "/session") return json({ email: session.email, profil: compte.profil, nom: compte.nom, droits: compte.droits, preferences: await coffre(env).lirePreferences(session.email) }, 200, autorisee);
+    if (chemin === "/preferences") {
+      const c = coffre(env);
+      if (requete.method === "POST") {
+        let corps;
+        try {
+          corps = await lireCorps(requete);
+        } catch {
+          return json({ erreur: "Corps JSON invalide." }, 400, autorisee);
+        }
+        for (const [cle, valeurs] of Object.entries(PREFERENCES)) {
+          if (corps?.[cle] === undefined) continue;
+          if (!valeurs.includes(corps[cle])) return json({ erreur: "Préférence inconnue." }, 400, autorisee);
+          await c.ecrirePreference(session.email, cle, corps[cle]);
+        }
+      }
+      return json({ preferences: await c.lirePreferences(session.email) }, 200, autorisee);
+    }
     const exige = DROIT_EXIGE[chemin];
     if (exige && !compte.droits[exige]) return json({ erreur: "Accès non autorisé pour ce profil.", refuse: exige }, 403, autorisee);
     if (chemin === "/comptes" || chemin === "/journal") return comptes(chemin, requete, env, autorisee, session);

@@ -52,6 +52,12 @@ export class Coffre extends DurableObject {
         cree    INTEGER NOT NULL,
         modifie INTEGER NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS preferences (
+        email  TEXT NOT NULL,
+        cle    TEXT NOT NULL,
+        valeur TEXT NOT NULL,
+        PRIMARY KEY (email, cle)
+      );
       CREATE TABLE IF NOT EXISTS partage (
         cle     TEXT PRIMARY KEY,
         valeur  TEXT NOT NULL,
@@ -125,6 +131,16 @@ export class Coffre extends DurableObject {
       email, nom, profil, actif ? 1 : 0, droits, maintenant, maintenant,
     );
     if (!actif) this.sql.exec("DELETE FROM sessions WHERE email = ?", email);
+  }
+
+  /* ---------- préférences d'affichage de chaque personne (avatar…) : aucun lien avec les droits ---------- */
+
+  lirePreferences(email) {
+    return Object.fromEntries(this.sql.exec("SELECT cle, valeur FROM preferences WHERE email = ?", email).toArray().map((l) => [l.cle, l.valeur]));
+  }
+
+  ecrirePreference(email, cle, valeur) {
+    this.sql.exec("INSERT INTO preferences (email, cle, valeur) VALUES (?, ?, ?) ON CONFLICT(email, cle) DO UPDATE SET valeur = excluded.valeur", email, cle, valeur);
   }
 
   /* ---------- listes partagées (droits vérifiés dans partage.js) ---------- */
