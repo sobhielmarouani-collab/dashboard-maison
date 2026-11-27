@@ -942,9 +942,15 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   .cc-sem .sem-ev{padding:1px 3px;border-left-width:2px}
 }
 /* ---- agenda : pastilles de couleur et fiche d'un rendez-vous ---- */
-.cc-sem .sem-ev{cursor:pointer;padding:0;border:1px solid rgba(255,255,255,.4);border-left:1px solid rgba(255,255,255,.4);background:var(--k);border-radius:7px;min-height:9px;transition:transform .12s,box-shadow .12s}
+.cc-sem .sem-ev{cursor:pointer;padding:1px 5px;border:1px solid rgba(255,255,255,.4);border-left:1px solid rgba(255,255,255,.4);background:var(--k);color:#06162c;border-radius:7px;min-height:9px;transition:transform .12s,box-shadow .12s}
+.cc-sem .sem-ev b{font-weight:700}
+.cc-sem .sem-ev small{opacity:.85;font-weight:600}
+.cc-sem .sem-ev.court{padding:0 5px;display:flex;align-items:center}
+.cc-sem .sem-ev.court small{display:none}
+.cc-sem .sem-ev.court b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.cc-sem .sem-ev b{font-size:clamp(10.5px,1.9cqw,19px)}
 .cc-sem .sem-ev:hover,.cc-mois .pts i:hover,.cc-sem .sem-jr em:hover{transform:scale(1.06);box-shadow:0 0 14px var(--k);z-index:4}
-.cc-sem .sem-jr em{cursor:pointer;height:10px;padding:0;border-radius:6px;display:block}
+.cc-sem .sem-jr em{cursor:pointer;color:#06162c;font-weight:700}
 .cc-mois .pts{display:flex;flex-wrap:wrap;gap:3px;align-content:flex-start;min-width:0}
 .cc-mois .pts i{width:clamp(8px,min(1.9cqw,4.4cqh),16px);height:clamp(8px,min(1.9cqw,4.4cqh),16px);border-radius:50%;background:var(--k);cursor:pointer;border:1px solid rgba(255,255,255,.4);transition:transform .12s,box-shadow .12s}
 .cal-leg{flex:none;display:flex;align-items:center;gap:16px;font-size:13px;color:var(--discret);margin-top:4px;white-space:nowrap;overflow:hidden}
@@ -2669,14 +2675,14 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
         jours.forEach(function(j){
           var iso=isoDe(j), auj=iso===auj0, duJour=tous.filter(function(e){ return e.jour===iso; });
           entete+='<span class="sem-j'+(auj?' auj':'')+'"><small>'+esc(fN.format(j).replace('.','').toUpperCase())+'</small><b>'+j.getDate()+'</b></span>';
-          journees+='<span class="sem-jr">'+duJour.filter(function(e){ return e.journee; }).map(function(e){ if(e.id) fiches[e.id]=e; return '<em'+(e.id?' data-fiche="'+esc(e.id)+'"':'')+' style="--k:'+teinteRdv(e)+'" title="'+esc((e.titre||'')+' · toute la journée')+'"></em>'; }).join('')+'</span>';
+          journees+='<span class="sem-jr">'+duJour.filter(function(e){ return e.journee; }).map(function(e){ if(e.id) fiches[e.id]=e; return '<em'+(e.id?' data-fiche="'+esc(e.id)+'"':'')+' style="--k:'+teinteRdv(e)+'" title="'+esc((e.titre||'')+' · toute la journée')+'">'+esc(e.titre||'(sans titre)')+'</em>'; }).join('')+'</span>';
           // rendez-vous qui se chevauchent : ils se partagent la largeur de la colonne
           var blocs=duJour.filter(function(e){ return !e.journee&&calMn(e.debut)!=null; }).map(function(e){ var x=calMn(e.debut), y=calMn(e.fin); if(y==null||y<=x) y=x+60; return {e:e,d:x,f:y,c:0}; }).sort(function(u,v){ return u.d-v.d; });
           var fins=[]; blocs.forEach(function(q){ var c=0; while(fins[c]!=null&&fins[c]>q.d) c++; fins[c]=q.f; q.c=c; });
           var nb=Math.max(1,fins.length), m=mnt.getHours()*60+mnt.getMinutes();
           colonnes+='<div class="sem-col'+(auj?' auj':'')+'" data-jour="'+iso+'">'+lignes+blocs.map(function(q){
             if(q.e.id) fiches[q.e.id]=q.e;
-            return '<div class="sem-ev"'+(q.e.id?' data-fiche="'+esc(q.e.id)+'"':'')+' style="--k:'+teinteRdv(q.e)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(5,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"></div>'; }).join('')
+            return '<div class="sem-ev'+((q.f-q.d)<=90?' court':'')+'"'+(q.e.id?' data-fiche="'+esc(q.e.id)+'"':'')+' style="--k:'+teinteRdv(q.e)+';top:'+((q.d-h0)/duree*100)+'%;height:'+Math.max(5,(q.f-q.d)/duree*100)+'%;left:'+(q.c/nb*100)+'%;width:'+(100/nb)+'%" title="'+esc((q.e.debut||'')+' '+(q.e.titre||'')+(q.e.lieu?' · '+q.e.lieu:''))+'"><b>'+esc(q.e.titre||'(sans titre)')+'</b><small>'+esc(q.e.debut||'')+(q.e.lieu?' · '+esc(q.e.lieu):'')+'</small></div>'; }).join('')
             +(auj&&m>=h0&&m<=h1?'<u style="top:'+((m-h0)/duree*100)+'%"></u>':'')+'</div>';
         });
         h='<div class="cc-sem"><div class="sem-tete">'+entete+'</div>'+(aJournee?'<div class="sem-tete sem-jrs">'+journees+'</div>':'<div></div>')+'<div class="sem-corps" data-h0="'+h0+'" data-duree="'+duree+'"><div class="sem-h">'+heures+'</div>'+colonnes+'</div></div>';
