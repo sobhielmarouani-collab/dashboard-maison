@@ -1016,7 +1016,13 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .do-tuiles.mini .do-t{border-radius:12px;padding:4px;gap:0}
 .do-tuiles.mini .do-t svg{width:28px;height:28px;margin-bottom:2px}
 .do-tuiles.mini .do-t b{font-size:14px;font-weight:500}
-.do-tuiles.mini .do-t svg{width:34px;height:34px}
+.do-tuiles.mini{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));grid-template-rows:none;grid-auto-rows:minmax(54px,auto);align-content:start;gap:8px;height:100%;overflow-y:auto;scrollbar-width:thin;padding:2px}
+.do-tuiles.mini .do-t{display:grid;grid-template-columns:auto minmax(0,1fr) auto;place-content:normal;justify-items:start;align-items:center;gap:12px;padding:8px 12px;text-align:left;border-radius:14px}
+.do-tuiles.mini .do-t svg{width:32px;height:32px;margin:0}
+.do-tuiles.mini .do-t b{font-size:16.5px;font-weight:600;line-height:1.15;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.do-tuiles.mini .do-t::after{content:"›";font-size:22px;line-height:1;color:var(--discret)}
+.do-tuiles.mini .do-t:hover{transform:none}
+.do-rail.acc.mini{align-items:stretch}
 .do-rail{flex:1;min-height:0;display:grid;grid-template-columns:52px 1fr 52px;gap:12px;align-items:center}
 .do-rail .rond{width:52px;height:52px;font-size:30px;line-height:1;display:grid;place-items:center;padding:0 0 4px}
 .do-rail .rond:disabled{opacity:.3}
@@ -3858,12 +3864,9 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       $('dp-nb').textContent='('+d.length+' dossier'+(d.length>1?'s':'')+')'; $('dp-tuiles').innerHTML=d.slice(0,12).map(function(x,i){ return tuile(x,i,false); }).join('');
       // petite fenêtre de l'accueil : seulement « Mes dossiers », sur une ligne ; les chantiers ont déjà leur fenêtre
       var mini=d.map(function(x,i){ return [x,i]; }).filter(function(y){ return y[0].icone!=='casque'; }).slice(0,12);
-      // autant de tuiles que la largeur le permet, sur une seule ligne ; les flèches font défiler le reste
-      var bm=$('do-mini'), lm=$('do-rail-mini').clientWidth||400, parm=Math.max(1,Math.floor(lm/80)); if(parm<mini.length) parm=Math.max(1,Math.floor((lm-64)/76));
-      var pagesm=Math.max(1,Math.ceil(mini.length/parm)); if(miniPage>=pagesm) miniPage=pagesm-1; miniPar=parm;
-      $('do-rail-mini').classList.toggle('seul',pagesm<2); $('do-prec').disabled=miniPage<=0; $('do-suiv').disabled=miniPage>=pagesm-1;
-      bm.style.gridTemplateColumns='repeat('+Math.min(parm,Math.max(1,mini.length))+',minmax(0,1fr))';
-      $('do-nb').textContent='('+mini.length+')'; bm.innerHTML=mini.slice(miniPage*parm,miniPage*parm+parm).map(function(y){ return tuile(y[0],y[1],true); }).join('');
+      // chaque dossier est une barre horizontale : icône à gauche, nom entier à droite ; deux colonnes si la fenêtre est large
+      $('do-rail-mini').classList.add('seul'); $('do-mini').style.gridTemplateColumns='';
+      $('do-nb').textContent='('+mini.length+')'; $('do-mini').innerHTML=mini.map(function(y){ return tuile(y[0],y[1],true); }).join('');
       var ch=chantiersVus().slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }), pages=Math.max(1,Math.ceil(ch.length/4)); if(doPage>=pages) doPage=pages-1;
       $('dp-ch-nb').textContent='('+ch.length+' opération'+(ch.length>1?'s':'')+')';
       $('dp-cartes').innerHTML = ch.length ? ch.slice(doPage*4,doPage*4+4).map(function(c){ return carteChantier(c,fav,false); }).join('')
