@@ -32,6 +32,8 @@
  *   POST /taches             (session) { action: creer|cocher|modifier|supprimer|importer|lu, … } → liste à jour
  *   GET  /partage            (session) ?cles=chantiers,alertes… → { listes, refuses }   listes partagées, selon les droits
  *   POST /partage            (session) { cle, lignes } → remplace une liste (droit vérifié, lignes nettoyées)
+ *   GET  /photos             (session) ?ids=a,b → { photos: { id: image } }   images des chantiers (droit « chantiers »)
+ *   POST /photos             (session) { id, image } → pose ou retire (image vide) l'image d'un chantier
  *   GET  /comptes            (direction) → { comptes, profils, droits }
  *   POST /comptes            (direction) { email, nom, profil, actif, droits } → crée ou modifie un compte
  *   GET  /journal            (direction) → historique des actions importantes
@@ -49,7 +51,7 @@ import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./mod
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { compteDe, validerCompte, listerComptes, PROFILS, DROITS } from "./comptes.js";
 import { lireTaches, agirTache, TacheRefusee } from "./taches.js";
-import { lirePartage, ecrirePartage, PartageRefuse, LISTES } from "./partage.js";
+import { lirePartage, ecrirePartage, lirePhotos, ecrirePhoto, PartageRefuse, LISTES } from "./partage.js";
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
 import { resumeProgbat, ProgbatNonConfigure } from "./progbat.js";
@@ -97,9 +99,9 @@ function json(corps, statut, origine, entetes = {}) {
   });
 }
 
-async function lireCorps(requete) {
+async function lireCorps(requete, max = TAILLE_MAX_CORPS) {
   const texte = await requete.text();
-  if (texte.length > TAILLE_MAX_CORPS) throw new Error("trop long");
+  if (texte.length > max) throw new Error("trop long");
   return JSON.parse(texte);
 }
 
@@ -430,6 +432,7 @@ const ROUTES = {
   "/preferences": ["GET", "POST"],
   "/taches": ["GET", "POST"],
   "/partage": ["GET", "POST"],
+  "/photos": ["GET", "POST"],
   "/comptes": ["GET", "POST"],
   "/journal": "GET",
 };
@@ -511,6 +514,26 @@ export default {
       } catch (e) {
         if (e instanceof PartageRefuse) return json({ erreur: e.message }, e.statut, autorisee);
         console.error("Partage :", e);
+        return json({ erreur: "Erreur du serveur." }, 500, autorisee);
+      }
+    }
+    if (chemin === "/photos") {
+      const c = coffre(env);
+      try {
+        if (requete.method === "POST") {
+          let corps;
+          try {
+            corps = await lireCorps(requete, 200 * 1024); // une vignette réduite par la page
+          } catch {
+            return json({ erreur: "Image trop lourde ou envoi invalide." }, 400, autorisee);
+          }
+          return json(await ecrirePhoto(c, compte, corps), 200, autorisee);
+        }
+        const ids = (new URL(requete.url).searchParams.get("ids") || "").split(",");
+        return json(await lirePhotos(c, compte, ids), 200, autorisee);
+      } catch (e) {
+        if (e instanceof PartageRefuse) return json({ erreur: e.message }, e.statut, autorisee);
+        console.error("Photos :", e);
         return json({ erreur: "Erreur du serveur." }, 500, autorisee);
       }
     }

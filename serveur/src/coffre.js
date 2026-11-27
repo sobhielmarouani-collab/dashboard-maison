@@ -58,6 +58,12 @@ export class Coffre extends DurableObject {
         valeur TEXT NOT NULL,
         PRIMARY KEY (email, cle)
       );
+      CREATE TABLE IF NOT EXISTS photos (
+        id      TEXT PRIMARY KEY,
+        donnee  TEXT NOT NULL,
+        modifie INTEGER NOT NULL,
+        auteur  TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS partage (
         cle     TEXT PRIMARY KEY,
         valeur  TEXT NOT NULL,
@@ -151,6 +157,30 @@ export class Coffre extends DurableObject {
 
   ecrirePartage(cle, valeur, auteur) {
     this.sql.exec("INSERT INTO partage (cle, valeur, modifie, auteur) VALUES (?, ?, ?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur, modifie = excluded.modifie, auteur = excluded.auteur", cle, valeur, Date.now(), auteur);
+  }
+
+  /* ---------- images des chantiers (droits vérifiés dans partage.js) ---------- */
+
+  lirePhotos(ids) {
+    const photos = {};
+    for (const id of ids) {
+      const l = this.sql.exec("SELECT donnee FROM photos WHERE id = ?", id).toArray()[0];
+      if (l) photos[id] = l.donnee;
+    }
+    return photos;
+  }
+
+  ecrirePhoto(id, donnee, auteur) {
+    this.sql.exec("INSERT INTO photos (id, donnee, modifie, auteur) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET donnee = excluded.donnee, modifie = excluded.modifie, auteur = excluded.auteur", id, donnee, Date.now(), auteur);
+  }
+
+  supprimerPhoto(id) {
+    this.sql.exec("DELETE FROM photos WHERE id = ?", id);
+  }
+
+  purgerPhotos(gardes) {
+    const garde = new Set(gardes);
+    for (const l of this.sql.exec("SELECT id FROM photos").toArray()) if (!garde.has(l.id)) this.sql.exec("DELETE FROM photos WHERE id = ?", l.id);
   }
 
   /* ---------- tâches partagées (les règles d'accès sont dans taches.js) ---------- */

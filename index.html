@@ -1016,6 +1016,20 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .do-c .vg .pf-etq{position:absolute;left:8px;bottom:8px;background:color-mix(in srgb,var(--k) 30%,rgba(4,12,26,.8))}
 .do-c .fav{position:absolute;right:6px;top:6px;width:38px;height:38px;border-radius:10px;border:1px solid var(--trait);background:rgba(4,12,26,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer}
 .do-c .fav.oui{color:#FFB020;border-color:#FFB020}
+.do-c .vg{overflow:hidden}
+.do-c .vg>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.do-c .vg.ph::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,8,20,.28),transparent 34%,transparent 62%,rgba(2,8,20,.5));pointer-events:none}
+.do-c .vg .pf-etq,.do-c .fav,.do-c .reg{z-index:1}
+.do-c .reg{position:absolute;left:6px;top:6px;width:38px;height:38px;border-radius:10px;border:1px solid var(--trait);background:rgba(4,12,26,.55);color:#fff;font-size:20px;line-height:1;cursor:pointer}
+.do-rail.acc .do-c .reg{width:30px;height:30px;font-size:16px;border-radius:8px}
+html[data-theme="clair"] .do-c .reg{background:rgba(255,255,255,.75);color:#0B1B33}
+.rg-photo{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:center}
+#rg-apercu{position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;display:grid;place-items:center;align-content:center;gap:6px;background:var(--creux);border:1px solid var(--trait);color:var(--discret);font-size:16px}
+#rg-apercu img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#rg-apercu svg{width:64px;height:64px;opacity:.6}
+.rg-b{display:grid;gap:10px}
+#rg-form label{display:grid;gap:6px;font-size:18px}
+#rg-form .rang{display:flex;gap:12px}
 .do-c b{font-size:20px;font-weight:600;padding:4px 6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .do-c small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .do-points{display:flex;justify-content:center;gap:8px;min-height:12px;margin-top:8px}
@@ -1041,6 +1055,7 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
   .do-rail.acc .do-c .vg>svg{display:none}
   .do-rail.acc .do-c .vg .pf-etq{left:4px;bottom:3px;font-size:12px}
   .do-rail.acc .do-c .fav{width:24px;height:24px;font-size:15px;top:2px;right:2px}
+  .do-rail.acc .do-c .reg{width:24px;height:24px;font-size:13px;top:2px;left:2px}
 }
 html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B33}
 </style>
@@ -1465,6 +1480,15 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
   <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-b-fen" aria-expanded="false">Fenêtres visibles ▾</button><button class="bouton" type="button" id="ps-b-menu" aria-expanded="false">Boutons du menu ▾</button><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div id="ps-choix" hidden><div id="ps-liste"></div><span id="ps-msg"></span></div><span id="ps-res" hidden></span></div>
+  <div class="voile" id="rg-voile">
+    <form class="boite" id="rg-form" style="width:700px">
+      <h3 id="rg-titre"></h3>
+      <div class="rg-photo"><div id="rg-apercu"></div><div class="rg-b"><button class="bouton" type="button" id="rg-choisir">Choisir une image…</button><button class="bouton" type="button" id="rg-retirer" hidden>Retirer l'image</button><input type="file" id="rg-fichier" accept="image/*" hidden></div></div>
+      <label for="rg-lien">Dossier du chantier dans Google Drive<input id="rg-lien" type="url" inputmode="url" autocomplete="off" placeholder="Collez ici l'adresse du dossier (https://drive.google.com/…)"></label>
+      <p class="info" id="rg-msg" style="min-height:1.3em;margin:0"></p>
+      <div class="rang"><button class="bouton ok" type="submit">Enregistrer</button><button class="bouton" type="button" data-fermer>Annuler</button></div>
+    </form>
+  </div>
   <div class="voile" id="fi-voile">
     <div class="boite" style="width:720px">
       <h3 style="display:flex;align-items:center;gap:14px"><i id="fi-pastille" style="width:22px;height:22px;border-radius:50%;flex:none"></i><span id="fi-titre" style="min-width:0;overflow-wrap:anywhere"></span></h3>
@@ -3562,13 +3586,13 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function charger(forcer){
       if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; peindre(); return; }
       if(!forcer&&Date.now()-dernier<25000) return; dernier=Date.now();
-      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers,dossiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
-      appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
+      if(vu()==='direction'){ appelServeur('/partage?cles=chantiers,dossiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); chargerPhotos(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
+      appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); chargerPhotos(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
       appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){});
       chargerMails();
     }
     function enregistrer(cle,l){
-      return appelServeur('/partage',{corps:{cle:cle,lignes:l}}).then(function(j){ if(j.listes&&j.listes[cle]) L[cle]=j.listes[cle]; if(cle==='chantiers') refleter(); peindre(); });
+      return appelServeur('/partage',{corps:{cle:cle,lignes:l}}).then(function(j){ if(j.listes&&j.listes[cle]) L[cle]=j.listes[cle]; if(cle==='chantiers'){ refleter(); chargerPhotos(); } peindre(); });
     }
     function tache(corps){ return appelServeur('/taches',{corps:corps}).then(function(j){ T=j; peindre(); }); }
 
@@ -3576,11 +3600,30 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function chantiersVus(){
       if(L.chantiers) return lignes('chantiers');
       // sans serveur joignable, la direction garde au moins ses chantiers gardés sur l'appareil
-      return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||''}; }) : [];
+      return reel.profil==='direction' ? (etat.chantiers||[]).map(function(c){ return {id:c.id||'',nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||'',photo:c.ph||0}; }) : [];
     }
     /* une carte de chantier : vignette, statut, favori, nom, commune et, sur l'accueil, l'avancement */
-    function carteChantier(c,fav,avancement){ var st=STATUTS[c.statut]||STATUTS.en_cours, f=fav.indexOf(c.nom)>=0;
-      return '<div class="do-c" data-chantier="'+esc(c.nom)+'" title="'+esc(c.dossier?'Ouvrir le dossier du chantier dans Google Drive':'Aucun dossier Drive relié')+'"><span class="vg"><svg class="i"><use href="#n-chantiers"/></svg>'+etq(st[0],st[1])+'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(c.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span><b>'+esc(c.nom)+'</b>'
+    /* images des chantiers : gardées sur le serveur, à part de la liste ; l'appareil en garde une copie pour ne pas les redemander */
+    var CLE_PHOTOS='dashboard-photos-chantiers', photos={}, photosDemandees={};
+    try{ photos=JSON.parse(lire(CLE_PHOTOS)||'{}')||{}; }catch(e){ photos={}; }
+    function garderPhotos(){ try{ ecrire(CLE_PHOTOS,JSON.stringify(photos)); }catch(e){ try{ localStorage.removeItem(CLE_PHOTOS); }catch(z){} } }
+    function photoDe(c){ var x=c.id&&c.photo&&photos[c.id]; return x&&x.v===c.photo&&/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+\/=]+$/.test(x.d) ? x.d : ''; }
+    function chargerPhotos(){
+      if(!L.chantiers) return;
+      var vus={}, manque=[]; lignes('chantiers').forEach(function(c){ vus[c.id]=1; if(c.photo&&!photoDe(c)&&photosDemandees[c.id]!==c.photo) manque.push(c); });
+      var menage=false; Object.keys(photos).forEach(function(id){ if(!vus[id]){ delete photos[id]; menage=true; } }); if(menage) garderPhotos();
+      if(!manque.length) return;
+      manque=manque.slice(0,12); manque.forEach(function(c){ photosDemandees[c.id]=c.photo; });
+      appelServeur('/photos?ids='+manque.map(function(c){ return c.id; }).join(','),{methode:'GET'}).then(function(j){
+        var r=j.photos||{}; manque.forEach(function(c){ if(r[c.id]) photos[c.id]={v:c.photo,d:r[c.id]}; }); garderPhotos(); peindre(); chargerPhotos();
+      },function(){ manque.forEach(function(c){ delete photosDemandees[c.id]; }); });
+    }
+    function peutRegler(c){ return !!(c.id&&L.chantiers&&(reel.profil==='direction'||reel.profil==='conducteur')); }
+    /* une carte de chantier : image (ou pictogramme), statut, favori, réglage, nom, commune et, sur l'accueil, l'avancement */
+    function carteChantier(c,fav,avancement){ var st=STATUTS[c.statut]||STATUTS.en_cours, f=fav.indexOf(c.nom)>=0, ph=photoDe(c);
+      return '<div class="do-c" data-chantier="'+esc(c.nom)+'" title="'+esc(c.dossier?'Ouvrir le dossier du chantier dans Google Drive':'Aucun dossier Drive relié')+'"><span class="vg'+(ph?' ph':'')+'">'+(ph?'<img src="'+ph+'" alt="">':'<svg class="i"><use href="#n-chantiers"/></svg>')+etq(st[0],st[1])
+        +(peutRegler(c)?'<button type="button" class="reg" data-regler="'+esc(c.id)+'" aria-label="Image et dossier du chantier" title="Image et dossier du chantier">✎</button>':'')
+        +'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(c.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span><b>'+esc(c.nom)+'</b>'
         +(avancement?'<span class="av"><span class="bar"><i style="width:'+c.avancement+'%"></i></span><em>'+c.avancement+' %</em></span>':'')
         +'<small>'+esc([c.lieu,(c.dossier||avancement)?'':'dossier non relié'].filter(Boolean).join(' · '))+'</small></div>'; }
     function parFavoris(l){ var fav=favoris(); return l.slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }); }
@@ -3601,8 +3644,8 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     if(window.ResizeObserver) new ResizeObserver(function(){ var b=$('c3-liste'), par=Math.max(1,Math.min(6,Math.floor((b.clientWidth||600)/165))); if(b.clientWidth&&par!==c3Par) dessinerChantiers(etatDonnees); }).observe($('c3-liste'));
     /* la liste partagée est recopiée dans la mémoire de l'appareil : Sigma, la recherche et le planning continuent de la lire là */
     var miroir=null, pret=false, confirme=false, CLE_REPRIS='dashboard-chantiers-repris';
-    function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut,dz:c.dossier||''}; }
-    function versPartage(c){ var x={nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||''}; if(c.id) x.id=c.id; return x; }
+    function versLocal(c){ return {n:c.nom,p:c.avancement,c:c.lieu||'',id:c.id,st:c.statut,dz:c.dossier||'',ph:c.photo||0}; }
+    function versPartage(c){ var x={nom:c.n,lieu:c.c||'',avancement:c.p||0,statut:c.st||'en_cours',dossier:c.dz||'',photo:c.ph||0}; if(c.id) x.id=c.id; return x; }
     function refleter(){
       if(!L.chantiers) return;
       etat.chantiers=lignes('chantiers').map(versLocal); miroir=JSON.stringify(etat.chantiers); pret=true;
@@ -3762,10 +3805,44 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         if(d.lien){ window.open(d.lien,'_blank','noopener'); return; }
         if(vueActive!=='dossiers'){ aller('dossiers'); return; }
         doMsg = d.icone==='casque' ? '' : (reel.profil==='direction' ? 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré : ouvrez « Configurer les dossiers ».' : 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré par la direction.'); dessinerDossiers(); return; }
+      if((t=e.target.closest('[data-regler]'))){ ouvrirReglage(t.getAttribute('data-regler')); return; }
       if((c=e.target.closest('[data-chantier]'))){ var x=chantiersVus().filter(function(y){ return y.nom===c.getAttribute('data-chantier'); })[0]; if(!x) return;
         if(x.dossier){ window.open(x.dossier,'_blank','noopener'); return; }
-        doMsg='Aucun dossier Drive relié à « '+x.nom+' » : ouvrez Chantiers, puis Modifier, et collez le lien du dossier.'; if(vueActive!=='dossiers') aller('dossiers'); dessinerDossiers(); }
+        if(peutRegler(x)){ ouvrirReglage(x.id); return; }
+        doMsg='Aucun dossier Drive relié à « '+x.nom+' ».'; if(vueActive!=='dossiers') aller('dossiers'); dessinerDossiers(); }
     });
+
+    /* ---- fiche « image et dossier » d'un chantier ---- */
+    var rgId='', rgImage=null;   // rgImage : null = inchangée, '' = à retirer, sinon la nouvelle image réduite
+    function rgApercu(d){ $('rg-apercu').innerHTML = d ? '<img src="'+d+'" alt="">' : '<svg class="i"><use href="#n-chantiers"/></svg><span>Aucune image</span>'; $('rg-retirer').hidden=!d; }
+    function ouvrirReglage(id){ var c=lignes('chantiers').filter(function(y){ return y.id===id; })[0]; if(!c) return;
+      rgId=id; rgImage=null; $('rg-titre').textContent=c.nom; $('rg-lien').value=c.dossier||''; $('rg-fichier').value=''; $('rg-msg').textContent=''; rgApercu(photoDe(c)); $('rg-voile').classList.add('ouvert'); }
+    function fermerReglage(){ $('rg-voile').classList.remove('ouvert'); rgId=''; rgImage=null; }
+    /* l'image choisie est recadrée et réduite sur l'appareil : seule une vignette légère part vers le serveur */
+    function reduire(fichier){ return new Promise(function(ok,non){
+      if(!/^image\//.test(fichier.type)) return non(new Error('ce fichier n\'est pas une image'));
+      var u=URL.createObjectURL(fichier), im=new Image();
+      im.onerror=function(){ URL.revokeObjectURL(u); non(new Error('image illisible')); };
+      im.onload=function(){ URL.revokeObjectURL(u);
+        var L0=640, H0=400, k=Math.max(L0/im.naturalWidth,H0/im.naturalHeight), l=im.naturalWidth*k, h=im.naturalHeight*k;
+        var cv=document.createElement('canvas'); cv.width=L0; cv.height=H0; cv.getContext('2d').drawImage(im,(L0-l)/2,(H0-h)/2,l,h);
+        var q=.82, d=cv.toDataURL('image/jpeg',q); while(d.length>120000&&q>.4){ q-=.1; d=cv.toDataURL('image/jpeg',q); }
+        d.length>140000 ? non(new Error('image trop lourde')) : ok(d); };
+      im.src=u; }); }
+    $('rg-choisir').addEventListener('click',function(){ $('rg-fichier').click(); });
+    $('rg-fichier').addEventListener('change',function(){ var f=this.files&&this.files[0]; if(!f) return; $('rg-msg').textContent='Préparation de l\'image…';
+      reduire(f).then(function(d){ rgImage=d; rgApercu(d); $('rg-msg').textContent=''; },function(z){ $('rg-msg').textContent='Image refusée : '+z.message+'.'; }); });
+    $('rg-retirer').addEventListener('click',function(){ rgImage=''; rgApercu(''); });
+    $('rg-voile').addEventListener('click',function(e){ if(e.target===this||e.target.closest('[data-fermer]')) fermerReglage(); });
+    $('rg-form').addEventListener('submit',function(e){ e.preventDefault(); var id=rgId, lien=$('rg-lien').value.trim(), img=rgImage;
+      if(lien&&!/^https:\/\/\S+$/.test(lien)){ $('rg-msg').textContent='Le lien doit commencer par https:// (copiez l\'adresse du dossier dans Google Drive).'; return; }
+      $('rg-msg').textContent='Enregistrement…';
+      (img===null ? Promise.resolve() : appelServeur('/photos',{corps:{id:id,image:img}})).then(function(){
+        var v = img===null ? null : (img ? Date.now() : 0); if(v){ photos[id]={v:v,d:img}; garderPhotos(); } else if(v===0){ delete photos[id]; garderPhotos(); }
+        return enregistrer('chantiers',lignes('chantiers').map(function(y){ if(y.id!==id) return y; var z={}; for(var k in y) z[k]=y[k]; z.dossier=lien; if(v!==null) z.photo=v; return z; }));
+      }).then(function(){ fermerReglage(); },function(z){ $('rg-msg').textContent='Non enregistré : '+(z.message||'erreur')+'.'; });
+    });
+
 
     /* ---- choix de l'avatar SIGMA : une préférence d'affichage, gardée pour chaque personne sur le serveur ---- */
     var avChoix='';
@@ -3819,7 +3896,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       var f=e.target, cle=f.getAttribute&&f.getAttribute('data-liste');
       if(cle){ e.preventDefault(); var d=DEFS[cle], x={}; if(enEdition[cle]) x.id=enEdition[cle];
         d.champs.forEach(function(c){ var el=$('pc-'+cle+'-'+c[0]); x[c[0]] = c[2]==='nombre' ? Number(el.value||0) : el.value.trim(); });
-        var l=lignes(cle).slice(), i=-1; l.forEach(function(y,k){ if(y.id===x.id) i=k; }); if(i>=0) l[i]=x; else l.push(x);
+        var l=lignes(cle).slice(), i=-1; l.forEach(function(y,k){ if(y.id===x.id) i=k; }); if(i>=0){ for(var k0 in l[i]) if(x[k0]===undefined) x[k0]=l[i][k0]; l[i]=x; } else l.push(x);
         $('pm-'+cle).textContent='Enregistrement…';
         enregistrer(cle,l).then(function(){ finEdition(cle); $('pm-'+cle).textContent='Enregistré.'; },function(z){ $('pm-'+cle).textContent='Non enregistré : '+(z.message||'erreur')+'.'; });
       }

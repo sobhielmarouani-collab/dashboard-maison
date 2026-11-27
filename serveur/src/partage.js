@@ -11,7 +11,7 @@ const date = (requis = false) => ({ type: "date", requis });
 const lien = () => ({ type: "lien" });
 
 export const LISTES = {
-  chantiers: { droit: "chantiers", champs: { nom: texte(60, true), lieu: texte(60), avancement: nombre(0, 100), statut: choix("en_cours", "preparation", "finition", "arret", "termine"), dossier: lien() } },
+  chantiers: { droit: "chantiers", champs: { nom: texte(60, true), lieu: texte(60), avancement: nombre(0, 100), statut: choix("en_cours", "preparation", "finition", "arret", "termine"), dossier: lien(), photo: nombre(0, 9999999999999) } }, // photo : repère de version de l'image gardée à part (table photos), 0 = pas d'image
   // raccourcis vers les dossiers de l'entreprise : lisibles par tous les comptes (sauf les lignes réservées à la direction), modifiables par la direction seule
   dossiers: {
     droit: null,
@@ -92,5 +92,43 @@ export async function ecrirePartage(coffre, compte, corps) {
   if (!Array.isArray(corps.lignes) || corps.lignes.length > LIGNES_MAX) throw new PartageRefuse("Liste invalide ou trop longue.");
   const lignes = corps.lignes.map((l, i) => nettoyerLigne(def.champs, l, i + 1));
   await coffre.ecrirePartage(cle, JSON.stringify(lignes), compte.email);
+  // un chantier supprimé emporte son image
+  if (cle === "chantiers") await coffre.purgerPhotos(lignes.map((l) => l.id));
   return cle;
+}
+
+/*
+ * Images des chantiers : une vignette par chantier, gardée à part de la liste pour ne pas l'alourdir.
+ * Même droit que la liste des chantiers, en lecture comme en écriture.
+ */
+const PHOTO_MAX = 150000; // caractères : la page réduit l'image avant l'envoi
+const ID_LIGNE = /^[a-z0-9]{6,16}$/;
+
+async function idsChantiers(coffre) {
+  const l = await coffre.lirePartage("chantiers");
+  try {
+    return (JSON.parse(l?.valeur || "[]") || []).map((x) => x.id);
+  } catch {
+    return [];
+  }
+}
+
+export async function lirePhotos(coffre, compte, ids) {
+  if (!compte.droits[LISTES.chantiers.droit]) throw new PartageRefuse("Accès non autorisé pour ce profil.", 403);
+  const propres = ids.filter((i) => ID_LIGNE.test(i)).slice(0, 12);
+  return { photos: propres.length ? await coffre.lirePhotos(propres) : {} };
+}
+
+export async function ecrirePhoto(coffre, compte, corps) {
+  if (!compte.droits[LISTES.chantiers.droit]) throw new PartageRefuse("Accès non autorisé pour ce profil.", 403);
+  const id = String(corps?.id || "");
+  if (!ID_LIGNE.test(id) || !(await idsChantiers(coffre)).includes(id)) throw new PartageRefuse("Chantier inconnu.", 404);
+  const image = String(corps?.image || "");
+  if (!image) {
+    await coffre.supprimerPhoto(id);
+    return { ok: true };
+  }
+  if (image.length > PHOTO_MAX || !/^data:image\/(jpeg|webp|png);base64,[A-Za-z0-9+/]+=*$/.test(image)) throw new PartageRefuse("Image refusée : format ou taille non acceptés.");
+  await coffre.ecrirePhoto(id, image, compte.email);
+  return { ok: true };
 }
