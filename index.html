@@ -2983,6 +2983,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     /* un message : pastille aux initiales de l'expéditeur, puis nom et heure, objet, début du texte */
     var TEINTES_MAIL=['#B9A7F5','#F5A7C8','#8FD3F4','#F7C48B','#9BE3B8','#F2A0A0','#A9B8F7','#E3B6F2'];
     window.ligneMail=function(m,auj){
+      auj=auj||isoDe(new Date());
       var d=m.t?new Date(m.t):null, quand=d?(isoDe(d)===auj?p2(d.getHours())+':'+p2(d.getMinutes()):p2(d.getDate())+'/'+p2(d.getMonth()+1)):'';
       var de=String(m.de||'').replace(/<[^>]*>/g,'').replace(/"/g,'').trim()||String(m.de||'').replace(/[<>]/g,'');
       var mots=de.replace(/@.*$/,'').split(/[\s._:-]+/).filter(function(x){ return /[A-Za-zÀ-ÿ]/.test(x.charAt(0)); });
@@ -4003,7 +4004,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       if(M.erreur){ $('mp-liste').innerHTML=vide('Messagerie non disponible ('+esc(M.erreur)+').'); return; }
       if(!M.autorise){ $('mp-liste').innerHTML=vide('Messagerie non reliée.<br>Ouvrez Réglages et touchez « Relier mon agenda Google » pour autoriser Gmail.'); return; }
       var l=M.messages||[];
-      var aujm=isoDe(new Date()); $('mp-liste').innerHTML = l.length ? '<ul class="cc-mails grand">'+l.map(function(m){ return '<li class="'+(m.non_lu?'nl':'')+'">'+window.ligneMail(m,aujm)+'</li>'; }).join('')+'</ul>' : vide('Boîte de réception vide.');
+      var aujm=''; $('mp-liste').innerHTML = l.length ? '<ul class="cc-mails grand">'+l.map(function(m){ return '<li class="'+(m.non_lu?'nl':'')+'">'+window.ligneMail(m,aujm)+'</li>'; }).join('')+'</ul>' : vide('Boîte de réception vide.');
     }
     function peindre(){ if(vu()==='conducteur') dessinerConducteur(); else dessinerChantiers(etatDonnees); dessinerPages(); dessinerDossiers(); }
 
