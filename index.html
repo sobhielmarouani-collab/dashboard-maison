@@ -1002,6 +1002,12 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 .do-t small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .do-t:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--k) 70%,transparent);box-shadow:0 0 22px color-mix(in srgb,var(--k) 40%,transparent)}
 .do-t.choisi{border-color:#3fb6ff;box-shadow:0 0 0 2px rgba(63,182,255,.5),0 0 30px rgba(0,150,255,.65),inset 0 0 20px rgba(0,150,255,.22)}
+/* page Dossiers : « Mes dossiers » sur une seule ligne horizontale ; au-delà de la largeur, la ligne défile */
+#dp-tuiles{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(150px,1fr);grid-template-rows:minmax(0,1fr);min-width:0;gap:10px;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;scrollbar-width:thin}
+#dp-tuiles .do-t b{font-size:19px}
+#dp-tuiles .do-t small{font-size:14px}
+.do-corps{grid-template-rows:262px minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
+.do-bloc{min-width:0}
 .do-tuiles.mini{gap:8px;margin-top:4px}
 .do-tuiles.mini .do-t{border-radius:12px;padding:4px;gap:0}
 .do-tuiles.mini .do-t svg{width:28px;height:28px;margin-bottom:2px}
