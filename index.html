@@ -1008,10 +1008,16 @@ html.perso .ps-cible{outline:3px solid var(--vert)!important;box-shadow:0 0 26px
 #dp-tuiles .do-t small{font-size:14px}
 .do-corps{grid-template-rows:262px minmax(0,1fr);grid-template-columns:minmax(0,1fr)}
 .do-bloc{min-width:0}
-.do-tuiles.mini{gap:8px;margin-top:4px}
+.do-tuiles.mini{gap:8px;height:100%;min-width:0;grid-template-rows:minmax(0,1fr)}
+.do-rail.acc.mini{grid-template-columns:28px 1fr 28px;gap:4px;container-type:normal}
+.do-rail.acc.mini .rond{width:28px;height:28px;font-size:19px;padding:0 0 3px}
+.do-tuiles.mini{gap:6px}
+.do-rail.acc.mini.seul{grid-template-columns:1fr}
+.do-rail.acc.mini.seul .rond{display:none}
 .do-tuiles.mini .do-t{border-radius:12px;padding:4px;gap:0}
 .do-tuiles.mini .do-t svg{width:28px;height:28px;margin-bottom:2px}
-.do-tuiles.mini .do-t b{font-size:13.5px;font-weight:500}
+.do-tuiles.mini .do-t b{font-size:14px;font-weight:500}
+.do-tuiles.mini .do-t svg{width:34px;height:34px}
 .do-rail{flex:1;min-height:0;display:grid;grid-template-columns:52px 1fr 52px;gap:12px;align-items:center}
 .do-rail .rond{width:52px;height:52px;font-size:30px;line-height:1;display:grid;place-items:center;padding:0 0 4px}
 .do-rail .rond:disabled{opacity:.3}
@@ -1237,7 +1243,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       </article>
       <article class="carte cc-bloc" data-pour="direction conducteur secretaire">
         <h2><span><svg class="i"><use href="#n-dossiers"/></svg>Mes dossiers <em id="do-nb"></em></span><button class="cc-lien" type="button" data-aller="dossiers">Voir tout →</button></h2>
-        <div class="do-tuiles mini" id="do-mini"></div>
+        <div class="do-rail acc mini" id="do-rail-mini"><button class="rond" type="button" id="do-prec" aria-label="Dossiers précédents">‹</button><div class="do-tuiles mini" id="do-mini"></div><button class="rond" type="button" id="do-suiv" aria-label="Dossiers suivants">›</button></div>
       </article>
       <article class="carte cc-bloc" data-pour="direction conducteur secretaire">
         <h2><span><svg class="i"><use href="#n-minuteur"/></svg>Minuteur <em id="mi-nb"></em></span><button class="cc-lien" type="button" data-aller="minuteur">Ouvrir →</button></h2>
@@ -3668,7 +3674,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         +'<small>'+esc([c.lieu,(c.dossier||avancement)?'':'dossier non relié'].filter(Boolean).join(' · '))+'</small></div>'; }
     function parFavoris(l){ var fav=favoris(); return l.slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }); }
     /* fenêtre « Chantiers en cours » de l'accueil : les chantiers défilent en cartes, autant que la largeur le permet */
-    var c3Page=0, c3Par=0;
+    var c3Page=0, c3Par=0, miniLarg=0;
     function dessinerChantiers(nd){
       if(!L.chantiers&&reel.profil==='direction') nd='';
       var ch=parFavoris(chantiersVus().filter(function(c){ return c.statut!=='termine'; })), boite=$('c3-liste');
@@ -3679,6 +3685,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       $('c3-prec').disabled=c3Page<=0; $('c3-suiv').disabled=c3Page>=pages-1; $('c3-prec').style.visibility=$('c3-suiv').style.visibility=pages>1?'':'hidden';
       $('c3-points').innerHTML = pages>1 ? Array.apply(null,Array(pages)).map(function(_,i){ return '<i'+(i===c3Page?' class="a"':'')+'></i>'; }).join('') : '';
     }
+    if(window.ResizeObserver) new ResizeObserver(function(){ var l=$('do-rail-mini').clientWidth; if(l&&Math.abs(l-(miniLarg||0))>20){ miniLarg=l; dessinerDossiers(); } }).observe($('do-rail-mini'));
     $('c3-prec').addEventListener('click',function(){ c3Page=Math.max(0,c3Page-1); dessinerChantiers(etatDonnees); });
     $('c3-suiv').addEventListener('click',function(){ c3Page++; dessinerChantiers(etatDonnees); });
     if(window.ResizeObserver) new ResizeObserver(function(){ var b=$('c3-liste'), par=Math.max(1,Math.min(6,Math.floor((b.clientWidth||600)/165))); if(b.clientWidth&&par!==c3Par) dessinerChantiers(etatDonnees); }).observe($('c3-liste'));
@@ -3823,11 +3830,19 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function favoris(){ try{ var f=JSON.parse(lire(CLE_FAV)||'[]'); return Array.isArray(f)?f:[]; }catch(e){ return []; } }
     function tuile(d,i,mini){ var k=DO_ICONE[d.icone]||DO_TEINTES[i%DO_TEINTES.length];
       return '<button type="button" class="do-t'+(d.icone==='casque'&&!mini?' choisi':'')+'" data-dossier="'+i+'" style="--k:'+k+'" title="'+esc(d.lien?'Ouvrir dans Google Drive':'Lien à configurer')+'"><svg class="i"><use href="#do-'+(d.icone||'dossier')+'"/></svg><b>'+esc(d.nom)+'</b>'+(mini?'':'<small>'+esc(d.detail||'')+'</small>')+'</button>'; }
+    var miniPage=0, miniPar=0;
     function dessinerDossiers(){
       if(!$('dp-tuiles')) return;
       var d=dossiersVus(), fav=favoris();
       $('dp-nb').textContent='('+d.length+' dossier'+(d.length>1?'s':'')+')'; $('dp-tuiles').innerHTML=d.slice(0,12).map(function(x,i){ return tuile(x,i,false); }).join('');
-      $('do-nb').textContent='('+d.length+')'; $('do-mini').innerHTML=d.slice(0,8).map(function(x,i){ return tuile(x,i,true); }).join('');
+      // petite fenêtre de l'accueil : seulement « Mes dossiers », sur une ligne ; les chantiers ont déjà leur fenêtre
+      var mini=d.map(function(x,i){ return [x,i]; }).filter(function(y){ return y[0].icone!=='casque'; }).slice(0,12);
+      // autant de tuiles que la largeur le permet, sur une seule ligne ; les flèches font défiler le reste
+      var bm=$('do-mini'), lm=$('do-rail-mini').clientWidth||400, parm=Math.max(1,Math.floor(lm/80)); if(parm<mini.length) parm=Math.max(1,Math.floor((lm-64)/76));
+      var pagesm=Math.max(1,Math.ceil(mini.length/parm)); if(miniPage>=pagesm) miniPage=pagesm-1; miniPar=parm;
+      $('do-rail-mini').classList.toggle('seul',pagesm<2); $('do-prec').disabled=miniPage<=0; $('do-suiv').disabled=miniPage>=pagesm-1;
+      bm.style.gridTemplateColumns='repeat('+Math.min(parm,Math.max(1,mini.length))+',minmax(0,1fr))';
+      $('do-nb').textContent='('+mini.length+')'; bm.innerHTML=mini.slice(miniPage*parm,miniPage*parm+parm).map(function(y){ return tuile(y[0],y[1],true); }).join('');
       var ch=chantiersVus().slice().sort(function(a,b){ return (fav.indexOf(b.nom)>=0)-(fav.indexOf(a.nom)>=0); }), pages=Math.max(1,Math.ceil(ch.length/4)); if(doPage>=pages) doPage=pages-1;
       $('dp-ch-nb').textContent='('+ch.length+' opération'+(ch.length>1?'s':'')+')';
       $('dp-cartes').innerHTML = ch.length ? ch.slice(doPage*4,doPage*4+4).map(function(c){ return carteChantier(c,fav,false); }).join('')
@@ -3839,6 +3854,8 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     document.addEventListener('click',function(e){
       var f=e.target.closest('[data-fav]'), t, c;
       if(f){ var l=favoris(), n=f.getAttribute('data-fav'), i=l.indexOf(n); if(i>=0) l.splice(i,1); else l.push(n); ecrire(CLE_FAV,JSON.stringify(l.slice(-50))); doMsg=''; c3Page=0; dessinerDossiers(); dessinerChantiers(etatDonnees); return; }
+      if(e.target.closest('#do-prec')){ miniPage=Math.max(0,miniPage-1); dessinerDossiers(); return; }
+      if(e.target.closest('#do-suiv')){ miniPage++; dessinerDossiers(); return; }
       if(e.target.closest('#dp-prec')){ doPage=Math.max(0,doPage-1); dessinerDossiers(); return; }
       if(e.target.closest('#dp-suiv')){ doPage++; dessinerDossiers(); return; }
       if((t=e.target.closest('[data-dossier]'))){ var d=dossiersVus()[+t.getAttribute('data-dossier')]; if(!d) return;
