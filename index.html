@@ -1236,7 +1236,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         <ul class="cc-ech" id="e2"></ul>
       </article>
       <article class="carte cc-bloc" data-pour="direction conducteur">
-        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></svg>Mails <em id="m2-nb"></em></span><a class="cc-lien" id="m2-ouvrir" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Gmail →</a></h2>
+        <h2><span><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.500 7l8.500 6.500L20.500 7"/></svg>Mails <em id="m2-nb"></em></span><a class="cc-lien" id="m2-ouvrir" data-messagerie href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="text-decoration:none">Gmail →</a></h2>
         <ul class="cc-mails" id="m2"></ul>
       </article>
       <article class="carte cc-bloc" data-pour="conducteur">
@@ -1526,6 +1526,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         <button class="bouton" type="button" id="pf-avatar">Choisir mon avatar SIGMA</button>
         <button class="bouton" type="button" id="ps-ouvrir">Personnaliser l'accueil et le menu</button>
         <button class="bouton" type="button" id="pf-comptes">Gérer les comptes et les profils</button>
+        <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Ouvrir les mails dans</span><button class="bouton" type="button" id="r-messagerie" style="min-width:210px">Gmail</button></div>
         <div style="display:flex;align-items:center;gap:14px;font-size:20px"><span style="flex:1">Thème</span><button class="bouton" type="button" id="r-theme" style="min-width:210px">Sombre</button></div>
         <button class="bouton" type="button" data-act="ecran">Passer en plein écran</button>
         <h2 style="margin-top:10px">Données</h2>
@@ -2981,6 +2982,17 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
 
     /* ---- mails : les derniers messages de la boîte de réception Gmail, lus par le serveur (rien ne passe par l'assistant) ---- */
     /* un message : pastille aux initiales de l'expéditeur, puis nom et heure, objet, début du texte */
+    /* où s'ouvrent les mails : Gmail dans le navigateur, ou l'application Outlook de l'ordinateur (choix gardé sur cet appareil) */
+    function outlook(){ return lire('dashboard-messagerie')==='outlook'; }
+    function reglerMessagerie(){
+      var o=outlook(); $('r-messagerie').textContent=o?'Outlook · passer à Gmail':'Gmail · passer à Outlook';
+      [].forEach.call(document.querySelectorAll('[data-messagerie]'),function(a){
+        if(o){ a.href='ms-outlook://'; a.removeAttribute('target'); } else { a.href='https://mail.google.com/mail/u/0/#inbox'; a.target='_blank'; }
+        a.textContent = a.id==='m2-ouvrir' ? (o?'Outlook →':'Gmail →') : (o?'Ouvrir Outlook':'Ouvrir Gmail'); });
+    }
+    window.reglerMessagerie=reglerMessagerie;
+    $('r-messagerie').addEventListener('click',function(){ ecrire('dashboard-messagerie',outlook()?'gmail':'outlook'); reglerMessagerie(); mails(); if(window.redessinerMails) window.redessinerMails(); });
+    setTimeout(reglerMessagerie,0);
     var TEINTES_MAIL=['#B9A7F5','#F5A7C8','#8FD3F4','#F7C48B','#9BE3B8','#F2A0A0','#A9B8F7','#E3B6F2'];
     window.ligneMail=function(m,auj){
       auj=auj||isoDe(new Date());
@@ -2989,7 +3001,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       var mots=de.replace(/@.*$/,'').split(/[\s._:-]+/).filter(function(x){ return /[A-Za-zÀ-ÿ]/.test(x.charAt(0)); });
       var ini=((mots[0]||'?').charAt(0)+(mots.length>1?mots[mots.length>2&&mots[1].length<3?2:1].charAt(0):'')).toUpperCase(), h=0;
       for(var i=0;i<de.length;i++) h=(h*31+de.charCodeAt(i))>>>0;
-      return '<a href="https://mail.google.com/mail/u/0/#inbox/'+encodeURIComponent(m.fil||m.id||'')+'" target="_blank" rel="noopener noreferrer" title="'+esc(m.extrait||'')+'"><span class="bu" style="background:'+TEINTES_MAIL[h%TEINTES_MAIL.length]+'">'+esc(ini)+'</span>'
+      return '<a '+(outlook()?'href="ms-outlook://"':'href="https://mail.google.com/mail/u/0/#inbox/'+encodeURIComponent(m.fil||m.id||'')+'" target="_blank" rel="noopener noreferrer"')+' title="'+esc(m.extrait||'')+'"><span class="bu" style="background:'+TEINTES_MAIL[h%TEINTES_MAIL.length]+'">'+esc(ini)+'</span>'
         +'<span class="c"><span class="l1"><b>'+esc(de)+'</b><time>'+quand+'</time></span><span class="l2">'+esc(m.objet||'(sans objet)')+'</span><span class="l3">'+esc(m.extrait||'')+'</span></span></a>';
     };
     function mailsVide(t){ $('m2').innerHTML='<li style="display:block"><p class="cc-nd">'+t+'</p></li>'; $('m2-nb').textContent=''; }
@@ -3811,7 +3823,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         +'<p class="info" id="tp-msg">Les tâches données par la direction apparaissent ici. Une tâche terminée reste affichée, rayée.</p></form></div></section>';
       h+='<section class="vue page pf-page" id="v-mails" data-pour="conducteur secretaire"><div class="entete"><h1><svg class="i"><use href="#n-mails"/></svg>Mails professionnels <small id="mp-nb" style="font-size:22px;font-weight:400;color:var(--discret)"></small></h1><span class="h" data-heure></span></div>'
         +'<div class="corps"><div class="carte"><div id="mp-liste"></div></div><div class="carte form"><h2>Messagerie</h2><p class="info">Votre boîte Gmail, en lecture. Sigma peut résumer vos messages et préparer des brouillons : aucun message n\'est envoyé sans votre validation dans Gmail.</p>'
-        +'<a class="bouton ok" href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="display:grid;place-items:center;text-decoration:none">Ouvrir Gmail</a><button class="bouton" type="button" id="mp-maj">Actualiser</button></div></div></section>';
+        +'<a class="bouton ok" data-messagerie href="https://mail.google.com/mail/u/0/#inbox" target="_blank" rel="noopener noreferrer" style="display:grid;place-items:center;text-decoration:none">Ouvrir Gmail</a><button class="bouton" type="button" id="mp-maj">Actualiser</button></div></div></section>';
       h+='<section class="vue page pf-page" id="v-comptes" data-pour="direction"><div class="entete"><h1><svg class="i"><use href="#n-personnel"/></svg>Comptes et profils</h1><span class="h" data-heure></span></div>'
         +'<div class="corps"><div class="carte"><div id="cp-liste"></div><h2 style="margin:22px 0 8px">Historique</h2><div id="cp-journal"></div></div>'
         +'<form class="carte form" id="cp-form"><h2 id="cp-titre">Ajouter un compte</h2><label for="cp-email">Adresse Google de la personne<input id="cp-email" type="email" autocomplete="off" spellcheck="false" maxlength="250" required></label>'
@@ -3997,8 +4009,9 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function finCompte(){ $('cp-form').reset(); $('cp-email').readOnly=false; $('cp-titre').textContent='Ajouter un compte'; $('cp-annuler').hidden=true; }
     var M=null;
     function chargerMails(){ appelServeur('/mails',{methode:'GET'}).then(function(j){ M=j; dessinerMails(); },function(x){ M={erreur:x.message}; dessinerMails(); }); }
+    window.redessinerMails=function(){ dessinerMails(); };
     function dessinerMails(){
-      if(!$('mp-liste')) return;
+      if(!$('mp-liste')) return; if(window.reglerMessagerie) window.reglerMessagerie();
       if(!M){ $('mp-liste').innerHTML=vide('Chargement…'); return; }
       $('mp-nb').textContent = M.autorise&&M.non_lus!=null ? '('+M.non_lus+' non lu'+(M.non_lus>1?'s':'')+')' : '';
       if(M.erreur){ $('mp-liste').innerHTML=vide('Messagerie non disponible ('+esc(M.erreur)+').'); return; }
