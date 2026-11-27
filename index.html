@@ -441,17 +441,23 @@ h2 svg{color:var(--neon)}
 .cc-bas .cc-fin .cc-anneau{width:108px;height:108px}
 .cc-bas .cc-fin .cc-anneau .c b{font-size:17px}
 .cc-bas .cc-fin .cc-anneau .c small{font-size:12px}
-.cc-mails{list-style:none;padding:0;margin:3px 0 0;flex:1;min-height:0;display:grid;grid-auto-rows:minmax(0,1fr);overflow:hidden}
-.cc-mails li{min-height:0;display:flex}
-.cc-mails a{display:grid;grid-template-columns:10px 1fr auto;column-gap:9px;align-items:center;width:100%;color:inherit;text-decoration:none;border-radius:6px;padding:0 4px;min-width:0}
+.cc-mails{list-style:none;padding:0;margin:3px 0 0;flex:1;min-height:0;display:block;overflow-y:auto;scrollbar-width:thin}
+.cc-mails li{border-top:1px solid var(--trait)}
+.cc-mails li:first-child{border-top:0}
+.cc-mails a{display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:10px;align-items:start;color:inherit;text-decoration:none;border-radius:8px;padding:6px 4px}
 .cc-mails a:hover{background:rgba(0,150,255,.14)}
-.cc-mails i{width:8px;height:8px;border-radius:50%;background:transparent}
-.cc-mails .nl i{background:var(--neon);box-shadow:0 0 6px var(--neon)}
-.cc-mails .c{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15.500px;color:#c9d6e6}
-.cc-mails .c b{font-weight:600;color:var(--texte)}
-.cc-mails .nl .c{color:var(--texte)}
-.cc-mails .nl .c b{font-weight:700}
-.cc-mails time{font-size:13.500px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cc-mails .bu{position:relative;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:14.5px;font-weight:600;color:#1B2440;letter-spacing:.02em}
+.cc-mails .nl .bu::after{content:"";position:absolute;right:-2px;top:-2px;width:10px;height:10px;border-radius:50%;background:var(--neon);box-shadow:0 0 6px var(--neon);border:2px solid #0a1730}
+.cc-mails .c{min-width:0;display:grid;gap:1px;color:inherit;white-space:normal}
+.cc-mails .l1{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:baseline}
+.cc-mails .l1 b{font-size:15.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--texte)}
+.cc-mails .l2{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--texte)}
+.cc-mails .l3{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--discret)}
+.cc-mails .nl .l1 b,.cc-mails .nl .l2{font-weight:700}
+.cc-mails time{font-size:13.5px;color:var(--discret);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cc-mails.grand a{grid-template-columns:48px minmax(0,1fr);column-gap:14px;padding:10px 8px}
+.cc-mails.grand .bu{width:48px;height:48px;font-size:17px}
+.cc-mails.grand .l1 b{font-size:19px}.cc-mails.grand .l2{font-size:17.5px}.cc-mails.grand .l3,.cc-mails.grand time{font-size:15.5px}
 /* ---- page Agenda : calendrier du mois, journée choisie, nouveau rendez-vous ---- */
 .ag-corps{grid-template-columns:1.18fr 1fr .78fr;gap:14px}
 .ag-cal{display:grid;grid-template-rows:auto auto 1fr auto;gap:8px;padding:16px 18px;min-height:0}
@@ -2974,19 +2980,26 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     setInterval(function(){ if(filSurvol||vueActive!=='accueil'||document.hidden) return; if(++filTic>=10){ filTic=0; tournerFil(1); } },1000);
 
     /* ---- mails : les derniers messages de la boîte de réception Gmail, lus par le serveur (rien ne passe par l'assistant) ---- */
+    /* un message : pastille aux initiales de l'expéditeur, puis nom et heure, objet, début du texte */
+    var TEINTES_MAIL=['#B9A7F5','#F5A7C8','#8FD3F4','#F7C48B','#9BE3B8','#F2A0A0','#A9B8F7','#E3B6F2'];
+    window.ligneMail=function(m,auj){
+      var d=m.t?new Date(m.t):null, quand=d?(isoDe(d)===auj?p2(d.getHours())+':'+p2(d.getMinutes()):p2(d.getDate())+'/'+p2(d.getMonth()+1)):'';
+      var de=String(m.de||'').replace(/<[^>]*>/g,'').replace(/"/g,'').trim()||String(m.de||'').replace(/[<>]/g,'');
+      var mots=de.replace(/@.*$/,'').split(/[\s._:-]+/).filter(function(x){ return /[A-Za-zÀ-ÿ]/.test(x.charAt(0)); });
+      var ini=((mots[0]||'?').charAt(0)+(mots.length>1?mots[mots.length>2&&mots[1].length<3?2:1].charAt(0):'')).toUpperCase(), h=0;
+      for(var i=0;i<de.length;i++) h=(h*31+de.charCodeAt(i))>>>0;
+      return '<a href="https://mail.google.com/mail/u/0/#inbox/'+encodeURIComponent(m.fil||m.id||'')+'" target="_blank" rel="noopener noreferrer" title="'+esc(m.extrait||'')+'"><span class="bu" style="background:'+TEINTES_MAIL[h%TEINTES_MAIL.length]+'">'+esc(ini)+'</span>'
+        +'<span class="c"><span class="l1"><b>'+esc(de)+'</b><time>'+quand+'</time></span><span class="l2">'+esc(m.objet||'(sans objet)')+'</span><span class="l3">'+esc(m.extrait||'')+'</span></span></a>';
+    };
     function mailsVide(t){ $('m2').innerHTML='<li style="display:block"><p class="cc-nd">'+t+'</p></li>'; $('m2-nb').textContent=''; }
     function mails(){
       if(!adresseServeur()||!session()){ mailsVide('Mails non disponibles : connectez Sigma dans Réglages.'); return; }
       appelServeur('/mails',{methode:'GET'}).then(function(j){
         if(j.autorise===false){ mailsVide('Mails non reliés : dans Réglages, touchez « Relier de nouveau (agenda et mails) ».'); return; }
-        var l=(j.messages||[]).slice(0,5), auj=isoDe(new Date());
+        var l=(j.messages||[]).slice(0,10), auj=isoDe(new Date());
         $('m2-nb').textContent=j.non_lus!=null?'('+j.non_lus+' non lu'+(j.non_lus>1?'s':'')+')':'';
         if(!l.length){ $('m2').innerHTML='<li style="display:block"><p class="cc-nd">Boîte de réception vide.</p></li>'; return; }
-        $('m2').innerHTML=l.map(function(m){
-          var d=m.t?new Date(m.t):null, quand=d?(isoDe(d)===auj?p2(d.getHours())+':'+p2(d.getMinutes()):p2(d.getDate())+'/'+p2(d.getMonth()+1)):'';
-          var de=String(m.de||'').replace(/<[^>]*>/g,'').replace(/"/g,'').trim()||String(m.de||'').replace(/[<>]/g,'');
-          return '<li class="'+(m.non_lu?'nl':'')+'"><a href="https://mail.google.com/mail/u/0/#inbox/'+encodeURIComponent(m.fil||m.id||'')+'" target="_blank" rel="noopener noreferrer" title="'+esc(m.extrait||'')+'"><i></i><span class="c"><b>'+esc(de)+'</b> · '+esc(m.objet||'')+'</span><time>'+quand+'</time></a></li>';
-        }).join('');
+        $('m2').innerHTML=l.map(function(m){ return '<li class="'+(m.non_lu?'nl':'')+'">'+window.ligneMail(m,auj)+'</li>'; }).join('');
       },function(x){ mailsVide('Mails indisponibles : '+esc((x.message||'erreur').slice(0,90))+'.'); });
     }
     setTimeout(mails,1800); setInterval(function(){ if(!document.hidden) mails(); },5*60*1000);
@@ -3990,7 +4003,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
       if(M.erreur){ $('mp-liste').innerHTML=vide('Messagerie non disponible ('+esc(M.erreur)+').'); return; }
       if(!M.autorise){ $('mp-liste').innerHTML=vide('Messagerie non reliée.<br>Ouvrez Réglages et touchez « Relier mon agenda Google » pour autoriser Gmail.'); return; }
       var l=M.messages||[];
-      $('mp-liste').innerHTML = l.length ? '<table class="pf-tab"><tbody>'+l.map(function(m){ return '<tr><td style="width:26%;font-weight:'+(m.non_lu?700:400)+'">'+esc(m.de||'')+'</td><td style="font-weight:'+(m.non_lu?700:400)+'">'+esc(m.objet||'(sans objet)')+'<div style="font-size:15px;font-weight:400;color:var(--discret)">'+esc(m.extrait||'')+'</div></td></tr>'; }).join('')+'</tbody></table>' : vide('Boîte de réception vide.');
+      var aujm=isoDe(new Date()); $('mp-liste').innerHTML = l.length ? '<ul class="cc-mails grand">'+l.map(function(m){ return '<li class="'+(m.non_lu?'nl':'')+'">'+window.ligneMail(m,aujm)+'</li>'; }).join('')+'</ul>' : vide('Boîte de réception vide.');
     }
     function peindre(){ if(vu()==='conducteur') dessinerConducteur(); else dessinerChantiers(etatDonnees); dessinerPages(); dessinerDossiers(); }
 
@@ -4217,6 +4230,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     var mesure=document.createRange();
     function deborde(z){
       // quelques pixels de dépassement existent déjà dans la mise en page d'origine : on ne réagit qu'au-delà
+      if(z.classList.contains('cc-mails')) return false;   // la liste des mails défile : on ne la rapetisse pas
       if(z.scrollHeight>z.clientHeight+8||z.scrollWidth>z.clientWidth+8) return true;
       var l=z.querySelectorAll('*'), n=Math.min(l.length,400);
       for(var i=0;i<n;i++){ var e=l[i]; if(!e.clientWidth||e.closest('.cc-mails,.barre-p,.cc-fil,svg,canvas,.bar,.cc-anneau,.pf-al span span,.cc-sem,.cc-mois,#p2-vues,.rdv-bouton,.cal-leg,.do-rail,.do-points')) continue;
