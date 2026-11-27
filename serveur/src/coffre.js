@@ -58,6 +58,14 @@ export class Coffre extends DurableObject {
         valeur TEXT NOT NULL,
         PRIMARY KEY (email, cle)
       );
+      CREATE TABLE IF NOT EXISTS idees (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        auteur     TEXT NOT NULL,
+        auteur_nom TEXT NOT NULL,
+        texte      TEXT NOT NULL,
+        quand      INTEGER NOT NULL,
+        etat       TEXT NOT NULL DEFAULT 'nouvelle'
+      );
       CREATE TABLE IF NOT EXISTS photos (
         id      TEXT PRIMARY KEY,
         donnee  TEXT NOT NULL,
@@ -157,6 +165,31 @@ export class Coffre extends DurableObject {
 
   ecrirePartage(cle, valeur, auteur) {
     this.sql.exec("INSERT INTO partage (cle, valeur, modifie, auteur) VALUES (?, ?, ?, ?) ON CONFLICT(cle) DO UPDATE SET valeur = excluded.valeur, modifie = excluded.modifie, auteur = excluded.auteur", cle, valeur, Date.now(), auteur);
+  }
+
+  /* ---------- boîte à idées (règles d'accès dans idees.js) ---------- */
+
+  /* auteur null : toutes les idées (direction). Sinon celles de cette adresse. */
+  listerIdees(auteur) {
+    return auteur
+      ? this.sql.exec("SELECT * FROM idees WHERE auteur = ? ORDER BY id DESC LIMIT 200", auteur).toArray()
+      : this.sql.exec("SELECT * FROM idees ORDER BY id DESC LIMIT 200").toArray();
+  }
+
+  lireIdee(id) {
+    return this.sql.exec("SELECT * FROM idees WHERE id = ?", id).toArray()[0] || null;
+  }
+
+  creerIdee(auteur, nom, texte) {
+    this.sql.exec("INSERT INTO idees (auteur, auteur_nom, texte, quand) VALUES (?, ?, ?, ?)", auteur, nom, texte, Date.now());
+  }
+
+  etatIdee(id, etat) {
+    this.sql.exec("UPDATE idees SET etat = ? WHERE id = ?", etat, id);
+  }
+
+  supprimerIdee(id) {
+    this.sql.exec("DELETE FROM idees WHERE id = ?", id);
   }
 
   /* ---------- images des chantiers (droits vérifiés dans partage.js) ---------- */

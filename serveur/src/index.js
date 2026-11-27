@@ -32,6 +32,8 @@
  *   POST /taches             (session) { action: creer|cocher|modifier|supprimer|importer|lu, … } → liste à jour
  *   GET  /partage            (session) ?cles=chantiers,alertes… → { listes, refuses }   listes partagées, selon les droits
  *   POST /partage            (session) { cle, lignes } → remplace une liste (droit vérifié, lignes nettoyées)
+ *   GET  /idees              (session) → { idees, gestion, nouvelles }   boîte à idées : les siennes, ou toutes pour la direction
+ *   POST /idees              (session) { action: creer|etat|supprimer, … } → même réponse
  *   GET  /photos             (session) ?ids=a,b → { photos: { id: image } }   images des chantiers (droit « chantiers »)
  *   POST /photos             (session) { id, image } → pose ou retire (image vide) l'image d'un chantier
  *   GET  /comptes            (direction) → { comptes, profils, droits }
@@ -51,6 +53,7 @@ import { demanderAuModele, nettoyerHistorique, LONGUEUR_MAX_PHRASE } from "./mod
 import { lireRubriques, enregistrerRubriques, validerRubriques, trouverRubrique, lireRubrique, lireFlux, RUBRIQUES_PAR_DEFAUT } from "./actualites.js";
 import { compteDe, validerCompte, listerComptes, PROFILS, DROITS } from "./comptes.js";
 import { lireTaches, agirTache, TacheRefusee } from "./taches.js";
+import { listerIdees, agirIdee, IdeeRefusee } from "./idees.js";
 import { lirePartage, ecrirePartage, lirePhotos, ecrirePhoto, PartageRefuse, LISTES } from "./partage.js";
 import { boiteReception } from "./gmail.js";
 import { synthetiser, VoixNonConfiguree, LONGUEUR_MAX_VOIX } from "./voix.js";
@@ -433,6 +436,7 @@ const ROUTES = {
   "/taches": ["GET", "POST"],
   "/partage": ["GET", "POST"],
   "/photos": ["GET", "POST"],
+  "/idees": ["GET", "POST"],
   "/comptes": ["GET", "POST"],
   "/journal": "GET",
 };
@@ -514,6 +518,25 @@ export default {
       } catch (e) {
         if (e instanceof PartageRefuse) return json({ erreur: e.message }, e.statut, autorisee);
         console.error("Partage :", e);
+        return json({ erreur: "Erreur du serveur." }, 500, autorisee);
+      }
+    }
+    if (chemin === "/idees") {
+      const c = coffre(env);
+      try {
+        if (requete.method === "POST") {
+          let corps;
+          try {
+            corps = await lireCorps(requete);
+          } catch {
+            return json({ erreur: "Corps JSON invalide." }, 400, autorisee);
+          }
+          await agirIdee(c, compte, corps);
+        }
+        return json(await listerIdees(c, compte), 200, autorisee);
+      } catch (e) {
+        if (e instanceof IdeeRefusee) return json({ erreur: e.message }, e.statut, autorisee);
+        console.error("Idées :", e);
         return json({ erreur: "Erreur du serveur." }, 500, autorisee);
       }
     }

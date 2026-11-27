@@ -1032,6 +1032,28 @@ html[data-theme="clair"] .do-c .reg{background:rgba(255,255,255,.75);color:#0B1B
 .rg-b{display:grid;gap:10px}
 #rg-form label{display:grid;gap:6px;font-size:18px}
 #rg-form .rang{display:flex;gap:12px}
+#cc-idee svg{color:#FFB020}
+/* barre du haut : un bouton de plus, tout doit tenir dans la largeur sans rien pousser hors de l'écran */
+.cc-tete{gap:12px}
+.cc-outils{flex:none}
+.cc-tete .cc-rond{width:46px;height:46px}
+.cc-tete .cc-rond svg{width:29px;height:29px}
+.cc-date{font-size:21px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cc-meteo{gap:8px;padding:4px;min-width:0}
+.cc-meteo>svg{width:50px;height:50px}
+#id-form{display:grid;gap:12px}
+#id-form label{display:grid;gap:6px;font-size:18px}
+#id-form textarea{resize:none;font:inherit;font-size:19px;padding:10px 12px;border-radius:12px;background:var(--champ);border:1px solid var(--trait);color:inherit}
+#id-form .rang{display:flex;gap:12px;align-items:center}
+#id-voile h4{font-size:20px;font-weight:600;margin:0}
+#id-liste{list-style:none;margin:0;padding:0;display:grid;gap:8px;max-height:400px;overflow:auto}
+#id-liste li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:12px;background:var(--creux);border:1px solid var(--trait)}
+#id-liste li p{margin:0;font-size:18px;line-height:1.3;overflow-wrap:anywhere}
+#id-liste li small{grid-column:1;font-size:14.5px;color:var(--discret)}
+#id-liste li .act{grid-row:1/3;grid-column:2;display:flex;gap:8px;align-items:center}
+#id-liste li select{font:inherit;font-size:16px;padding:6px 8px;border-radius:10px;background:var(--champ);border:1px solid var(--trait);color:inherit}
+#id-liste li .x{width:36px;height:36px;border-radius:10px;border:1px solid var(--trait);background:none;color:inherit;font-size:18px;cursor:pointer}
+#id-liste .cc-nd{display:block;text-align:center}
 .do-c b{font-size:20px;font-weight:600;padding:4px 6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .do-c small{font-size:15px;color:color-mix(in srgb,var(--texte) 80%,var(--discret));padding:0 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .do-points{display:flex;justify-content:center;gap:8px;min-height:12px;margin-top:8px}
@@ -1119,6 +1141,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         <button class="cc-rond" type="button" id="cc-chercher" aria-label="Recherche"><svg class="i" viewBox="0 0 24 24"><circle cx="10.500" cy="10.500" r="6.500"/><path d="M15.500 15.500L21 21"/></svg></button>
         <button class="cc-rond" type="button" id="cc-theme" aria-label="Thème clair ou sombre" title="Thème clair ou sombre"><svg class="i soleil" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.500M12 19v2.500M2.500 12H5M19 12h2.500M5.300 5.300l1.800 1.800M16.900 16.900l1.800 1.800M5.300 18.700l1.800-1.800M16.900 7.100l1.800-1.800"/></svg><svg class="i lune" viewBox="0 0 24 24"><path d="M20 14.500A8 8 0 0 1 9.500 4a8 8 0 1 0 10.500 10.500z"/></svg></button>
         <button class="cc-rond" type="button" id="cc-plein" aria-label="Plein écran" title="Plein écran (touche F)"><svg class="i" viewBox="0 0 24 24"><path id="cc-plein-i" d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+        <button class="cc-rond" type="button" id="cc-idee" aria-label="Proposer une idée" title="Proposer une idée pour améliorer le tableau de bord"><svg class="i" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.600 10.800c.700.600 1.100 1.300 1.100 2.200h5c0-.900.400-1.600 1.100-2.200A6 6 0 0 0 12 3z"/></svg><span class="nb" id="cc-idee-nb" hidden>0</span></button>
         <button class="cc-rond" type="button" id="cc-cloche" aria-label="Notifications"><svg class="i" viewBox="0 0 24 24"><path d="M6 16V10.500a6 6 0 0 1 12 0V16l1.500 2h-15zM10 20.500a2 2 0 0 0 4 0"/></svg><span class="nb" id="cc-nb" hidden>0</span></button>
         <button class="cc-profil" type="button" id="cc-profil" data-aller="reglages" aria-label="Profil et réglages"><span id="cc-initiales">–</span><i></i></button>
       </div>
@@ -1482,6 +1505,15 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
 
   <nav class="bas" id="nav" aria-label="Navigation"></nav>
   <div id="ps-barre" hidden><div><span><b>Personnalisation</b> · glissez une fenêtre sur une autre pour les échanger · tirez les traits jaunes pour les tailles</span><button class="bouton" type="button" id="ps-b-fen" aria-expanded="false">Fenêtres visibles ▾</button><button class="bouton" type="button" id="ps-b-menu" aria-expanded="false">Boutons du menu ▾</button><button class="bouton" type="button" id="ps-raz">Disposition d'origine</button><button class="bouton ok" type="button" id="ps-fin">Terminer</button></div><div id="ps-choix" hidden><div id="ps-liste"></div><span id="ps-msg"></span></div><span id="ps-res" hidden></span></div>
+  <div class="voile" id="id-voile">
+    <div class="boite" style="width:860px;max-height:900px">
+      <h3 style="display:flex;align-items:center;gap:12px"><svg class="i" viewBox="0 0 24 24" style="width:34px;height:34px;color:#FFB020"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.600 10.800c.700.600 1.100 1.300 1.100 2.200h5c0-.900.400-1.600 1.100-2.200A6 6 0 0 0 12 3z"/></svg>Boîte à idées</h3>
+      <form id="id-form"><label for="id-texte">Votre idée pour améliorer le tableau de bord<textarea id="id-texte" maxlength="500" rows="3" placeholder="Exemple : ajouter la météo de chaque chantier…"></textarea></label>
+        <div class="rang"><button class="bouton ok" type="submit">Envoyer mon idée</button><button class="bouton" type="button" data-fermer>Fermer</button><span class="info" id="id-msg"></span></div></form>
+      <h4 id="id-titre"></h4>
+      <ul id="id-liste"></ul>
+    </div>
+  </div>
   <div class="voile" id="rg-voile">
     <form class="boite" id="rg-form" style="width:700px">
       <h3 id="rg-titre"></h3>
@@ -3587,6 +3619,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function charger(forcer){
       if(!adresseServeur()||!session()){ etatDonnees='Connexion à configurer dans Réglages.'; peindre(); return; }
       if(!forcer&&Date.now()-dernier<25000) return; dernier=Date.now();
+      chargerIdees();
       if(vu()==='direction'){ appelServeur('/partage?cles=chantiers,dossiers',{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); chargerPhotos(); },function(){ peindre(); }); appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){}); return; }
       appelServeur('/partage?cles='+Object.keys(DEFS).join(','),{methode:'GET'}).then(function(j){ L=j.listes||{}; etatDonnees=''; surChantiersRecus(); peindre(); chargerPhotos(); },function(x){ etatDonnees='Données non disponibles ('+(x.message||'erreur')+').'; peindre(); });
       appelServeur('/taches',{methode:'GET'}).then(function(j){ T=j; peindre(); },function(){});
@@ -3812,6 +3845,26 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         if(peutRegler(x)){ ouvrirReglage(x.id); return; }
         doMsg='Aucun dossier Drive relié à « '+x.nom+' ».'; if(vueActive!=='dossiers') aller('dossiers'); dessinerDossiers(); }
     });
+
+    /* ---- boîte à idées : chacun propose, la direction lit toutes les idées et leur donne une suite ---- */
+    var ID={idees:[],gestion:false,nouvelles:0}, ETATS_IDEE={nouvelle:['Nouvelle','#00BFFF'],retenue:['Retenue','#FFB020'],faite:['Faite','#00E5A0'],ecartee:['Écartée','#8FA3BF']};
+    function dessinerIdees(){
+      $('cc-idee-nb').hidden=!ID.nouvelles; $('cc-idee-nb').textContent=ID.nouvelles;
+      $('id-titre').textContent = ID.gestion ? 'Idées de l\'équipe'+(ID.idees.length?' ('+ID.idees.length+')':'') : 'Mes idées envoyées';
+      $('id-liste').innerHTML = ID.idees.length ? ID.idees.map(function(i){ var e=ETATS_IDEE[i.etat]||ETATS_IDEE.nouvelle, d=new Date(i.quand);
+        return '<li><p>'+esc(i.texte)+'</p><small>'+esc(ID.gestion?(i.mienne?'Vous':i.de):'Envoyée')+' · '+p2(d.getDate())+'/'+p2(d.getMonth()+1)+'/'+d.getFullYear()+'</small><span class="act">'
+          +(ID.gestion ? '<select data-idee-etat="'+i.id+'" aria-label="Suite donnée">'+Object.keys(ETATS_IDEE).map(function(k){ return '<option value="'+k+'"'+(k===i.etat?' selected':'')+'>'+ETATS_IDEE[k][0]+'</option>'; }).join('')+'</select>' : etq(e[0],e[1]))
+          +((ID.gestion||i.etat==='nouvelle')?'<button type="button" class="x" data-idee-suppr="'+i.id+'" aria-label="Supprimer cette idée" title="Supprimer">✕</button>':'')+'</span></li>'; }).join('')
+        : '<li class="cc-nd">'+(ID.gestion?'Aucune idée reçue pour le moment.':'Vous n\'avez pas encore envoyé d\'idée.')+'</li>';
+    }
+    function chargerIdees(){ if(!adresseServeur()||!session()) return; appelServeur('/idees',{methode:'GET'}).then(function(j){ ID=j; dessinerIdees(); },function(){}); }
+    function idee(corps,ok){ $('id-msg').textContent='Envoi…'; appelServeur('/idees',{corps:corps}).then(function(j){ ID=j; dessinerIdees(); $('id-msg').textContent=ok||''; },function(z){ $('id-msg').textContent='Non enregistré : '+(z.message||'erreur')+'.'; }); }
+    $('cc-idee').addEventListener('click',function(){ $('id-msg').textContent=(adresseServeur()&&session())?'':'Connectez-vous dans Réglages pour envoyer une idée.'; dessinerIdees(); chargerIdees(); $('id-voile').classList.add('ouvert'); setTimeout(function(){ $('id-texte').focus(); },60); });
+    $('id-voile').addEventListener('click',function(e){ var b; if(e.target===this||e.target.closest('[data-fermer]')){ this.classList.remove('ouvert'); return; }
+      if((b=e.target.closest('[data-idee-suppr]'))) idee({action:'supprimer',id:+b.getAttribute('data-idee-suppr')},'Idée supprimée.'); });
+    $('id-voile').addEventListener('change',function(e){ var x=e.target.closest('[data-idee-etat]'); if(x) idee({action:'etat',id:+x.getAttribute('data-idee-etat'),etat:x.value},'Enregistré.'); });
+    $('id-form').addEventListener('submit',function(e){ e.preventDefault(); var t=$('id-texte').value.trim(); if(t.length<3){ $('id-msg').textContent='Écrivez votre idée en quelques mots.'; return; }
+      $('id-msg').textContent='Envoi…'; appelServeur('/idees',{corps:{action:'creer',texte:t}}).then(function(j){ ID=j; dessinerIdees(); $('id-texte').value=''; $('id-msg').textContent='Merci, votre idée est envoyée à la direction.'; },function(z){ $('id-msg').textContent='Non envoyée : '+(z.message||'erreur')+'.'; }); });
 
     /* ---- fiche « image et dossier » d'un chantier ---- */
     var rgId='', rgImage=null;   // rgImage : null = inchangée, '' = à retirer, sinon la nouvelle image réduite
