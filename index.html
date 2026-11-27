@@ -1044,6 +1044,17 @@ html[data-theme="clair"] .do-c .reg{background:rgba(255,255,255,.75);color:#0B1B
 #rg-form label{display:grid;gap:6px;font-size:18px}
 #rg-form .rang{display:flex;gap:12px}
 #cc-idee svg{color:#FFB020}
+/* page Chantiers : cartes avec image, statut, avancement et dossier Drive */
+.pc-cartes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pc-c{grid-template-rows:170px auto auto auto auto auto;gap:5px;padding:8px 8px 10px}
+.pc-c b{font-size:19px}
+.pc-c .av{padding:4px 6px 0}
+.pc-c .av .bar{height:8px}
+.pc-c .av em{font-size:17px}
+.pc-c .dr{padding:2px 6px;font-size:15px;color:var(--discret);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc-c .dr.oui{color:var(--neon);font-weight:600}
+.pc-c .ac{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 4px 0}
+.pc-c .ac .bouton{height:40px;padding:0;font-size:15px}
 /* barre du haut : un bouton de plus, tout doit tenir dans la largeur sans rien pousser hors de l'écran */
 .cc-tete{gap:12px}
 .cc-outils{flex:none}
@@ -3806,6 +3817,17 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
     function dessinerPages(){
       $('pf-chantiers').innerHTML=lignes('chantiers').map(function(c){ return '<option value="'+esc(c.nom)+'">'; }).join('');
       Object.keys(DEFS).forEach(function(cle){ var d=DEFS[cle], l=lignes(cle);
+        if(cle==='chantiers'&&!etatDonnees&&l.length){ var fv=favoris();
+          // les chantiers se présentent en cartes : image, statut, avancement et dossier Drive
+          $('pl-'+cle).innerHTML='<div class="pc-cartes">'+l.map(function(x){ var st=STATUTS[x.statut]||STATUTS.en_cours, f=fv.indexOf(x.nom)>=0, ph=photoDe(x);
+            return '<div class="do-c pc-c" data-chantier="'+esc(x.nom)+'"><span class="vg'+(ph?' ph':'')+'">'+(ph?'<img src="'+ph+'" alt="">':'<svg class="i"><use href="#n-chantiers"/></svg>')+etq(st[0],st[1])
+              +'<button type="button" class="reg" data-regler="'+esc(x.id)+'" aria-label="Image et dossier du chantier" title="Image et dossier du chantier">✎</button>'
+              +'<button type="button" class="fav'+(f?' oui':'')+'" data-fav="'+esc(x.nom)+'" aria-label="Favori" aria-pressed="'+f+'">'+(f?'★':'☆')+'</button></span>'
+              +'<b>'+esc(x.nom)+'</b><small>'+esc(x.lieu||'Commune non renseignée')+'</small>'
+              +'<span class="av"><span class="bar"><i style="width:'+x.avancement+'%"></i></span><em>'+x.avancement+' %</em></span>'
+              +'<span class="dr'+(x.dossier?' oui':'')+'">'+(x.dossier?'Ouvrir le dossier Drive ↗':'Dossier Drive non relié')+'</span>'
+              +'<span class="ac"><button class="bouton" type="button" data-modif="chantiers" data-id="'+x.id+'">Modifier</button><button class="bouton danger" type="button" data-suppr="chantiers" data-id="'+x.id+'">Supprimer</button></span></div>'; }).join('')+'</div>';
+          return; }
         $('pl-'+cle).innerHTML = etatDonnees ? vide(etatDonnees) : l.length ? '<table class="pf-tab"><thead><tr>'+d.champs.map(function(c){ return '<th>'+c[1]+'</th>'; }).join('')+'<th></th></tr></thead><tbody>'
           +l.map(function(x){ return '<tr>'+d.champs.map(function(c){ return '<td>'+valeur(c,x)+'</td>'; }).join('')+'<td class="a"><button class="bouton" type="button" data-modif="'+cle+'" data-id="'+x.id+'">Modifier</button><button class="bouton danger" type="button" data-suppr="'+cle+'" data-id="'+x.id+'">Supprimer</button></td></tr>'; }).join('')+'</tbody></table>'
           : vide('Rien de saisi pour le moment.');
@@ -3862,6 +3884,7 @@ html[data-theme="clair"] .do-c .fav{background:rgba(255,255,255,.75);color:#0B1B
         if(vueActive!=='dossiers'){ aller('dossiers'); return; }
         doMsg = d.icone==='casque' ? '' : (reel.profil==='direction' ? 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré : ouvrez « Configurer les dossiers ».' : 'Le lien du dossier « '+d.nom+' » n\'est pas encore enregistré par la direction.'); dessinerDossiers(); return; }
       if((t=e.target.closest('[data-regler]'))){ ouvrirReglage(t.getAttribute('data-regler')); return; }
+      if(e.target.closest('[data-modif],[data-suppr]')) return;
       if((c=e.target.closest('[data-chantier]'))){ var x=chantiersVus().filter(function(y){ return y.nom===c.getAttribute('data-chantier'); })[0]; if(!x) return;
         if(x.dossier){ window.open(x.dossier,'_blank','noopener'); return; }
         if(peutRegler(x)){ ouvrirReglage(x.id); return; }
